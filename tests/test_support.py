@@ -14,7 +14,7 @@ from maimai_report.render import build_html, enrich_report
 BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com"
 SUPPORT = {
     "provider": "buy_me_a_coffee",
-    "id": "russin",
+    "id": "synthetic-test",
     "label": "Buy me a maimai credit",
     "description": "Support me on Buy me a coffee!",
     "color": "#5F7FFF",
@@ -79,7 +79,7 @@ class SupportRendererTests(unittest.TestCase):
         report, after_payload = load_scenario("complete")
         invalid_cases = (
             ({**SUPPORT, "provider": "other"}, "provider"),
-            ({**SUPPORT, "id": 'russin"><script'}, "ID"),
+            ({**SUPPORT, "id": 'synthetic-test"><script'}, "ID"),
             ({**SUPPORT, "color": "blue"}, "color"),
             ({**SUPPORT, "extra": "value"}, "Unknown support"),
         )
@@ -102,14 +102,14 @@ class SupportConfigurationTests(unittest.TestCase):
         config = load_config(
             None,
             environ={
-                "MAIMAI_REPORT_BUY_ME_A_COFFEE_ID": "russin",
+                "MAIMAI_REPORT_BUY_ME_A_COFFEE_ID": "synthetic-test",
                 "MAIMAI_REPORT_SUPPORT_LABEL": "Buy me a maimai credit",
                 "MAIMAI_REPORT_SUPPORT_DESCRIPTION": "Support me on Buy me a coffee!",
                 "MAIMAI_REPORT_SUPPORT_COLOR": "#5f7fff",
             },
         )
 
-        self.assertEqual(config.buy_me_a_coffee_id, "russin")
+        self.assertEqual(config.buy_me_a_coffee_id, "synthetic-test")
         self.assertEqual(
             _support(config),
             {
@@ -124,7 +124,7 @@ class SupportConfigurationTests(unittest.TestCase):
             config_path.write_text(
                 """
 [support]
-buy_me_a_coffee_id = "russin"
+buy_me_a_coffee_id = "synthetic-test"
 label = "Buy me a maimai credit"
 description = "Support me on Buy me a coffee!"
 color = "#5F7FFF"
@@ -133,7 +133,7 @@ color = "#5F7FFF"
             )
             config = load_config(config_path, environ={})
 
-        self.assertEqual(config.buy_me_a_coffee_id, "russin")
+        self.assertEqual(config.buy_me_a_coffee_id, "synthetic-test")
         self.assertEqual(_support(config), SUPPORT)
 
     def test_empty_id_keeps_support_disabled(self) -> None:

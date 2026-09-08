@@ -8,6 +8,14 @@ from maimai_report.render import render_demo
 
 
 class PublicPreviewTests(unittest.TestCase):
+    def test_readme_includes_a_browser_capture_of_each_report_view(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        for view in ("desktop", "scores", "pools", "targets", "mobile"):
+            with self.subTest(view=view):
+                image = Path(f"docs/images/demo-{view}.png")
+                self.assertIn(image.as_posix(), readme)
+                self.assertEqual(image.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
     def test_public_sample_is_exactly_the_bundled_fictional_demo(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             generated = render_demo(Path(directory, "demo.html")).read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 # Security policy
 
-This project processes credentials and personal play data. Treat security and privacy regressions as product failures, even when they do not enable code execution.
+This project processes credentials and personal play data. Privacy leaks are
+security issues, including accidental publication of a report or account details.
 
 ## Supported version
 
@@ -65,7 +66,7 @@ composite-action step through GitHub secrets. R2 buckets, Worker alternate domai
 Access and exact binding identities are verified before a retained release.
 
 The installation ZIP uses an explicit seven-file allowlist. Do not add generated
-Wrangler output, private operation artifacts or real report evidence to it. Public
+Wrangler output, private operation artifacts or real player reports to it. Public
 source code and private operation are separate: the caller's privacy check uses
 the caller repository's visibility, not that of this product repository.
 

@@ -1,14 +1,12 @@
-# Completed report presentation
+# Report presentation
 
-The compact scorecard is the presentation system for all four views.
-The rating calculations remain authoritative. This guide describes the shipped
-interface; internal design checkpoints are not part of the release. See
-[visual compatibility](VISUAL_PORT.md) for the exact preserved assets and the
-deliberate rating-frame/demo-artwork differences.
+The report has four views: Scorecard, Rating pools, Scores and Targets. This guide
+maps its data and controls to those views. See [visual compatibility](VISUAL_PORT.md)
+for artwork choices and the fictional sample report.
 
 ## Data and behavior destinations
 
-| Retained feature | Destination |
+| Feature | Destination |
 |---|---|
 | Player, date, local time, duration; reconstructed rating and change | Scorecard namecard and session receipt |
 | Rating tier and next-tier progress | All 12 original embedded tier frames (or an explicit local/CSS pack); HTML digits and accessible progress bar |
@@ -27,8 +25,8 @@ deliberate rating-frame/demo-artwork differences.
 | Threshold targets, estimates, floor and exploration quests | Targets; top opportunities also on Scorecard; uncounted targets open directly |
 | Coaching | Timing guidance beside timing; model guidance beside pools; practice guidance beside difficulty analysis |
 | Four views, linked overview actions, keyboard tabs | Persistent desktop tabs and mobile bottom navigation; arrow, Home and End keys |
-| Print/B50 caller integration | Exact original button and handler replacement literals preserved |
-| Footer checkout | Existing support.js/support.css; lazy isolated cross-origin iframe, original attributes and focus behavior |
+| Print/B50 integration | Print control or optional B50 image download, according to the installation's configuration |
+| Footer checkout | Lazy isolated cross-origin iframe with keyboard focus handling |
 | Empty/incomplete reports | Same renderer; fictional fixtures in offline tests and browser CI |
 
 ## Implementation and dependencies
@@ -37,8 +35,6 @@ Presentation stays HTML, CSS and vanilla JavaScript. Native selects and dialogs
 provide normal keyboard behavior; native modal dialogs keep focus out of the
 background. CSS handles reflow, system fonts and reduced motion. There is no
 frontend framework, remote font, runtime API, tracker or third-party parent script.
-A frontend framework would not itself improve the hierarchy and would add a
-bundling dependency to this self-contained report.
 
 The optional build-time `artwork` extra adds pinned Pillow. It downloads only
 public static catalogue/artwork files, matches normalized title **and artist**
@@ -59,17 +55,15 @@ combined filters, complete before/after pools, PB comparisons, direct target
 navigation, dialog closure/focus, keyboard tabs, reduced motion, 200% text reflow,
 page overflow, WCAG A/AA automated checks and exact B50 download bytes. The BMC
 origin is intercepted with a synthetic cross-origin page; provider payments are
-never exercised. Screenshots are captured for review. They are **not** a claim
-of pixel-golden regression coverage or a complete manual accessibility audit.
+never exercised. Screenshots support visual review; automated checks do not replace
+a manual accessibility audit.
 
-Browser CI builds its own allowlisted fictional files. It cannot read retained
-private snapshots and uploads only its synthetic result directory. Retained real
-reports and their screenshots are reviewed separately and stay outside source.
+Browser CI builds and uploads only fictional reports and screenshots. Do not add
+real reports or private snapshots to its inputs.
 
-To run the contributor gates:
+After the [development setup](../CONTRIBUTING.md#development-environment), run:
 
 ```console
-python -m pip install ".[artwork]" ruff==0.16.5
 ruff check .
 ruff format --check .
 python -m unittest discover -s tests -v
@@ -80,17 +74,13 @@ npx playwright install --with-deps chromium webkit
 npm test
 ```
 
-## Known analytical limitations, unchanged
+## Analytical limitations
 
 - Difficulty-band averages aggregate retained plays across chart types and
   versions; the existing exploration quest recommends current-version charts
-  from that sample. The UI explains this scope. Recommendation logic is unchanged.
+  from that sample. The UI explains this scope.
 - Raw PB chart gains are not net account gains: counted-pool replacement matters.
 - The bundled synthetic demo computes its summaries from invented before/after
   inputs using the production model; its totals, grades and pool rows agree.
-- The existing caller B50 renderer re-renders retained pools using its pinned
-  Tomomai implementation and public catalogue. It is not changed by this redesign.
-
-No report data, caller pin, deployment, Access policy, checkout code, rating
-calculation, target formula or score-import sequence is changed by this work.
-The action gains optional public artwork preparation after its existing import.
+- The optional B50 renderer uses retained pools, a pinned Tomomai implementation
+  and its public catalogue. It is separate from the HTML report renderer.

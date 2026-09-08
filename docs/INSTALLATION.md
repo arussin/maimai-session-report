@@ -11,7 +11,7 @@ zone and database IDs. TOML is a file format, not encryption or access control.
 Credentials belong only in GitHub Actions secrets. The shared example contains
 fictional values; your completed file must never be copied into the product repo.
 
-This guide describes the new installation interface. The standalone CLI and older
+This guide describes the hosted installation interface. The standalone CLI and older
 root, `render/`, `archive/` and `history/` actions remain compatible. Existing owners
 should follow [the migration notes](INSTALLATION_MIGRATION.md), not bootstrap again.
 
@@ -37,16 +37,16 @@ and a hostname. You can add it after you have a local report working.
   preparation uses the `artwork` extra. The optional B50 adapter uses pinned
   Tomomai and pnpm dependencies.
 
-Use the installation ZIP and SHA-256 checksum **if attached** to the selected
-reviewed release, or download `maimai-installation-package` from its successful CI
-run. Some earlier tags contain source only. From a reviewed source checkout,
+Use the installation ZIP and SHA-256 checksum if attached to the selected
+release, or download `maimai-installation-package` from its successful CI
+run. From a source checkout whose CI passed,
 `git rev-parse HEAD` prints the full SHA to use when building the same package:
 
 ```console
 python scripts/package_installation.py --commit FULL_40_CHARACTER_CORE_SHA --output dist/maimai-installation.zip
 ```
 
-The argument must be the commit that was reviewed and tested, not a branch name.
+Use the full tested commit SHA, not a branch name.
 Extract the ZIP at the root of your new private repository, including its
 `.github` directory, then commit those seven files. Do not use GitHub's repository
 "Use this template" feature on the product repository: that would copy the entire
@@ -54,8 +54,7 @@ product instead of the small installation package.
 
 Commit the workflows to the new installation's default branch before trying its
 manual operations. GitHub requires a `workflow_dispatch` workflow on that branch;
-adding it only to a new PR does not make **Run workflow** available. This is a
-new-installation step, not permission to merge an existing production migration.
+adding it only to a new PR does not make **Run workflow** available.
 See [GitHub's manual workflow instructions](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow).
 
 All four workflows use the same full core SHA. There is no second version lockfile,
@@ -87,20 +86,19 @@ version is still private, its action-sharing settings restrict who can use it. S
    `[history]` table; do not add a duplicate table. Commit and validate again.
 7. Add R2 credentials scoped to the two buckets. Run **Maintain hosted history →
    verify-fresh**, select **apply**, and leave the other inputs blank/false. Review
-   the private evidence described below. This exercises only synthetic captures
+   the private verification results described below. This exercises only synthetic captures
    in empty storage and cleans them up. Leave publishing disabled until Access
    is configured and these checks pass.
 8. Set `[publishing].enabled = true` and commit. Run **Release or recover retained
-   report → bootstrap**, with **apply** selected. This only creates an honest empty
+   report → bootstrap**, with **apply** selected. This creates an empty
    site. It rejects an existing Worker, occupied route or nonempty archive/index;
    it does not import scores or record a synthetic session.
 9. Run **Maintain hosted history → preflight** to check storage credentials,
    migrations, Worker identity/bindings, disabled alternate domains and signed-out
    Access. Then run **Refresh maimai session** when you want one actual import.
 
-The shipped workflows have no schedule and no push-triggered score import. An
-owner may keep an existing explicit trigger-file integration in their private
-caller. Validation on a push or PR never imports, provisions or deploys.
+The shipped workflows have no schedule and no push-triggered score import.
+Validation on a push or PR never imports, provisions or deploys.
 
 ## Configuration reference
 
@@ -114,7 +112,7 @@ its own backward-compatible defaults.
 | `schema_version` | integer, `1` | Required configuration schema. |
 | `kamaitachi.username` | string, blank | Required before sync; one owner per installation. |
 | `kamaitachi.game` | string, `maimaidx` | Hosted installation supports maimai DX. |
-| `kamaitachi.import_type` | string, `api/myt-maimaidx` | Existing configured importer; sync semantics are unchanged. |
+| `kamaitachi.import_type` | string, `api/myt-maimaidx` | The importer configured for your Kamaitachi account. |
 | `player.display_name` | string, `Your player name` | Display identity, not a credential. |
 | `player.timezone` | IANA string, `UTC` | Session/history display timezone. Preserve it when migrating. |
 | `report.current_version_display_names` | string array, empty | Exact as-of aliases; nonempty before sync. Retained renders keep their recorded aliases. |
@@ -212,7 +210,7 @@ Capture artifacts are named `maimai-session-RUN_ID`; operations use
 retained HTML, hashes and rollback evidence; keep them private. GitHub artifacts
 are retry/inspection material, not the durable history database.
 
-`b50.mode = "optional"` allows incomplete pools and labels a missing B50 honestly.
+`b50.mode = "optional"` allows incomplete pools and labels an unavailable B50.
 `required` preserves the full Old 35/New 15 requirement and prevents publishing
 without a complete image. `disabled` skips the optional adapter and keeps the
 standalone print control. Existing archived reports download their own captured
@@ -229,7 +227,7 @@ only the checkout container and never submit payments.
 ## Hosted backup and recovery
 
 R2 stores original data, checksummed manifests, retained HTML and B50. D1 is a
-rebuildable index; this schema and all analytical calculations are unchanged.
+rebuildable index.
 Archive copies each captured object's immutable bytes to the backup bucket.
 It does **not** silently rebuild recovery D1 after every session. Run **backup**
 then **rebuild** with **recovery** selected, and check **health** with recovery
@@ -285,9 +283,9 @@ Removing a workflow or rolling back a Worker does not delete the archive.
 1. Read the target commit's migration notes and inspect its tests. Update all four
    `uses:` pins together in a private PR; update the README's recorded version too.
    Leave player, scope, resource IDs, origin, prefix and version aliases unchanged.
-2. Run validation and prepare a retained render/release review. Keep the last
-   successful private release artifact. A PR, pin change or direction approval
-   alone does not deploy the Worker.
+2. Run validation and render a retained capture for review. Keep the last
+   successful private release artifact. Changing the pin does not deploy the Worker;
+   deployment requires an explicit release operation.
 3. Before **release**, verify both hosted copies and recovery latest state.
    The operation checks live routes, bindings, Access and exact retained bytes,
    saves prior modules/settings/version information, stages the new shared Worker,

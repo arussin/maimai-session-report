@@ -9,7 +9,10 @@ the active Python interpreter and a local Chromium browser, blocks HTTP requests
 and never starts a sync. The unit suite verifies the sample against `render_demo`
 byte-for-byte after UTF-8 decoding. Never substitute a real report or screenshot.
 
-Changes are welcome when they preserve the private-by-default contract and remain useful to an unrelated new owner. Never use a real account, token, response, report, Actions artifact, access code, or deployment value while developing or reviewing a change.
+Contributions should preserve private-by-default operation and work for users
+with their own accounts. Use fictional data and mocked services in tests and
+examples; never include a real token, response, report, artifact, access code or
+deployment value.
 
 ## Development environment
 
@@ -113,8 +116,8 @@ npm test --prefix tests/browser
 ```
 
 The package tests consume the actual ZIP, check common workflow pins, and stage two
-fictional owners through the shared Worker. Browser evidence contains synthetic
-data only and covers desktop, tablet, 390px, 320px and mobile WebKit. Checkout tests
+fictional owners through the shared Worker. Browser screenshots contain synthetic
+data only and cover desktop, tablet, 390px, 320px and mobile WebKit. Checkout tests
 exercise the isolated container and focus behavior, not provider payments.
 
 Run actionlint against product and expanded caller workflows. Keep actions on full
@@ -125,6 +128,6 @@ installation verification is a separate explicit test against empty resources.
 The packaged **History → verify-fresh** operation and its cleanup/ownership journal
 are tested offline in `tests/test_hosted_verification.py`, including the real CLI
 dispatch, partial failures and populated-resource refusal. These tests receive no
-provider credentials. Hosted evidence is a separate installation gate; CI success
+provider credentials. Hosted verification is a separate installation step; CI success
 does not prove real R2/D1 access. Update the packaged README, installation guide,
 migration notes and operation inputs together when this path changes.

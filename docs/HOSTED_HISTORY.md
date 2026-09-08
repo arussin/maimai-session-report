@@ -4,10 +4,9 @@ For a new installation, use the [single-TOML installation guide](INSTALLATION.md
 The shared action generates Worker bindings and handles maintenance; the lower-level
 JSON commands and wiring below remain a supported compatibility/architecture reference.
 
-
-The hosted foundation and dated reader are part of the shared product. New owners
+The archive and dated-session reader are part of the shared product. New owners
 run **Maintain hosted history → verify-fresh** with explicit apply on empty resources;
-see [hosted verification and its private evidence](INSTALLATION.md#verify-a-fresh-hosted-installation).
+see [hosted verification](INSTALLATION.md#verify-a-fresh-hosted-installation).
 Offline CI exercises the same recovery/cleanup protocol with test doubles. It does
 not establish that a real account's credentials, R2 or D1 are configured correctly.
 
@@ -16,7 +15,7 @@ not establish that a real account's credentials, R2 or D1 are configured correct
 Each installation uses its own Cloudflare account and private repository. The
 existing Worker keeps its current report and B50 as an independent fallback.
 History uses a private R2 bucket and D1 index; an independent R2 backup bucket
-and recovery D1 prove that history survives the loss of the primary index.
+and recovery D1 support recovery after loss of the primary index.
 No report data is committed to source. No public buckets, presigned URLs, new
 Worker origins, browser APIs, fonts, analytics or payment scripts are added.
 
@@ -118,9 +117,8 @@ The hosted backup is portable: standard JSON manifests and content-addressed
 objects, without a provider-specific data encoding. `rebuild` reconstructs D1
 from published manifests and verifies every original object. To restore into
 another account, copy these objects privately with an S3 client, configure that
-account's scope/resources, apply the migration, and run `rebuild`. Full SQL exports
-and a cross-account transfer wizard are follow-up conveniences, not required for
-reconstructing the index. Rebuilding never reads a local historical database.
+account's scope/resources, apply the migration, and run `rebuild`. Rebuilding never
+reads a local historical database.
 
 ## Verification and launch gates
 
@@ -141,6 +139,6 @@ Disable history integration and redeploy that known-good static build without
 deleting R2 or D1. The separate archive writer can continue retaining future
 captures. Do not run another score import to repair an archival failure.
 
-First release intentionally has no cross-session chart search, visit splitting,
-comparative coaching or retroactive rating recalculation. Existing captures and
-their full reports are the source for future indexing work.
+The history reader does not support cross-session chart search, visit splitting,
+comparative coaching or retroactive rating recalculation. Each saved session keeps
+its complete report and the calculations made at capture time.

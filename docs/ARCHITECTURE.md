@@ -9,18 +9,17 @@ adapters without adding browser-time data APIs.
 
 | Location | Responsibility |
 | --- | --- |
-| Shared product `src/maimai_report` | Sync, unchanged analytics, embedded report, history writer/index and installation commands |
-| Shared `installation/` action | Validates intent/config, runs the selected operation, retains private evidence and enforces deployment checks |
+| Shared product `src/maimai_report` | Sync, analytics, embedded report, history writer/index and installation commands |
+| Shared `installation/` action | Validates config and requested operation, retains private operation records and enforces deployment checks |
 | Shared `deploy/cloudflare` and `adapters/tomomai` | Protected reader/Worker, deployment tooling and optional separately licensed B50 adapter |
 | Private installation `instance.toml` | One owner's identity, report policy, origin, prefix and hosted resource IDs |
 | Private installation four workflows | Thin validate, refresh, history and release entry points pinned to one full product SHA |
 | GitHub Actions secrets | Scoped provider credentials; never serialized into TOML or source |
 | Owner's private R2/D1 resources | Durable original captures and independent backup; rebuildable primary/recovery indexes |
 
-The [installation package](INSTALLATION.md) contains seven files, not a copy of
-the product. An existing owner's legacy recovery scripts can remain private during
-migration, but new owners do not write or maintain them. The standalone CLI and
-older actions remain supported with their separate configuration interface.
+The [installation package](INSTALLATION.md) contains seven files and references
+the shared code by commit. The standalone CLI and lower-level actions also remain
+supported with their separate configuration interface.
 
 ## Explicit live-sync sequence
 
@@ -82,15 +81,15 @@ External APIs can change. Tests mock the audited contract and never contact the 
 Ordinary CI runs Python lint/tests, CLI smoke checks, synthetic demos, Worker tests,
 browser behavior tests and the actual installation ZIP/composite-action validation.
 It has read-only repository permission and no Kamaitachi or Cloudflare secrets.
-Offline storage test doubles exercise the recovery protocol; a fresh hosted
-installation proof remains a separate explicit account operation.
+Offline storage test doubles exercise the recovery protocol. Testing a hosted
+installation's real credentials and storage requires a separate explicit operation.
 
 The packaged refresh is manual-only and requires a private caller. Capture,
 archival and optional publication are separate jobs. Archival can preserve retained
 inputs even if B50/render fails; publication requires a successful meaningful build.
 An empty capture never displaces the meaningful latest pointer or static fallback.
 A sync rerun is rejected; history/release operations resume the retained original
-run instead. An existing private owner may retain their explicit trigger-file flow.
+run instead.
 
 History and release operations use the `production` Environment. Setup and fresh
 verification require explicit apply; release operations also check identity,

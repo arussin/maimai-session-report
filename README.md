@@ -19,11 +19,10 @@ network requests, analytics, remote fonts or account requirement to open the fil
 
 ## See the report
 
-All names, songs and scores in these previews are **fictional demo data**.
-These are actual browser captures of the included HTML, not mockups. Cover tiles
-marked **DEMO** are original fictional artwork. Rating badges use the original
-game frames sourced through Tomomai, including all 12 tiers; their ownership is
-separate from our software license. [Visual compatibility](docs/VISUAL_PORT.md).
+All names, songs and scores in these browser screenshots are **fictional demo
+data**. Cover tiles marked **DEMO** are original fictional artwork. Rating badges
+use the original game frames sourced through Tomomai, including all 12 tiers; their ownership is
+separate from the software license. [Artwork provenance](docs/RATING_ASSETS.md).
 
 ![Desktop scorecard showing session highlights and Old 35 / New 15 rating gains](docs/images/demo-desktop.png)
 
@@ -37,7 +36,24 @@ separate from our software license. [Visual compatibility](docs/VISUAL_PORT.md).
 <details>
 <summary>See the detailed Scores view</summary>
 
-![Actual Scores view with grade distribution, searchable plays and timing analysis](docs/images/demo-scores.png)
+![Scores view with grade distribution, searchable plays and timing analysis](docs/images/demo-scores.png)
+
+</details>
+
+<details>
+<summary>See the Rating pools view</summary>
+
+![Rating pools view showing before-and-after rating totals and the Old 35 and New 15 lists](docs/images/demo-pools.png)
+
+The pool lists continue below the screenshot; all 50 counted charts are included
+in the sample report.
+
+</details>
+
+<details>
+<summary>See the practice Targets view</summary>
+
+![Targets view showing charts close to their next rating gain, target achievements and estimated gains](docs/images/demo-targets.png)
 
 </details>
 
@@ -153,11 +169,10 @@ See [configuration](docs/CONFIGURATION.md).
 The HTML also works on an ordinary static host. An unprotected host can expose
 the whole report, regardless of whether search engines index it.
 
-## Existing private runners
+## Upgrading an installation
 
-This is a fresh-history standalone release. It does not move, rename or update
-an existing private runner or its dependencies. Leave working installations on
-their current full-commit pins until you deliberately review an upgrade. Do not
+Existing installations stay on their current full-commit pins until you choose
+to upgrade. Updating this repository does not update your private runner. Do not
 rerun bootstrap or recreate storage just to adopt this repository.
 
 The Python distribution is `maimai-session-report`; the command stays
@@ -178,4 +193,4 @@ separate from the software license.
 The default report includes SEGA game-interface artwork obtained from Tomomai.
 Attribution is not a grant of artwork redistribution rights. See the exact
 upstream revision, code boundaries, downstream changes and asset ownership in
-[third-party notices](THIRD_PARTY_NOTICES.md). No affiliation or endorsement is implied.
+[third-party notices](THIRD_PARTY_NOTICES.md).

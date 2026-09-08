@@ -182,6 +182,8 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         "docs/images/demo-desktop.png",
         "docs/images/demo-mobile.png",
         "docs/images/demo-scores.png",
+        "docs/images/demo-pools.png",
+        "docs/images/demo-targets.png",
         "deploy/cloudflare/package-lock.json",
         "deploy/cloudflare/package.json",
         "deploy/cloudflare/history.example.json",

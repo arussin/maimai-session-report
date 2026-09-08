@@ -21,7 +21,7 @@ checkout iframe. A static host must protect every report and download request.
 Before uploading, answer both questions:
 
 1. Does the host require authentication for **every** request to this exact file/hostname?
-2. Have you verified denial in a private/unsigned-out browser rather than relying on a hard-to-guess URL?
+2. Have you verified denial in a signed-out or private browser rather than relying on a hard-to-guess URL?
 
 If either answer is no, treat the report as public. CSP, `noindex`, `no-store`, and robots headers reduce secondary risks; they do not authenticate a viewer. Configure equivalent headers where the host supports them:
 

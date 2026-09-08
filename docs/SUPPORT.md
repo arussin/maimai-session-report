@@ -8,7 +8,7 @@ In `config.toml`:
 
 ```toml
 [support]
-buy_me_a_coffee_id = "russin"
+buy_me_a_coffee_id = "your-creator-id"
 label = "Buy me a maimai credit"
 description = "Support me on Buy me a coffee!"
 color = "#5F7FFF"
@@ -17,13 +17,13 @@ color = "#5F7FFF"
 Equivalent environment variables:
 
 ```text
-MAIMAI_REPORT_BUY_ME_A_COFFEE_ID=russin
+MAIMAI_REPORT_BUY_ME_A_COFFEE_ID=your-creator-id
 MAIMAI_REPORT_SUPPORT_LABEL=Buy me a maimai credit
 MAIMAI_REPORT_SUPPORT_DESCRIPTION=Support me on Buy me a coffee!
 MAIMAI_REPORT_SUPPORT_COLOR=#5F7FFF
 ```
 
-The account ID and display values are public configuration, not credentials. Do not add a Stripe key, Buy Me a Coffee login, bank information, or any payment secret to the report or repository.
+Replace `your-creator-id` with your own public creator ID. The ID and display values are public configuration, not credentials. Do not add a Stripe key, Buy Me a Coffee login, bank information, or any payment secret to the report or repository.
 
 ## Browser behavior
 
@@ -57,9 +57,11 @@ All other report restrictions remain in force, including `connect-src 'none'`, `
 
 The renderer and Cloudflare adapter fail closed. A support-enabled generated file may contain only the exact Buy Me a Coffee frame origin as an external HTTP(S) URL. Any additional origin is rejected before publishing.
 
-## Browser validation
+## Testing
 
-Before restoring the on-page checkout after the initial integration failure, the direct widget-page iframe was exercised in headless Chromium at both a Pixel-sized mobile viewport and a desktop viewport under the same CSP and Permissions-Policy model used here. The checkout rendered the configured `maimai credit` support UI at the canonical no-`www` URL and produced no payment permissions-policy errors.
+Automated browser tests use a fictional checkout page to check the modal,
+keyboard focus and mobile layout. They do not contact the payment provider or
+submit payments. Verify your own creator page and checkout after enabling support.
 
 ## Hosting requirement
 
