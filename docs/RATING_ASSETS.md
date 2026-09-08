@@ -17,6 +17,11 @@ were not imported. The sample and README screenshots use the CSS-only display.
 Existing installations in other repositories retain their own immutable pins and
 artwork; this release does not modify or relicense them.
 
+The compact number placement and proportions match the original port, but this
+is deliberately **not** the original raster frame. See the complete
+[visual differences](VISUAL_PORT.md) before adopting the release. Fictional cover
+tiles marked DEMO are generated locally for the bundled sample only.
+
 The [optional Tomomai adapter](../adapters/tomomai/README.md) still has its separate
 AGPL and upstream asset considerations. [Optional song jackets](ARTWORK.md) are
 not bundled with the core or sample. An owner's choice to fetch or redistribute

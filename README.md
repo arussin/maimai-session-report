@@ -20,6 +20,9 @@ network requests, analytics, remote fonts or account requirement to open the fil
 ## See the report
 
 All names, songs and scores in these previews are **fictional demo data**.
+These are actual browser captures of the included HTML, not mockups. Cover tiles
+marked **DEMO** are original fictional artwork; the CSS rating badge is not the
+game's original image. [Visual compatibility and differences](docs/VISUAL_PORT.md).
 
 ![Desktop scorecard showing session highlights and Old 35 / New 15 rating gains](docs/images/demo-desktop.png)
 
@@ -27,6 +30,13 @@ All names, songs and scores in these previews are **fictional demo data**.
 <summary>See the phone layout</summary>
 
 <img src="docs/images/demo-mobile.png" alt="Phone scorecard with rating gains, session highlights and bottom navigation" width="390">
+
+</details>
+
+<details>
+<summary>See the detailed Scores view</summary>
+
+![Actual Scores view with grade distribution, searchable plays and timing analysis](docs/images/demo-scores.png)
 
 </details>
 

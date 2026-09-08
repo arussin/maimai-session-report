@@ -26,6 +26,10 @@ try {
     await page.getByRole('heading',{name:'Sample Player',exact:true}).waitFor();
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     await page.screenshot({path:path.join(root,`docs/images/demo-${name}.png`)});
+    if(name==='desktop') {
+      await page.getByRole('tab',{name:'Scores',exact:true}).click();
+      await page.screenshot({path:path.join(root,'docs/images/demo-scores.png'),fullPage:true});
+    }
     assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
     await page.close();
   }

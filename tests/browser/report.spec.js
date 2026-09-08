@@ -134,10 +134,14 @@ test('score details expose PB comparisons and missing fields without inventing z
 });
 
 test('uncounted targets open directly and keep the floor-aware estimate', async ({page})=> {
+  const model=await data('presentation');
+  const candidate=model.after.newPool.find(row=>row.chartID==='synthetic-target-chart');
+  expect(model.after.new15Floor).toBeGreaterThan(candidate.rate);
+  const expectedGain=Math.floor(candidate.levelNum*.97*20)-model.after.new15Floor;
   await page.goto('/presentation.html');
   await page.getByRole('button',{name:'Target details: Synthetic uncounted target',exact:true}).click();
   const dialog=page.locator('.chart-dialog');
-  await expect(dialog).toContainText('96.2000% → 97% · +7 est.');
+  await expect(dialog).toContainText(`96.2000% → 97% · +${expectedGain} est.`);
   await expect(dialog).toContainText('New 15 floor');
   await page.keyboard.press('Escape');
   await page.getByRole('tab',{name:'Targets',exact:true}).click();

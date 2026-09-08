@@ -209,7 +209,10 @@ class HistoryTests(unittest.TestCase):
             prepared(self.path)
         source_fixture(self.path)
         html = self.path / "maimai-report.html"
-        html.write_text(html.read_text().replace('"naiveRating":14426', '"naiveRating":14427'))
+        expected = json.loads(path.read_text())["after"]["naiveRating"]
+        original = f'"naiveRating":{expected}'
+        self.assertIn(original, html.read_text())
+        html.write_text(html.read_text().replace(original, f'"naiveRating":{expected + 1}', 1))
         with self.assertRaises(ArchiveError):
             prepared(self.path)
 

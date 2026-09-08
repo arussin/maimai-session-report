@@ -2,7 +2,9 @@
 
 The compact scorecard is the presentation system for all four views.
 The rating calculations remain authoritative. This guide describes the shipped
-interface; internal design checkpoints are not part of the release.
+interface; internal design checkpoints are not part of the release. See
+[visual compatibility](VISUAL_PORT.md) for the exact preserved assets and the
+deliberate rating-frame/demo-artwork differences.
 
 ## Data and behavior destinations
 
@@ -84,9 +86,8 @@ npm test
   versions; the existing exploration quest recommends current-version charts
   from that sample. The UI explains this scope. Recommendation logic is unchanged.
 - Raw PB chart gains are not net account gains: counted-pool replacement matters.
-- The existing synthetic model adjusts summary totals and occupancy separately
-  from its before-pool example arrays. Tests retain those declared values rather
-  than treating the fictional fixture as a reconstructed real session.
+- The bundled synthetic demo computes its summaries from invented before/after
+  inputs using the production model; its totals, grades and pool rows agree.
 - The existing caller B50 renderer re-renders retained pools using its pinned
   Tomomai implementation and public catalogue. It is not changed by this redesign.
 

@@ -185,8 +185,8 @@ class RendererBehaviorTests(unittest.TestCase):
             self.assertTrue(from_files.is_file())
             self.assertTrue(demo.is_file())
             self.assertEqual(
-                from_files.read_text(encoding="utf-8"),
-                demo.read_text(encoding="utf-8"),
+                embedded_report(from_files.read_text(encoding="utf-8")),
+                embedded_report(demo.read_text(encoding="utf-8")),
             )
 
 

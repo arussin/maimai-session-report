@@ -15,7 +15,7 @@ class PublicPreviewTests(unittest.TestCase):
         self.assertEqual(sample, generated)
         self.assertIn("Sample Player", sample)
         self.assertNotRegex(sample, r"(?i)https?://")
-        self.assertNotIn("data:image/", sample)
+        self.assertIn("data:image/png;base64,", sample)
 
     def test_rating_display_contains_no_bundled_game_art(self) -> None:
         css = Path("src/maimai_report/assets/rating-frames.css").read_text(encoding="utf-8")

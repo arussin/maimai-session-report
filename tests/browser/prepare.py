@@ -10,10 +10,11 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from maimai_report.fixtures import load_scenario
-from maimai_report.render import build_html, enrich_report
+from maimai_report.render import build_html, enrich_report, render_demo
 
 ROOT = Path(__file__).parent / "generated"
 ROOT.mkdir(exist_ok=True)
+render_demo(ROOT / "demo.html")
 image = Image.new("RGB", (400, 240), "#e4f7f9")
 ImageDraw.Draw(image).text((30, 90), "SYNTHETIC B50 DOWNLOAD TEST", fill="#183c42")
 image.save(ROOT / "synthetic-b50.webp", format="WEBP", lossless=True)
@@ -80,7 +81,7 @@ report["after"]["newPool"].append(
         "artist": "Test Artist",
         "difficulty": "DX MASTER",
         "level": "15",
-        "levelNum": 15.0,
+        "levelNum": 15.2,
         "percent": 96.2,
         "grade": "AAA",
         "rate": 260,

@@ -503,9 +503,12 @@ def render_demo(output_path: Path, *, scenario: str = "complete") -> Path:
     """Render a bundled synthetic scenario without credentials or network access."""
 
     from .fixtures import load_scenario
+    from .fixtures.artwork import demo_jackets
 
     report, after_payload = load_scenario(scenario)
-    return render_report(enrich_report(report, after_payload), Path(output_path))
+    return render_report(
+        enrich_report(report, after_payload), Path(output_path), jackets=demo_jackets(after_payload)
+    )
 
 
 __all__ = [

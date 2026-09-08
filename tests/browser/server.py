@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).parent / "generated"
 ALLOWED = {
     f"/{name}.html": (f"{name}.html", "text/html;charset=utf-8")
-    for name in ("complete", "empty", "incomplete", "presentation")
+    for name in ("complete", "empty", "incomplete", "presentation", "demo")
 }
 ALLOWED["/synthetic-b50.webp"] = ("synthetic-b50.webp", "image/webp")
 ALLOWED["/b50.webp"] = ("b50.webp", "image/webp")
