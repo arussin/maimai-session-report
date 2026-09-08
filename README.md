@@ -186,11 +186,8 @@ See [contributing](CONTRIBUTING.md) for the tested development setup,
 [architecture](docs/ARCHITECTURE.md) for the data flow, and
 [security](SECURITY.md) for reporting issues using synthetic examples.
 
-Independent community software; no affiliation with SEGA, Kamaitachi or MYT is
-implied. Core code uses the [MIT license](LICENSE). The optional Tomomai adapter
-uses its included AGPL license; [artwork provenance](docs/RATING_ASSETS.md) is
-separate from the software license.
-The default report includes SEGA game-interface artwork obtained from Tomomai.
-Attribution is not a grant of artwork redistribution rights. See the exact
-upstream revision, code boundaries, downstream changes and asset ownership in
-[third-party notices](THIRD_PARTY_NOTICES.md).
+Independent community software, not affiliated with the game or integration
+providers. Core code uses the [MIT license](LICENSE); the optional Tomomai adapter
+uses AGPLv3. Third-party artwork retains its own rights. See
+[third-party notices](THIRD_PARTY_NOTICES.md) and
+[artwork provenance](docs/RATING_ASSETS.md) for credits and license details.
