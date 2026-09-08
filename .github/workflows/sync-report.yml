@@ -1,0 +1,85 @@
+name: Build private report artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maimai-report-live-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: One live sync and private artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MAIMAI_REPORT_USERNAME: ${{ vars.MAIMAI_REPORT_USERNAME }}
+      MAIMAI_REPORT_DISPLAY_NAME: ${{ vars.MAIMAI_REPORT_DISPLAY_NAME }}
+      MAIMAI_REPORT_TIMEZONE: ${{ vars.MAIMAI_REPORT_TIMEZONE }}
+      MAIMAI_REPORT_GAME: ${{ vars.MAIMAI_REPORT_GAME || 'maimaidx' }}
+      MAIMAI_REPORT_IMPORT_TYPE: ${{ vars.MAIMAI_REPORT_IMPORT_TYPE || 'api/myt-maimaidx' }}
+      MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES: ${{ vars.MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES }}
+      MAIMAI_REPORT_OUTPUT_DIR: actions-output
+      MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS: ${{ vars.MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS || '7' }}
+    steps:
+      - name: Require a private repository
+        env:
+          REPOSITORY_IS_PRIVATE: ${{ github.event.repository.private }}
+        shell: bash
+        run: |
+          [[ "$REPOSITORY_IS_PRIVATE" == "true" ]] || {
+            echo 'Private report artifacts are disabled unless this repository is private.' >&2
+            exit 2
+          }
+
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Validate required secret and repository variables
+        env:
+          KAMAITACHI_API_TOKEN: ${{ secrets.KAMAITACHI_API_TOKEN }}
+        shell: bash
+        run: |
+          missing=()
+          [[ -n "$KAMAITACHI_API_TOKEN" ]] || missing+=(KAMAITACHI_API_TOKEN)
+          [[ -n "$MAIMAI_REPORT_USERNAME" ]] || missing+=(MAIMAI_REPORT_USERNAME)
+          [[ -n "$MAIMAI_REPORT_DISPLAY_NAME" ]] || missing+=(MAIMAI_REPORT_DISPLAY_NAME)
+          [[ -n "$MAIMAI_REPORT_TIMEZONE" ]] || missing+=(MAIMAI_REPORT_TIMEZONE)
+          [[ -n "$MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES" ]] || missing+=(MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES)
+          if (( ${#missing[@]} )); then
+            printf 'Missing required GitHub secret/variable: %s\n' "${missing[@]}" >&2
+            exit 2
+          fi
+          python -c 'import json, os; value=json.loads(os.environ["MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES"]); assert isinstance(value, list) and value and all(isinstance(item, str) and item.strip() for item in value), "MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES must be a nonempty JSON array of nonempty strings"'
+          python -c 'import os; value=os.environ["MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS"]; assert value.isdigit() and 1 <= int(value) <= 30, "MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS must be an integer from 1 through 30"'
+
+      - name: Install project
+        run: python -m pip install --disable-pip-version-check --no-deps .
+
+      - name: Validate local configuration without an API request
+        run: maimai-report doctor
+
+      - name: Start exactly one import, wait over SSE, and render
+        env:
+          KAMAITACHI_API_TOKEN: ${{ secrets.KAMAITACHI_API_TOKEN }}
+        run: maimai-report sync-and-render --output actions-output/report.html
+
+      - name: Store short-lived private result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: maimai-report
+          path: actions-output/
+          if-no-files-found: error
+          retention-days: ${{ env.MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS }}
+          compression-level: 6
+          overwrite: false

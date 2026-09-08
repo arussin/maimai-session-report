@@ -1,0 +1,18 @@
+# Only instance.toml and workflow/runbook source belong in this private repository.
+.maimai/
+output/
+_tomomai/
+node_modules/
+.wrangler/
+.env*
+.dev.vars*
+__pycache__/
+*.pyc
+*.webp
+*.html
+*-pbs.json
+*-recent-scores.json
+report-input.json
+metadata.json
+jackets.json
+*.zip

@@ -1,0 +1,45 @@
+name: Release or recover retained report
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Release preserves the live report; publish selects retained inputs
+        type: choice
+        options: [release, render, publish, bootstrap, rollback]
+        default: release
+      source_run:
+        description: Retained capture run, or release run for rollback
+        type: string
+      renderer_commit:
+        description: Original renderer SHA only for older captures without a receipt
+        type: string
+      apply:
+        description: Deploy this retained release (render never deploys)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: maimai-publication
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: ${{ inputs.operation }}
+          source-run: ${{ inputs.source_run }}
+          renderer-commit: ${{ inputs.renderer_commit }}
+          apply: ${{ inputs.apply }}
+          cloudflare-token: ${{ (inputs.operation != 'render') && secrets.CLOUDFLARE_API_TOKEN || '' }}
+          history-token: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.CLOUDFLARE_HISTORY_API_TOKEN || '' }}
+          r2-access-key-id: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID || '' }}
+          r2-secret-access-key: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY || '' }}

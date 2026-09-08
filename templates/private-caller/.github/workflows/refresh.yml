@@ -1,0 +1,66 @@
+name: Refresh maimai session
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: maimai-refresh
+  cancel-in-progress: false
+jobs:
+  capture:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      meaningful: ${{ steps.capture.outputs.meaningful }}
+      history: ${{ steps.capture.outputs.history-enabled }}
+      publishing: ${{ steps.capture.outputs.publishing-enabled }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - id: capture
+        uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: sync
+          kamaitachi-token: ${{ secrets.KAMAITACHI_API_TOKEN }}
+  archive:
+    needs: capture
+    if: ${{ always() && needs.capture.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: maimai-history
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: archive
+          source-run: ${{ github.run_id }}
+          promote: ${{ needs.capture.result == 'success' && needs.capture.outputs.meaningful == 'true' }}
+          history-token: ${{ secrets.CLOUDFLARE_HISTORY_API_TOKEN }}
+          r2-access-key-id: ${{ secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY }}
+  publish:
+    needs: capture
+    if: ${{ needs.capture.outputs.publishing == 'true' && needs.capture.outputs.meaningful == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: maimai-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: publish
+          source-run: ${{ github.run_id }}
+          apply: 'true'
+          cloudflare-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

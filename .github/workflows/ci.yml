@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, python-version: "3.11"}
+          - {os: ubuntu-latest, python-version: "3.13"}
+          - {os: windows-latest, python-version: "3.13"}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install project and lint tool
+        run: |
+          python -m pip install --disable-pip-version-check --no-deps .
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+
+      - name: Lint and check formatting
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run offline unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke-test commands without credentials or network
+        run: |
+          maimai-report --version
+          maimai-report doctor
+          maimai-report demo --output ci-output/demo-report.html
+          python -m maimai_report demo --scenario empty --output ci-output/empty-report.html
+
+      - name: Reject external report URLs
+        shell: bash
+        run: |
+          if grep -ERqi 'https?://' ci-output/*.html; then
+            echo 'Generated report contains an external HTTP/HTTPS URL.' >&2
+            exit 1
+          fi
+
+  cloudflare-adapter:
+    name: Optional Cloudflare adapter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: deploy/cloudflare/package-lock.json
+
+      - name: Install pinned adapter tools
+        working-directory: deploy/cloudflare
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Test adapter locally
+        working-directory: deploy/cloudflare
+        run: npm run check
+
+  presentation:
+    name: Synthetic browser presentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/browser/package-lock.json
+      - name: Install pinned test tools
+        run: |
+          python -m pip install --disable-pip-version-check ".[artwork]"
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tests/browser
+          npm ci --ignore-scripts --no-audit --no-fund --prefix deploy/cloudflare
+          cd tests/browser
+          npx playwright install --with-deps chromium webkit
+      - name: Generate fictional inputs without credentials or score requests
+        run: |
+          python tests/browser/prepare.py
+          python -m tests.history_fixture tests/browser/generated/history
+          python -m tests.prepare_installation tests/browser/generated/installations
+      - name: Verify browser behavior and accessibility
+        working-directory: tests/browser
+        run: npm test
+      - name: Retain only synthetic browser evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: synthetic-presentation-evidence
+          path: tests/browser/synthetic-results/
+          retention-days: 7
+
+  installation:
+    name: Packaged private installation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: _core
+          persist-credentials: false
+      - name: Build and consume the seven-file installation package
+        env:
+          CORE_REVISION: ${{ github.sha }}
+        run: |
+          python3 _core/scripts/package_installation.py --commit "$CORE_REVISION" --output dist/maimai-installation.zip
+          python3 -m zipfile -e dist/maimai-installation.zip .
+      - name: Exercise the real composite action as a fresh caller without secrets
+        uses: ./_core/installation
+        with:
+          operation: validate
+      - name: Install checksum-pinned workflow linter
+        run: |
+          curl --fail --silent --show-error --location --retry 2 --max-time 60 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+      - name: Check product and shipped caller workflow syntax and expressions
+        run: '"$RUNNER_TEMP/actionlint" -shellcheck="" _core/.github/workflows/*.yml .github/workflows/*.yml'
+      - name: Retain the synthetic installation files and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: maimai-installation-package
+          path: dist/maimai-installation.zip*
+          retention-days: 14

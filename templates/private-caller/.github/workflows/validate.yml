@@ -1,0 +1,15 @@
+name: Validate installation
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: validate

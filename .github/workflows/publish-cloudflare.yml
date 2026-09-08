@@ -1,0 +1,133 @@
+name: Publish protected report to Cloudflare
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: Run ID of a successful “Build private report artifact” workflow
+        required: true
+        type: string
+      access_protection_confirmed:
+        description: I verified this exact hostname is protected by my Cloudflare Access policy
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type PUBLISH PRIVATE REPORT
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maimai-report-production-publish
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    name: Validate explicit publishing intent
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every safety gate
+        env:
+          ARTIFACT_RUN_ID: ${{ inputs.artifact_run_id }}
+          ACCESS_PROTECTION_CONFIRMED: ${{ inputs.access_protection_confirmed }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          PUBLISHING_ENABLED: ${{ vars.MAIMAI_REPORT_PUBLISHING_ENABLED }}
+          WORKER_NAME: ${{ vars.CLOUDFLARE_WORKER_NAME }}
+          CUSTOM_DOMAIN: ${{ vars.CLOUDFLARE_CUSTOM_DOMAIN }}
+          ROUTE_PATTERN: ${{ vars.CLOUDFLARE_ROUTE_PATTERN }}
+          ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          REPOSITORY_IS_PRIVATE: ${{ github.event.repository.private }}
+        shell: bash
+        run: |
+          [[ "$REPOSITORY_IS_PRIVATE" == "true" ]] || { echo 'Publishing is disabled unless this repository is private.' >&2; exit 2; }
+          [[ "$PUBLISHING_ENABLED" == "true" ]] || { echo 'Repository variable MAIMAI_REPORT_PUBLISHING_ENABLED must be exactly true.' >&2; exit 2; }
+          [[ "$CONFIRMATION" == "PUBLISH PRIVATE REPORT" ]] || { echo 'Typed confirmation did not match.' >&2; exit 2; }
+          [[ "$ACCESS_PROTECTION_CONFIRMED" == "true" ]] || { echo 'Confirm the destination Access protection before publishing.' >&2; exit 2; }
+          [[ "$ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || { echo 'artifact_run_id must be a positive workflow run ID.' >&2; exit 2; }
+          [[ -n "$WORKER_NAME" ]] || { echo 'CLOUDFLARE_WORKER_NAME is required.' >&2; exit 2; }
+          if [[ -n "$CUSTOM_DOMAIN" && -n "$ROUTE_PATTERN" ]] || [[ -z "$CUSTOM_DOMAIN" && -z "$ROUTE_PATTERN" ]]; then
+            echo 'Set exactly one of CLOUDFLARE_CUSTOM_DOMAIN or CLOUDFLARE_ROUTE_PATTERN.' >&2
+            exit 2
+          fi
+          if [[ -n "$ROUTE_PATTERN" && -z "$ZONE_ID" ]]; then
+            echo 'CLOUDFLARE_ZONE_ID is required with CLOUDFLARE_ROUTE_PATTERN.' >&2
+            exit 2
+          fi
+
+  deploy:
+    name: Deploy to protected production destination
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: private-report-production
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_WORKER_NAME: ${{ vars.CLOUDFLARE_WORKER_NAME }}
+      CLOUDFLARE_CUSTOM_DOMAIN: ${{ vars.CLOUDFLARE_CUSTOM_DOMAIN }}
+      CLOUDFLARE_ROUTE_PATTERN: ${{ vars.CLOUDFLARE_ROUTE_PATTERN }}
+      CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+      CLOUDFLARE_REPORT_PATH: ${{ vars.CLOUDFLARE_REPORT_PATH || '/' }}
+      WRANGLER_SEND_METRICS: "false"
+      WRANGLER_SEND_ERROR_REPORTS: "false"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Require production credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo 'Environment secret CLOUDFLARE_API_TOKEN is required.' >&2; exit 2; }
+          [[ -n "$CLOUDFLARE_ACCOUNT_ID" ]] || { echo 'Repository variable CLOUDFLARE_ACCOUNT_ID is required.' >&2; exit 2; }
+
+      - name: Download the selected private artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: maimai-report
+          path: artifact
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Require the self-contained report
+        shell: bash
+        run: |
+          [[ -f artifact/report.html ]] || { echo 'The selected artifact does not contain report.html.' >&2; exit 2; }
+          if grep -Eqi 'https?://' artifact/report.html; then
+            echo 'The report contains an external HTTP/HTTPS URL and will not be published.' >&2
+            exit 2
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: deploy/cloudflare/package-lock.json
+
+      - name: Install pinned deployment adapter
+        working-directory: deploy/cloudflare
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate private-by-default Wrangler configuration
+        working-directory: deploy/cloudflare
+        run: node scripts/generate-config.mjs --report ../../artifact/report.html
+
+      - name: Validate bundle without deploying
+        working-directory: deploy/cloudflare
+        run: npx --no-install wrangler deploy --dry-run --config .wrangler/wrangler.generated.jsonc --outdir .wrangler/dry-run
+
+      - name: Publish selected report
+        working-directory: deploy/cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --no-install wrangler deploy --config .wrangler/wrangler.generated.jsonc

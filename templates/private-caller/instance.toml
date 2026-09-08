@@ -1,0 +1,55 @@
+# Keep this repository private. Tokens belong in GitHub Actions secrets.
+schema_version = 1
+
+[kamaitachi]
+username = ""
+game = "maimaidx"
+import_type = "api/myt-maimaidx"
+
+[player]
+display_name = "Your player name"
+timezone = "UTC"
+
+[report]
+# Exact as-of chart.data.displayVersion aliases. Required before an explicit sync.
+current_version_display_names = []
+output_dir = "output"
+
+[support]
+buy_me_a_coffee_id = ""
+label = "Buy me a maimai credit"
+description = "Support this maimai report"
+color = "#5F7FFF"
+
+[artwork]
+enabled = true
+
+[b50]
+# optional: incomplete pools keep working with an honest B50-unavailable state.
+# required preserves the existing full-pool requirement; disabled skips this adapter.
+mode = "optional"
+
+[actions]
+artifact_retention_days = 14
+
+[publishing]
+# Setup does not enable publishing. Refresh publication is opt-in.
+enabled = false
+provider = "cloudflare"
+
+[cloudflare]
+account_id = ""
+zone_id = ""
+worker_name = "maimai-report"
+origin = "https://report.example.invalid"
+prefix = "/maimai/"
+
+[history]
+enabled = true
+scope = "example-owner:maimaidx"
+bucket = "maimai-history-example"
+backup_bucket = "maimai-history-example-backup"
+database_name = "maimai-history-example"
+database_id = ""
+recovery_database_name = "maimai-history-example-recovery"
+recovery_database_id = ""

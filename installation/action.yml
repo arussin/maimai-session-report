@@ -1,0 +1,219 @@
+name: Maintain a private maimai installation
+description: Shared configuration, rendering, hosted history and retained release operations
+inputs:
+  operation:
+    description: validate, plan, setup, preflight, verify-fresh, sync, render, archive, backup, rebuild, health, release, publish, bootstrap or rollback
+    required: true
+  config:
+    description: The caller's single private configuration file
+    default: instance.toml
+  source-run:
+    description: Retained workflow run to read; never starts a score import
+    default: ''
+  renderer-commit:
+    description: Original renderer SHA for legacy captures without render-provenance.json
+    default: ''
+  promote:
+    description: Original capture build and meaningful-publication gate passed
+    default: 'false'
+  apply:
+    description: Explicit intent for resource creation, synthetic verification or deployment
+    default: 'false'
+  recovery:
+    description: Use the independent hosted backup and recovery index
+    default: 'false'
+  kamaitachi-token:
+    description: GitHub secret, exposed only to the explicit sync process
+    default: ''
+  cloudflare-token:
+    description: GitHub secret for the selected Worker operation
+    default: ''
+  history-token:
+    description: GitHub secret for the selected hosted history operation
+    default: ''
+  r2-access-key-id:
+    description: GitHub R2 secret for the selected archive operation
+    default: ''
+  r2-secret-access-key:
+    description: GitHub R2 secret for the selected archive operation
+    default: ''
+outputs:
+  meaningful:
+    description: Whether the validated capture contains session activity
+    value: ${{ steps.inspect.outputs.meaningful }}
+  history-enabled:
+    description: Configured hosted history choice
+    value: ${{ steps.config.outputs.history-enabled }}
+  publishing-enabled:
+    description: Configured publication choice
+    value: ${{ steps.config.outputs.publishing-enabled }}
+runs:
+  using: composite
+  steps:
+    - name: Validate operation intent and private caller before account access
+      shell: bash
+      env:
+        INSTANCE_ACTION_PATH: ${{ github.action_path }}
+        INSTANCE_OPERATION: ${{ inputs.operation }}
+        INSTANCE_PRIVATE: ${{ github.event.repository.private }}
+        INSTANCE_SOURCE_RUN: ${{ inputs.source-run }}
+        INSTANCE_APPLY: ${{ inputs.apply }}
+        INSTANCE_PROMOTE: ${{ inputs.promote }}
+        INSTANCE_RECOVERY: ${{ inputs.recovery }}
+      run: python3 "$INSTANCE_ACTION_PATH/check-inputs.py"
+
+    - name: Set up supported Python
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      with:
+        python-version: '3.13'
+
+    - name: Install the exact core source selected by the caller
+      shell: bash
+      env:
+        INSTANCE_ACTION_PATH: ${{ github.action_path }}
+      run: python -m pip install --disable-pip-version-check "$INSTANCE_ACTION_PATH/..[history,artwork]"
+
+    - name: Validate the single configuration and expose non-secret operation settings
+      id: config
+      shell: bash
+      env:
+        INSTANCE_CONFIG: ${{ inputs.config }}
+      run: python -m maimai_report instance validate --config "$INSTANCE_CONFIG" --workflows .github/workflows
+
+    - name: Read the selected retained capture
+      if: ${{ inputs.source-run != '' && inputs.operation != 'rollback' && (inputs.operation != 'archive' || steps.config.outputs.history-enabled == 'true') }}
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: maimai-session-${{ inputs.source-run }}
+        path: ${{ steps.config.outputs.capture-path }}
+        run-id: ${{ inputs.source-run }}
+        github-token: ${{ github.token }}
+
+    - name: Capture one explicit sync
+      if: ${{ inputs.operation == 'sync' }}
+      shell: bash
+      env:
+        KAMAITACHI_API_TOKEN: ${{ inputs.kamaitachi-token }}
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+      run: python -m maimai_report instance sync --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE"
+
+    - name: Read the selected private release and rollback evidence
+      if: ${{ inputs.operation == 'rollback' }}
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: maimai-release-${{ inputs.source-run }}
+        path: .maimai/rollback-source
+        run-id: ${{ inputs.source-run }}
+        github-token: ${{ github.token }}
+
+    - name: Decide whether the optional B50 renderer is needed
+      id: b50
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      shell: bash
+      env:
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+      run: python -m maimai_report instance b50-ready --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE"
+
+    - name: Check out the pinned optional B50 renderer
+      if: ${{ steps.b50.outputs.ready == 'true' }}
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        repository: shedaniel/tomomai
+        ref: 7608b9c250f4a8778cdfd4768cdecb7628cd5889
+        path: _tomomai
+        persist-credentials: false
+
+    - name: Set up Node for B50 or an explicit release
+      if: ${{ steps.b50.outputs.ready == 'true' || contains(fromJSON('["release","publish","bootstrap","rollback"]'), inputs.operation) }}
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: '22'
+
+    - name: Build the optional B50 image locally in the private runner
+      if: ${{ steps.b50.outputs.ready == 'true' }}
+      shell: bash
+      env:
+        INSTANCE_ACTION_PATH: ${{ github.action_path }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+        MAIMAI_REPORT_DISPLAY_NAME: ${{ steps.config.outputs.display-name }}
+        NEXT_PUBLIC_R2_URL: https://cdn.tomomai.lol
+      run: |
+        set -euo pipefail
+        corepack enable
+        corepack prepare pnpm@11.2.2 --activate
+        pnpm --dir _tomomai install --frozen-lockfile --filter @tomomai/render...
+        mkdir -p .maimai
+        cp "$INSTANCE_ACTION_PATH/../adapters/tomomai/render.ts" .maimai/render-b50.ts
+        pnpm --dir _tomomai --filter @tomomai/render exec tsx \
+          "$GITHUB_WORKSPACE/.maimai/render-b50.ts" \
+          "$GITHUB_WORKSPACE/$INSTANCE_CAPTURE/after-pbs.json" \
+          "$GITHUB_WORKSPACE/$INSTANCE_CAPTURE/report-input.json" \
+          "$GITHUB_WORKSPACE/$INSTANCE_CAPTURE/maimai-b50.webp"
+
+    - name: Render retained inputs and record their renderer provenance
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      shell: bash
+      env:
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+        INSTANCE_CORE_REVISION: ${{ steps.config.outputs.core-revision }}
+        INSTANCE_SOURCE_RUN: ${{ inputs.source-run || github.run_id }}
+        INSTANCE_OPERATION: ${{ inputs.operation }}
+      run: |
+        set -euo pipefail
+        extra=()
+        if [ "$INSTANCE_OPERATION" = sync ]; then extra+=(--fetch-artwork); fi
+        python -m maimai_report instance render --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE" "${extra[@]}"
+        python -m maimai_report instance receipt --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE" \
+          --renderer-commit "$INSTANCE_CORE_REVISION" --source-id "github-run-$INSTANCE_SOURCE_RUN"
+
+    - name: Validate the rendered capture and publication classification
+      id: inspect
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      shell: bash
+      env:
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+      run: python -m maimai_report instance inspect --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE"
+
+    - name: Retain private inputs even if a later build step fails
+      if: ${{ always() && (inputs.operation == 'sync' || inputs.operation == 'render') && steps.config.outcome == 'success' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: maimai-session-${{ github.run_id }}
+        path: ${{ steps.config.outputs.capture-path }}
+        retention-days: ${{ steps.config.outputs.retention-days }}
+        if-no-files-found: warn
+
+    - name: Run the selected history or retained-release operation
+      if: ${{ !contains(fromJSON('["validate","sync","render"]'), inputs.operation) }}
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.cloudflare-token }}
+        CLOUDFLARE_HISTORY_API_TOKEN: ${{ inputs.history-token }}
+        MAIMAI_HISTORY_R2_ACCESS_KEY_ID: ${{ inputs.r2-access-key-id }}
+        MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY: ${{ inputs.r2-secret-access-key }}
+        INSTANCE_ACTION_PATH: ${{ github.action_path }}
+        INSTANCE_OPERATION: ${{ inputs.operation }}
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+        INSTANCE_SOURCE_RUN: ${{ inputs.source-run || github.run_id }}
+        INSTANCE_RENDERER: ${{ (inputs.operation == 'verify-fresh' && steps.config.outputs.core-revision) || inputs.renderer-commit || (inputs.operation == 'archive' && inputs.source-run == github.run_id && steps.config.outputs.core-revision) || '' }}
+        INSTANCE_PROMOTE: ${{ inputs.promote }}
+        INSTANCE_APPLY: ${{ inputs.apply }}
+        INSTANCE_RECOVERY: ${{ inputs.recovery }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ steps.config.outputs.account-id }}
+        WRANGLER_SEND_METRICS: 'false'
+      run: python "$INSTANCE_ACTION_PATH/run-operation.py"
+
+    - name: Retain private setup and release evidence
+      if: ${{ always() && !contains(fromJSON('["validate","sync","render"]'), inputs.operation) && steps.config.outcome == 'success' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ contains(fromJSON('["release","publish","bootstrap","rollback"]'), inputs.operation) && format('maimai-release-{0}', github.run_id) || format('maimai-operation-{0}-{1}', github.run_id, inputs.operation) }}
+        path: .maimai/
+        include-hidden-files: true
+        retention-days: 90
+        if-no-files-found: warn

@@ -1,0 +1,42 @@
+# Copy this file to config.toml and replace every placeholder you use.
+# config.toml is ignored by Git. Never put a Kamaitachi token in this file.
+
+[kamaitachi]
+username = "your-kamaitachi-username"
+game = "maimaidx"
+import_type = "api/myt-maimaidx"
+
+[player]
+display_name = "Your display name"
+timezone = "UTC" # IANA name, such as Europe/London or Asia/Tokyo
+
+[report]
+# Exact chart.data.displayVersion strings that belong in the current New 15 pool.
+# Confirm these against current Kamaitachi data whenever the game version changes.
+current_version_display_names = ["maimaiでらっくす CURRENT VERSION"]
+output_dir = "output"
+
+[support]
+# Optional. Leave the ID empty to keep the report fully sealed and make no
+# third-party requests. When enabled, checkout loads only after a footer click.
+buy_me_a_coffee_id = ""
+label = "Buy me a maimai credit"
+description = "Support this maimai report"
+color = "#5F7FFF"
+
+[actions]
+artifact_retention_days = 7
+
+[publishing]
+# Publishing is never implied by syncing or rendering. Keep this false unless you
+# deliberately configure and manually run the separate publish workflow.
+enabled = false
+provider = "cloudflare"
+
+# Optional deployment metadata. Prefer GitHub repository variables in Actions.
+cloudflare_account_id = ""
+cloudflare_worker_name = ""
+cloudflare_custom_domain = ""
+cloudflare_route_pattern = ""
+cloudflare_zone_id = ""
+report_path = "/"

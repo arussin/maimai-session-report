@@ -1,0 +1,6 @@
+# Development only. The offline demo needs none of these packages.
+# Install once while online; tests themselves use only synthetic/mocked data.
+ruff==0.16.5
+Pillow==12.3.0
+boto3==1.43.89
+tzdata==2026.3

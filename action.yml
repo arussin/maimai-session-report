@@ -1,0 +1,93 @@
+name: Build private maimai report
+description: Run one explicit Kamaitachi/MYT sync and render a private self-contained report
+
+inputs:
+  output:
+    description: Report HTML path relative to the caller workspace
+    required: false
+    default: output/maimai-report.html
+  python-version:
+    description: Python version used to run the report package
+    required: false
+    default: "3.11"
+  artwork:
+    description: Prepare embedded jackets from public static artwork at build time (true or false)
+    required: false
+    default: "true"
+
+outputs:
+  report-path:
+    description: Report HTML path relative to the caller workspace
+    value: ${{ steps.result.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Require a private caller repository
+      shell: bash
+      env:
+        MAIMAI_CALLER_IS_PRIVATE: ${{ github.event.repository.private }}
+      run: |
+        set -euo pipefail
+        [[ "$MAIMAI_CALLER_IS_PRIVATE" == "true" ]] || {
+          echo 'Private report generation is disabled unless the caller repository is private.' >&2
+          exit 2
+        }
+
+    - name: Set up Python
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Validate required secret and configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+        missing=()
+        [[ -n "${KAMAITACHI_API_TOKEN:-}" ]] || missing+=(KAMAITACHI_API_TOKEN)
+        [[ -n "${MAIMAI_REPORT_USERNAME:-}" ]] || missing+=(MAIMAI_REPORT_USERNAME)
+        [[ -n "${MAIMAI_REPORT_DISPLAY_NAME:-}" ]] || missing+=(MAIMAI_REPORT_DISPLAY_NAME)
+        [[ -n "${MAIMAI_REPORT_TIMEZONE:-}" ]] || missing+=(MAIMAI_REPORT_TIMEZONE)
+        [[ -n "${MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES:-}" ]] || missing+=(MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES)
+        if (( ${#missing[@]} )); then
+          printf 'Missing required secret or environment value: %s\n' "${missing[@]}" >&2
+          exit 2
+        fi
+        python -c 'import json, os; value=json.loads(os.environ["MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES"]); assert isinstance(value, list) and value and all(isinstance(item, str) and item.strip() for item in value), "MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES must be a nonempty JSON array of nonempty strings"'
+
+    - name: Install canonical report package
+      shell: bash
+      env:
+        MAIMAI_ACTION_PATH: ${{ github.action_path }}
+      run: python -m pip install --disable-pip-version-check --no-deps "$MAIMAI_ACTION_PATH"
+
+    - name: Validate local configuration without an API request
+      shell: bash
+      run: python -m maimai_report doctor
+
+    - name: Install optional artwork preparation tools
+      if: ${{ inputs.artwork == 'true' }}
+      shell: bash
+      run: python -m pip install --disable-pip-version-check --only-binary=:all: Pillow==12.3.0
+
+    - name: Start exactly one import, wait over SSE, and render
+      shell: bash
+      env:
+        MAIMAI_ACTION_OUTPUT: ${{ inputs.output }}
+        MAIMAI_ACTION_ARTWORK: ${{ inputs.artwork }}
+      run: |
+        set -euo pipefail
+        extra=()
+        case "$MAIMAI_ACTION_ARTWORK" in
+          true) extra+=(--prepare-jackets) ;;
+          false) ;;
+          *) echo 'artwork must be true or false' >&2; exit 2 ;;
+        esac
+        python -m maimai_report sync-and-render --output "$MAIMAI_ACTION_OUTPUT" "${extra[@]}"
+
+    - name: Publish action output path
+      id: result
+      shell: bash
+      env:
+        MAIMAI_ACTION_OUTPUT: ${{ inputs.output }}
+      run: printf 'report-path=%s\n' "$MAIMAI_ACTION_OUTPUT" >> "$GITHUB_OUTPUT"

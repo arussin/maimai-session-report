@@ -1,0 +1,28 @@
+name: Install private hosted history tools
+description: Install the pinned archival CLI and Worker reader without starting any import
+outputs:
+  reader-path:
+    description: Pinned history Worker module available in this job
+    value: ${{ steps.reader.outputs.path }}
+runs:
+  using: composite
+  steps:
+    - name: Require a private caller
+      shell: bash
+      env:
+        HISTORY_CALLER_PRIVATE: ${{ github.event.repository.private }}
+      run: test "$HISTORY_CALLER_PRIVATE" = true
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.13'
+    - name: Install the pinned hosted tools
+      shell: bash
+      env:
+        HISTORY_ACTION_ROOT: ${{ github.action_path }}/..
+      run: python -m pip install --disable-pip-version-check "$HISTORY_ACTION_ROOT[history]"
+    - name: Locate the matching reader
+      id: reader
+      shell: bash
+      env:
+        HISTORY_ACTION_ROOT: ${{ github.action_path }}/..
+      run: printf 'path=%s/deploy/cloudflare/src/history.js\n' "$HISTORY_ACTION_ROOT" >> "$GITHUB_OUTPUT"

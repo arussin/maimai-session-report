@@ -1,0 +1,63 @@
+# Secrets and private configuration
+.env
+.env.*
+!.env.example
+config.toml
+/instance.toml
+/.maimai/
+/_tomomai/
+*.secrets.toml
+.dev.vars
+
+# Private/generated reports and API data
+output/
+reports/
+actions-downloads/
+*.html
+# The sole reviewed source template is package code, not generated player data.
+!src/maimai_report/assets/template.html
+# Deliberate public preview, verified byte-for-byte against bundled fictional fixtures.
+!docs/sample-report.html
+*.generated.json
+*-pbs.json
+*-recent-scores.json
+report-input.json
+metadata.json
+api-response*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+env/
+dist/
+build/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local deployment state and generated deployment input
+.wrangler/
+deploy/cloudflare/report.html
+deploy/cloudflare/node_modules
+deploy/cloudflare/.dev.vars*
+npm-debug.log*
+
+# Explicitly synthetic browser-test build output
+/tests/browser/generated/
+/tests/browser/node_modules
+/tests/browser/synthetic-results/
+/tests/browser/test-results/

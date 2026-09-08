@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+  <meta name="referrer" content="no-referrer" />
+  <title>maimai Session Report</title>
+  <style>/* Shared presentation foundations. All report assets remain packaged inline. */
+:root {
+  color-scheme: light;
+  --ink: #183b43;
+  --ink-2: #183b43;
+  --navy: #183b43;
+  --muted: #52676d;
+  --aqua: #08aebe;
+  --aqua-deep: #007887;
+  --pink: #ba2f69;
+  --purple: #7450b5;
+  --yellow: #ecd252;
+  --mint: #087766;
+  --red: #b33450;
+  --line: #dce7e9;
+  --paper-2: #f2fafb;
+  --mint-soft: #eaf7f1;
+  --pink-soft: #fbeaf1;
+  --yellow-soft: #faf4d9;
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-small: .8125rem;
+  --text-label: .875rem;
+  --text-body: 1rem;
+  --text-heading: 1.25rem;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: white; color: var(--ink); font-family: var(--font); font-size: var(--text-body); line-height: 1.5; }
+button, input { font: inherit; }
+button, a, input { touch-action: manipulation; }
+button { cursor: pointer; }
+a { color: var(--aqua-deep); }
+button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { line-height: 1.3; }
+button, input, p, h1, h2, h3, strong, span { overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+.ambient { display: none; }
+.app-shell { max-width: 1168px; margin: 0 auto; padding: 0 32px 32px; }
+.boot-card { padding: 80px 0; text-align: center; }
+.boot-ring { display: none; }
+.mono { font-variant-numeric: tabular-nums; }
+.positive { color: var(--mint); }
+.negative { color: var(--red) !important; }
+.flat { color: var(--muted) !important; }
+
+/* Navigation is a single stable control, with the same four destinations. */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; min-height: 80px; border-bottom: 1px solid var(--line); }
+.report-brand { display: inline-flex; align-items: center; color: var(--aqua-deep); text-decoration: none; min-height: 44px; }
+.brand-word { display: inline-flex; align-items: center; font-size: 1.625rem; font-weight: 800; font-style: italic; letter-spacing: -1.2px; line-height: 1; }
+.brand-word b { font-size: .75rem; letter-spacing: 0; font-style: normal; margin-left: 5px; padding: 4px; background: var(--yellow-soft); color: var(--ink); border-radius: 3px; }
+.tabs { display: flex; align-self: stretch; align-items: stretch; gap: 24px; }
+.tab { padding: 0 4px; min-height: 44px; border: 0; border-bottom: 3px solid transparent; background: transparent; font-size: var(--text-label); color: var(--muted); font-weight: 600; white-space: normal; }
+.tab.active { border-bottom-color: var(--aqua-deep); color: var(--aqua-deep); }
+.tab:hover { color: var(--aqua-deep); }
+.action-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; color: var(--ink); background: white; border: 1px solid #c1d3d7; border-radius: 6px; font-size: var(--text-label); text-decoration: none; white-space: nowrap; }
+.action-button:hover { background: var(--paper-2); }
+
+/* One result, then one line of session facts. */
+.session-header { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+.session-identity { display: flex; gap: 20px; align-items: baseline; }
+.session-identity h1 { font-size: 1.375rem; font-weight: 650; }
+.session-identity p { display: flex; flex-wrap: wrap; gap: 0 12px; color: var(--muted); font-size: var(--text-label); }
+.session-identity p span { white-space: nowrap; }
+.session-result { display: flex; align-items: flex-end; gap: 48px; margin-top: 24px; }
+.metric-label { display: block; font-size: var(--text-label); color: var(--muted); }
+.rating-line { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 4px; }
+.rating-value { font-size: 5.5rem; font-weight: 750; letter-spacing: -4px; line-height: 1.06; color: var(--aqua-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.session-change { display: flex; flex-direction: column; gap: 2px; font-size: 1.75rem; font-weight: 650; color: var(--mint); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.session-change>span { font-size: var(--text-small); font-weight: 400; color: var(--muted); white-space: nowrap; }
+.session-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font-size: var(--text-label); color: var(--muted); padding-bottom: 8px; }
+.session-facts>span { white-space: nowrap; }
+.session-facts strong { font-weight: 650; color: var(--ink); }
+.report[data-current-view]:not([data-current-view="overview"]) .session-header { display: none; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* Overview reading order: improved scores, next plays, explanation, analysis. */
+.overview-lead { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; margin-top: 28px; }
+.overview-scores { padding-top: 16px; }
+.overview-targets { padding: 16px 24px 24px; background: var(--paper-2); border-radius: 12px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; margin-bottom: 4px; }
+.section-heading h2 { font-size: var(--text-heading); font-weight: 650; letter-spacing: -.4px; }
+.text-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--aqua-deep); font-size: var(--text-label); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.text-action:hover { color: var(--ink); }
+.section-caption { color: var(--muted); font-size: var(--text-label); margin-bottom: 12px; }
+.score-list { border-top: 1px solid var(--line); }
+.score-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; width: 100%; padding: 16px 0; min-height: 84px; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); }
+.score-row:hover { background: var(--paper-2); }
+.score-info { min-width: 0; }
+.score-info>strong { display: block; font-size: var(--text-body); font-weight: 600; line-height: 1.45; }
+.score-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 6px; font-size: var(--text-small); color: var(--muted); }
+.score-meta>span { min-width: 0; }
+.score-meta b { margin-left: 4px; font-weight: 600; }
+.score-gain { font-size: 1.125rem; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--mint); }
+.difficulty-text.diff-expert { color: var(--pink); }
+.difficulty-text.diff-master, .difficulty-text.diff-remaster { color: var(--purple); }
+.difficulty-text.diff-basic { color: var(--mint); }
+.difficulty-text.diff-advanced { color: #80610b; }
+.target-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; width: 100%; padding: 16px 0; min-height: 96px; text-align: left; border: 0; border-bottom: 1px solid #d1e5e8; background: transparent; color: var(--ink); }
+.target-row>span>strong { display: block; font-size: var(--text-body); font-weight: 600; line-height: 1.45; }
+.target-row:hover { background: #e7f5f7; }
+.target-progress { display: block; margin-top: 6px; font-size: var(--text-label); color: var(--muted); }
+.target-estimate { color: var(--mint); font-size: 1rem; font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.target-explanation { margin-top: 12px; color: var(--muted); font-size: var(--text-label); }
+.practice-note { margin-top: 24px; padding-top: 20px; border-top: 1px solid #d1e5e8; }
+.practice-note h3 { font-size: var(--text-label); font-weight: 650; margin-bottom: 8px; }
+.practice-note p { color: var(--muted); font-size: var(--text-label); }
+.practice-note p+p { margin-top: 8px; }
+.practice-note strong { display: block; color: var(--ink); font-weight: 600; }
+.practice-note p span { display: block; margin-top: 4px; }
+.overview-pools { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 28px; }
+.pool-layout { display: grid; grid-template-columns: .9fr 1.5fr; gap: 64px; margin-top: 12px; }
+.session-interpretation h3 { font-size: var(--text-body); font-weight: 600; line-height: 1.5; }
+.session-interpretation p { margin-top: 12px; font-size: var(--text-label); color: var(--muted); line-height: 1.65; }
+.comparison-wrap { overflow-x: auto; }
+.comparison-table { width: 100%; border-collapse: collapse; font-size: var(--text-body); font-variant-numeric: tabular-nums; }
+.comparison-table th, .comparison-table td { padding: 12px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.comparison-table thead th { padding-top: 0; font-size: var(--text-small); color: var(--muted); font-weight: 500; }
+.comparison-table th:first-child { text-align: left; padding-left: 0; font-weight: 500; }
+.comparison-table td:last-child, .comparison-table th:last-child { padding-right: 0; }
+.comparison-table tbody th { font-size: var(--text-label); }
+.comparison-table th small { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; margin-top: 2px; }
+.comparison-table td:nth-child(2) { color: var(--muted); }
+.comparison-table td:nth-child(3) { font-weight: 650; }
+.comparison-table td:last-child { color: var(--mint); font-weight: 600; }
+.comparison-table .old th>span { border-left: 3px solid var(--aqua); padding-left: 8px; }
+.comparison-table .new th>span { border-left: 3px solid var(--purple); padding-left: 8px; }
+.comparison-table .total th, .comparison-table .total td { border-top: 2px solid #9fbec4; font-weight: 650; }
+.comparison-table .naive th, .comparison-table .naive td { font-size: var(--text-label); font-weight: 400; }
+.pool-floors { display: flex; flex-wrap: wrap; gap: 12px 32px; margin-top: 16px; font-size: var(--text-label); }
+.pool-floors p { display: flex; flex: 1 1 11rem; min-width: 0; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+.pool-floors strong { font-weight: 500; }
+.pool-floors p span { color: var(--muted); }
+.pool-advice { color: var(--muted); font-size: var(--text-label); margin-top: 16px; }
+.model-caption { margin-top: 12px; font-size: .75rem; color: var(--muted); }
+.overview-analysis { display: grid; grid-template-columns: .85fr 1.15fr; gap: 64px; border-top: 1px solid var(--line); padding-top: 28px; margin-top: 32px; }
+
+/* Analytical components share the same type scale and row rhythm. */
+.timing-balance { font-size: 1rem; font-weight: 600; margin: 12px 0 20px; }
+.timing-bars { display: grid; gap: 12px; }
+.timing-line { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; gap: 12px; align-items: center; font-size: var(--text-label); }
+.timing-line strong { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+.timing-track { height: 8px; border-radius: 2px; background: #e5eef0; overflow: hidden; }
+.timing-fill { height: 100%; border-radius: inherit; }
+.timing-fill.fast { background: var(--purple); }
+.timing-fill.slow { background: var(--aqua); }
+.timing-summary>.section-subtitle { margin-top: 20px; }
+.band-row { display: grid; grid-template-columns: 62px 68px minmax(20px,1fr) auto; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: var(--text-label); }
+.band-name { font-weight: 600; }
+.band-count { font-size: var(--text-small); color: var(--muted); }
+.band-bar { height: 4px; border-radius: 1px; background: #e5eef0; }
+.band-fill { height: 100%; background: #8cbfc6; border-radius: 1px; }
+.band-row.best .band-fill { background: var(--aqua-deep); }
+.band-metric { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--text-small); }
+.band-timing { display: block; color: var(--muted); margin-top: 3px; font-size: .75rem; }
+.band-list+.section-subtitle { margin-top: 16px; }
+.rating-stack { display: grid; gap: 24px; margin: 20px 0 16px; }
+.stack-row-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: var(--text-label); }
+.stack-total { font-weight: 650; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.stack-track { display: flex; height: 32px; border-radius: 4px; overflow: hidden; background: #e5eef0; }
+.stack-segment { display: grid; place-items: center; color: white; font-size: var(--text-small); font-weight: 600; white-space: nowrap; }
+.stack-old { background: var(--aqua-deep); }
+.stack-new { background: var(--pink); }
+.stack-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; font-size: var(--text-small); color: var(--muted); }
+.stack-legend>span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.gap-note { margin-left: auto; }
+.pool-rating-story { margin-bottom: 24px; }
+
+/* Retained Scores, Pools, and Targets components; detailed rebuilding is Stage 2. */
+.view:not(#overview-view) { padding-top: 28px; }
+.two-col, .pool-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px; }
+.card { border: 1px solid var(--line); border-radius: 8px; background: white; }
+.section-card { padding: 24px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.section-title { font-size: var(--text-heading); font-weight: 650; }
+h3.section-title { font-size: 1.125rem; }
+.section-subtitle { font-size: var(--text-label); color: var(--muted); margin-top: 6px; line-height: 1.6; }
+.chip { font-size: var(--text-small); color: var(--muted); white-space: nowrap; }
+.moment { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.note-dot { display: none; }
+.moment-title { font-weight: 600; }
+.moment-meta { font-size: var(--text-label); color: var(--muted); }
+.moment-rate { font-weight: 600; }
+.quest-grid { display: grid; gap: 16px; }
+.quest { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.quest-icon { display: none; }
+.quest-title { font-weight: 600; }
+.quest-sub { margin-top: 4px; font-size: var(--text-label); color: var(--muted); }
+.quest-copy { grid-column: 1 / -1; font-size: var(--text-label); color: var(--muted); }
+.quest-reward { font-size: var(--text-small); color: var(--mint); font-weight: 600; text-align: right; }
+.search-box { width: min(280px,100%); min-height: 44px; padding: 8px 12px; background: white; color: var(--ink); border: 1px solid #adcad0; border-radius: 6px; }
+.session-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+.session-table { border-collapse: collapse; width: 100%; font-size: var(--text-label); }
+.session-table th, .session-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
+.session-table th { font-size: var(--text-small); font-weight: 600; background: var(--paper-2); }
+.session-table tr:last-child td { border-bottom: 0; }
+.song-cell { display: flex; gap: 12px; align-items: center; min-width: 210px; }
+.song-jacket { display: none; }
+.song-name { font-weight: 600; }
+.song-artist { font-size: var(--text-small); color: var(--muted); margin-top: 4px; }
+.difficulty-pill { display: inline-block; font-size: var(--text-small); font-weight: 500; white-space: nowrap; }
+.difficulty-pill.diff-expert { color: var(--pink); }
+.difficulty-pill.diff-master, .difficulty-pill.diff-remaster { color: var(--purple); }
+.difficulty-pill.diff-basic { color: var(--mint); }
+.difficulty-pill.diff-advanced { color: #80610b; }
+.grade-pill { font-weight: 600; white-space: nowrap; }
+.pool-list { display: grid; }
+.pool-item { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.rank-number { font-size: var(--text-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+.pool-title { font-weight: 600; }
+.pool-meta { font-size: var(--text-small); color: var(--muted); margin-top: 4px; }
+.pool-rate { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mini-empty { padding: 20px 0; color: var(--muted); font-size: var(--text-label); }
+
+.footer { display: flex; justify-content: space-between; gap: 12px 24px; padding-top: 20px; font-size: .75rem; color: var(--muted); }
+
+@media (max-width: 1000px) {
+  .overview-lead { gap: 28px; grid-template-columns: 1.2fr 1fr; }
+  .pool-layout { gap: 32px; grid-template-columns: .85fr 1.5fr; }
+  .overview-analysis { gap: 32px; grid-template-columns: 1fr 1fr; }
+  .session-result { display: block; }
+  .session-facts { padding: 0; margin-top: 16px; }
+  .band-row { grid-template-columns: 1fr auto; gap: 4px 16px; }
+  .band-count { grid-column: 1; grid-row: 2; }
+  .band-metric { grid-column: 2; grid-row: 1 / 3; }
+  .band-bar { grid-column: 1 / -1; grid-row: 3; margin-top: 8px; }
+  .two-col { grid-template-columns: 1fr; }
+  .session-table { min-width: 740px; }
+}
+@media (max-width: 720px) {
+  .app-shell { padding: 0 20px max(100px,7rem); }
+  .toolbar { min-height: 64px; gap: 16px; }
+  .brand-word { font-size: 1.5rem; }
+  .action-button { padding: 6px 10px; font-size: var(--text-small); }
+  .tabs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: flex; flex-wrap: wrap; gap: 0; min-height: 60px; padding: 0 8px env(safe-area-inset-bottom); border-top: 1px solid #c7dade; background: white; }
+  .tab { flex: 1 0 22%; min-width: max-content; padding: 12px 4px 10px; font-size: var(--text-label); }
+  .session-header { padding: 20px 0 24px; }
+  .session-identity { display: block; }
+  .session-identity h1 { font-size: 1.125rem; }
+  .session-identity p { margin-top: 4px; display: block; font-size: var(--text-small); }
+  .session-identity p span { display: block; margin-top: 2px; }
+  .session-result { margin-top: 16px; }
+  .rating-line { gap: 20px; }
+  .rating-value { font-size: clamp(3rem,16vw,4rem); letter-spacing: -3px; }
+  .session-change { font-size: 1.5rem; }
+  .session-facts { gap: 8px 16px; font-size: var(--text-label); margin-top: 12px; }
+  .overview-lead { display: block; margin-top: 20px; }
+  .overview-scores { padding-top: 0; }
+  .section-heading { gap: 12px; }
+  .section-heading h2 { font-size: 1.25rem; }
+  .section-caption { font-size: var(--text-small); margin-bottom: 8px; }
+  .score-row { padding: 14px 0; min-height: 84px; gap: 12px; }
+  .score-meta { gap: 2px 10px; margin-top: 5px; }
+  .overview-targets { margin-top: 28px; padding: 16px 20px 20px; }
+  .target-row { gap: 12px; }
+  .target-estimate { font-size: var(--text-label); }
+  .practice-note { margin-top: 20px; padding-top: 16px; }
+  .overview-pools { margin-top: 28px; padding-top: 20px; }
+  .overview-pools>.section-heading { align-items: flex-start; }
+  .overview-pools>.section-heading h2 { max-width: 200px; padding-top: 8px; }
+  .pool-layout { display: block; margin-top: 12px; }
+  .session-interpretation { margin-bottom: 20px; }
+  .session-interpretation p { margin-top: 8px; }
+  .comparison-table { font-size: var(--text-label); }
+  .comparison-table th, .comparison-table td { padding: 10px 5px; }
+  .comparison-table .naive th, .comparison-table .naive td { font-size: var(--text-small); }
+  .pool-floors { gap: 20px; }
+  .pool-floors p { display: block; }
+  .pool-floors p span { display: block; margin-top: 4px; }
+  .overview-analysis { display: block; padding-top: 20px; margin-top: 28px; }
+  .overview-analysis>section+section { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 28px; }
+  .timing-balance { margin: 8px 0 16px; }
+  .timing-summary>.section-subtitle { margin-top: 16px; }
+  .band-row { padding: 14px 0; }
+  .pool-grid { grid-template-columns: 1fr; }
+  .section-card { padding: 20px 16px; }
+  .section-header { flex-wrap: wrap; }
+  .search-box { width: 100%; }
+  .stack-track { height: 28px; }
+  .gap-note { margin-left: 0; }
+  .footer { flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+}
+@media (max-width: 360px) {
+  .app-shell { padding-inline: 16px; }
+  .rating-value { font-size: clamp(2.5rem,17vw,3.625rem); }
+  .rating-line { gap: 16px; }
+  .session-facts { gap: 8px 12px; }
+  .section-heading h2 { font-size: 1.125rem; }
+  .overview-targets { padding-inline: 16px; }
+  .tab { font-size: .8125rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+@media print {
+  @page { size: A4 portrait; margin: 10mm; }
+  .toolbar, .support-card, .support-dialog, .text-action { display: none !important; }
+  .app-shell { max-width: none; padding: 0; }
+  .view, .view[hidden], .session-header { display: block !important; }
+  .view { margin-top: 24px; }
+  .score-row, .target-row, .pool-item, .card { break-inside: avoid; }
+  .session-table { min-width: 0; }
+}
+
+/* Semantic game colors. Labels always accompany color; no meaning relies on hue alone. */
+.chart-identity { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 5px; line-height: 1.4; }
+.difficulty-pill { padding: 2px 6px; border-radius: 3px; font-size: .75rem; font-weight: 650; border: 1px solid transparent; }
+.difficulty-pill b { margin-left: 3px; font-weight: 750; }
+.difficulty-pill.diff-basic { background: #e8f7d4; border-color: #a6d86d; color: #346513; }
+.difficulty-pill.diff-advanced { background: #fff1b7; border-color: #f2ca40; color: #755200; }
+.difficulty-pill.diff-expert { background: #ffe7ed; border-color: #ef96ac; color: #b31e49; }
+.difficulty-pill.diff-master { background: #f1e5ff; border-color: #c19ae5; color: #7623ad; }
+.difficulty-pill.diff-remaster { background: #fff; border-color: #b090c8; color: #785192; }
+.difficulty-pill.diff-unknown { background: #f0f3f3; color: var(--muted); }
+.chart-format { color: var(--muted); font-size: .75rem; font-weight: 650; }
+.grade-pill { display: inline-flex; align-items: baseline; font-weight: 850; font-style: italic; font-size: 1.125rem; letter-spacing: -.7px; line-height: 1.25; white-space: nowrap; }
+.grade-gold { color: #a76200; text-shadow: 0 1px #ffe7a0; }
+.grade-red { color: #c83743; }
+.grade-blue { color: #246ac8; }
+.grade-unknown { color: #626d72; }
+.grade-rainbow>span:nth-child(1) { color: #a76200; }
+.grade-rainbow>span:nth-child(2) { color: #007f9e; }
+.grade-rainbow>span:nth-child(n+3) { color: #c83759; }
+.song-jacket { display: block; width: 56px; height: 56px; flex: 0 0 56px; object-fit: cover; border-radius: 4px; background: #f0f3f3; border: 1px solid #dce4e6; }
+.jacket-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #526167; line-height: 1.2; }
+.jacket-missing>span { font-size: 1.4rem; }
+.jacket-missing small { font-size: .6rem; font-weight: 700; letter-spacing: .5px; }
+
+/* The scorecard is a short result screen. Each analytical detail has its own view. */
+.session-header { padding-bottom: 28px; }
+.scorecard-result { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
+.namecard { --tier: #596c7e; --tint: #f3f7f9; min-width: 0; padding: 16px 24px; border: 1px solid #bbc7ce; border-bottom: 4px solid #b8c2c9; border-radius: 15px; background: linear-gradient(135deg,#fff 55%,#f1f4f6); box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 5px #e3e8eb, 0 2px 3px #183b4308; }
+.tier-blue { --tier: #1878b0; --tint: #eaf8ff; }
+.tier-green { --tier: #3b7c1d; --tint: #f0fae7; }
+.tier-yellow { --tier: #966100; --tint: #fff4cd; }
+.tier-red { --tier: #c22a51; --tint: #ffedf2; }
+.tier-purple { --tier: #7934b6; --tint: #f5eaff; }
+.tier-bronze { --tier: #975227; --tint: #fcebdd; }
+.tier-silver { --tier: #4b6e84; --tint: #eaf4fa; }
+.tier-gold { --tier: #946400; --tint: #fff1b3; }
+.tier-platinum { --tier: #857133; --tint: #fbf6da; }
+.tier-rainbow, .tier-rainbow-ex { --tier: #8844a6; --tint: #fbeafb; }
+.namecard-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-inline: 5px; }
+.namecard-identity h1 { font-size: 1.5rem; font-weight: 750; letter-spacing: .3px; }
+.namecard-tier { padding: 2px 8px; border: 1px solid color-mix(in srgb,var(--tier) 45%,white); border-radius: 4px; background: var(--tint); color: var(--tier); font-size: .75rem; font-weight: 650; }
+.rating-plaque { position: relative; container-type: inline-size; width: 100%; max-width: 26rem; aspect-ratio: 296 / 86; margin: 8px auto 4px; background-size: 100% 100%; background-repeat: no-repeat; }
+.namecard .rating-value { position: absolute; left: 41.55%; right: 5%; top: 18.6%; bottom: 23.25%; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); align-items: center; color: #ffe352; font-family: "Arial Black", "Arial", sans-serif; font-size: 12.5cqi; font-weight: 900; letter-spacing: 0; line-height: 1; text-shadow: -1px -1px #342505, 1px -1px #342505, -1px 1px #342505, 1px 2px #342505, 0 3px #16171c; }
+.rating-value>span { text-align: center; }
+.namecard-label { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding-inline: 5px; font-size: .8125rem; color: var(--muted); }
+.namecard .session-change { display: inline-flex; flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 4px; font-size: 1.125rem; }
+.namecard .session-change>span { font-size: .75rem; }
+.tier-progress { height: 4px; background: color-mix(in srgb,var(--tier) 12%,white); border-radius: 2px; overflow: hidden; margin: 12px 5px 0; }
+.tier-progress>span { display: block; height: 100%; background: var(--tier); }
+.tier-next { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 6px 5px 0; font-size: .75rem; color: var(--muted); }
+.tier-next strong { font-weight: 600; color: var(--tier); }
+.session-date { margin-bottom: 14px; font-size: 1rem; font-weight: 600; }
+.session-date>span { display: block; margin-top: 4px; font-size: .875rem; color: var(--muted); font-weight: 400; }
+.session-receipt .session-facts { margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
+.contribution-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.contribution-heading h2 { font-size: .875rem; font-weight: 500; color: var(--muted); }
+.contributions { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.contribution { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-left: 12px; border-left: 3px solid var(--aqua); font-size: .875rem; }
+.contribution.new { border-color: var(--purple); }
+.contribution strong { color: var(--mint); font-size: 1.5rem; font-weight: 700; }
+.overview-lead { grid-template-columns: 1.2fr 1fr; gap: 40px; }
+.overview-targets { align-self: start; }
+.score-row { grid-template-columns: 56px minmax(0,1fr) auto; gap: 14px; padding-block: 16px; }
+.score-achievement { display: flex; align-items: baseline; gap: 10px; margin-top: 5px; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.score-gain { text-align: right; }
+.score-gain small { display: block; margin-top: 2px; color: var(--muted); font-weight: 400; font-size: .75rem; }
+.target-row { grid-template-columns: 48px minmax(0,1fr); align-items: start; gap: 4px 12px; }
+.target-row .song-jacket { grid-row: 1 / 3; width: 48px; height: 48px; }
+.target-row .target-estimate { grid-column: 2; margin-top: 2px; }
+.target-row .target-progress { font-size: .8125rem; margin-top: 6px; }
+.target-progress .grade-pill { margin-left: 4px; }
+.analysis-link { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 16px; padding: 18px 0 0; margin-top: 20px; border: 0; border-top: 1px solid #cde3e6; background: transparent; text-align: left; color: var(--aqua-deep); }
+.analysis-link strong { display: block; font-size: .875rem; font-weight: 600; }
+.analysis-link small { display: block; margin-top: 3px; font-size: .8125rem; color: var(--muted); }
+
+/* Detail pages: named sections, ordered results, and usable controls. */
+.view-heading { padding: 28px 0; }
+.view-heading h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -.6px; }
+.view-heading p { color: var(--muted); font-size: .875rem; margin-top: 6px; }
+.grade-section { padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.grade-section .section-caption { margin: 0; }
+.grade-distribution { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.grade-count { position: relative; flex: 1 0 84px; max-width: 180px; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px 16px; overflow: hidden; }
+.grade-count>.grade-pill { font-size: 1.5rem; }
+.grade-count>strong { display: block; font-size: 1.125rem; margin-top: 6px; font-weight: 600; }
+.grade-count>strong small { font-size: .8125rem; font-weight: 400; color: var(--muted); margin-left: 6px; }
+.grade-count-bar { position: absolute; height: 4px; width: var(--fill); background: var(--aqua); left: 0; bottom: 0; }
+.score-detail-section { margin-top: 24px; }
+.score-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin-bottom: 16px; }
+.score-controls label { display: flex; flex-direction: column; gap: 5px; font-size: .8125rem; color: var(--muted); flex: 1 0 145px; }
+.score-controls .song-search { flex-grow: 2; }
+select { width: 100%; min-height: 44px; border: 1px solid #adcad0; border-radius: 6px; padding: 8px; background: white; color: var(--ink); font: inherit; font-size: .875rem; }
+select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px; }
+.score-controls .search-box { width: 100%; font-size: .875rem; }
+.session-table { font-size: .875rem; }
+.session-table th, .session-table td { padding: 12px 10px; }
+.session-table td:nth-child(n+3) { white-space: nowrap; }
+.session-table .song-cell { min-width: 240px; }
+.session-table .song-jacket { width: 44px; height: 44px; flex-basis: 44px; }
+.session-table .chart-identity { min-width: 106px; }
+.score-detail-section>.section-subtitle { margin-top: 12px; }
+.detail-timing { max-width: 600px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.rating-explanation { display: grid; grid-template-columns: .85fr 1.3fr; gap: 64px; padding: 4px 0 28px; border-bottom: 1px solid var(--line); }
+.rating-explanation .session-interpretation h2 { font-size: 1.125rem; line-height: 1.5; }
+.counted-pools { margin-top: 28px; }
+.counted-pools .section-heading { flex-wrap: wrap; }
+.counted-pools .pool-grid { margin-top: 24px; gap: 36px; }
+.pool-item { grid-template-columns: 20px 48px minmax(0,1fr) auto; gap: 10px; }
+.pool-item .song-jacket { width: 48px; height: 48px; }
+.pool-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.pool-rate { text-align: right; }
+.pool-rate small { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
+.quest { grid-template-columns: 48px minmax(0,1fr) auto; }
+.quest .song-jacket { width: 48px; height: 48px; }
+.quest .quest-icon { display: block; color: var(--aqua-deep); }
+.quest-grid { margin-top: 16px; }
+.coaching-section { margin-top: 24px; }
+.level-group { margin-top: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.level-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; align-items: baseline; }
+.level-heading h3 { font-size: 1rem; font-weight: 650; }
+.level-heading>span, .level-totals { font-size: .8125rem; color: var(--muted); }
+.level-totals { margin: 4px 0 8px; }
+.difficulty-sample { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 8px 0; }
+.difficulty-sample>.chart-identity { margin: 0; }
+.difficulty-sample>span:nth-child(2) { color: var(--muted); font-size: .8125rem; }
+.difficulty-sample>strong { text-align: right; font-size: .875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.difficulty-sample small { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; }
+.difficulty-breakdown+.section-subtitle { margin-top: 16px; }
+@media (max-width: 1000px) {
+  .scorecard-result { gap: 28px; grid-template-columns: 1.2fr 1fr; }
+  .namecard { padding-inline: 18px; }
+  .contributions { gap: 16px; }
+  .contribution { flex-wrap: wrap; gap: 4px; }
+  .overview-lead { grid-template-columns: 1.15fr 1fr; gap: 24px; }
+  .overview-targets { padding-inline: 18px; }
+  .rating-explanation { gap: 32px; }
+}
+@media (max-width: 720px) {
+  .session-header { padding: 20px 0; }
+  .scorecard-result { display: block; }
+  .namecard { padding: 12px; }
+  .namecard-identity h1 { font-size: 1.375rem; }
+  .namecard-label { gap: 4px 8px; }
+  .namecard .session-change { font-size: 1rem; }
+  .tier-progress { margin-top: 10px; }
+  .session-receipt { margin-top: 14px; }
+  .session-date { margin-bottom: 10px; font-size: .875rem; }
+  .session-date>span { margin-top: 2px; font-size: .8125rem; }
+  .session-receipt .session-facts { padding-bottom: 8px; gap: 8px 16px; }
+  .contribution-heading { margin-top: 0; }
+  .contribution-heading .text-action { font-size: .8125rem; }
+  .contributions { gap: 24px; }
+  .contribution { flex-wrap: nowrap; font-size: .8125rem; }
+  .contribution strong { font-size: 1.25rem; }
+  .overview-lead { display: block; margin-top: 16px; }
+  .score-row { grid-template-columns: 48px minmax(0,1fr) auto; gap: 10px; padding-block: 14px; }
+  .score-row .song-jacket { width: 48px; height: 48px; }
+  .score-info>strong { font-size: .9375rem; }
+  .score-achievement { font-size: .8125rem; gap: 8px; }
+  .score-gain { font-size: 1rem; }
+  .score-gain small { font-size: .75rem; }
+  .overview-targets { margin-top: 24px; padding: 14px 18px 20px; }
+  .view:not(#overview-view) { padding-top: 12px; }
+  .view-heading { padding: 24px 0; }
+  .view-heading h1 { font-size: 1.5rem; }
+  .grade-section .section-heading { display: block; }
+  .grade-section .section-caption { display: block; margin-top: 6px; font-size: .8125rem; }
+  .grade-distribution { display: grid; grid-template-columns: repeat(auto-fit,minmax(4.25rem,1fr)); gap: 8px; }
+  .grade-count { padding: 10px 8px 14px; }
+  .grade-count>.grade-pill { font-size: 1.375rem; }
+  .grade-count>strong { font-size: 1rem; }
+  .grade-count>strong small { display: block; margin-left: 0; font-size: .75rem; }
+  .score-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .score-controls label { min-width: 0; }
+  .score-controls .song-search { grid-column: auto; }
+  .session-table-wrap { border: 0; overflow: visible; }
+  .session-table { display: block; min-width: 0; width: 100%; }
+  .session-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .session-table tbody { display: block; }
+  .session-table tr { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 10px; padding: 16px 0; border-top: 1px solid var(--line); }
+  .session-table td { display: block; padding: 5px 0; border: 0; white-space: normal !important; }
+  .session-table td:first-child { grid-column: 1 / -1; }
+  .session-table td:nth-child(2) { grid-column: 1 / 3; margin-bottom: 6px; }
+  .session-table td:nth-child(4) { grid-column: 3; grid-row: 2; justify-self: end; margin-top: 4px; }
+  .session-table td:nth-child(3) { grid-column: 1 / 3; font-weight: 600; }
+  .session-table td:nth-child(5) { grid-column: 3; }
+  .session-table td:nth-child(6) { grid-column: 1 / 3; }
+  .session-table td:nth-child(7) { grid-column: 3; }
+  .session-table td[data-label]::before { content: attr(data-label); display: block; font-size: .75rem; font-weight: 400; color: var(--muted); margin-bottom: 2px; }
+  .session-table td:nth-child(4)::before { display: none; }
+  .session-table .song-cell { min-width: 0; align-items: center; }
+  .session-table .song-name { font-size: .9375rem; }
+  .session-table .song-artist { font-size: .75rem; }
+  .rating-explanation { display: block; }
+  .rating-explanation .session-interpretation { margin-bottom: 24px; }
+  .counted-pools .pool-grid { gap: 28px; }
+  .pool-item { grid-template-columns: 18px 44px minmax(0,1fr) auto; gap: 8px; }
+  .pool-item .song-jacket { width: 44px; height: 44px; }
+  .pool-title { font-size: .9375rem; }
+  .quest { grid-template-columns: 40px minmax(0,1fr); gap: 8px 12px; }
+  .quest .song-jacket { width: 40px; height: 40px; }
+  .quest-reward { grid-column: 2; text-align: left; }
+  .level-heading { display: block; }
+  .difficulty-sample { gap: 8px; }
+}
+@media print {
+  .score-controls, .analysis-link { display: none; }
+  .session-table { display: table; }
+  .session-table tbody { display: table-row-group; }
+  .session-table thead { display: table-header-group; position: static; width: auto; height: auto; clip-path: none; }
+  .session-table tr { display: table-row; }
+  .session-table td { display: table-cell; }
+  .session-table td::before { display: none !important; }
+}
+
+#session-view[data-score-scope="plays"] .session-table th:nth-child(6),
+#session-view[data-score-scope="plays"] .session-table td:nth-child(6) { display: none; }
+
+.grade-count { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.grade-count>strong { margin-top: 0; }
+.grade-count>strong small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 720px) {
+  .grade-count>.grade-pill { font-size: 1.125rem; }
+  .score-controls { grid-template-columns: repeat(auto-fit,minmax(min(9rem,100%),1fr)); }
+}
+
+.pool-threshold-note { margin-top: 20px; padding: 16px; background: var(--paper-2); border-left: 3px solid var(--purple); }
+.pool-threshold-note h3 { font-size: .875rem; font-weight: 600; }
+.pool-threshold-note p { margin-top: 6px; font-size: .8125rem; color: var(--muted); }
+
+/* Complete detail views share the same calm reading hierarchy as the scorecard. */
+.chart-link { padding: 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; min-height: 44px; }
+.chart-link:hover .song-name, .quest-title .chart-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.song-cell.chart-link { width: 100%; }
+.chart-identity { min-width: 0; max-width: 100%; }
+.chart-identity .difficulty-pill { white-space: normal; max-width: 100%; }
+.song-name, .song-artist, .pool-title { display: block; }
+.previous-score { display: block; margin-top: 3px; color: var(--muted); font-size: .75rem; font-weight: 400; }
+.session-record-counts { line-height: 1.6; }
+.empty-score-row td { grid-column: 1 / -1 !important; }
+.pool-item { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: inherit; text-align: left; font: inherit; }
+.pool-item:hover { background: var(--paper-2); }
+.pool-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 12px 0; }
+.pool-controls label { display: grid; gap: 5px; font-size: .8125rem; color: var(--muted); flex: 1 1 200px; max-width: 420px; }
+.pool-controls .search-box { width: 100%; min-height: 44px; }
+.pool-occupancy { display: block; font-weight: 400; color: var(--muted); font-size: .75rem; margin-top: 4px; white-space: nowrap; }
+.account-coverage { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; font-size: .8125rem; }
+.account-coverage>div { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; }
+.account-coverage dt { color: var(--muted); }
+.account-coverage dd { margin: 0; font-variant-numeric: tabular-nums; }
+.model-note { margin-top: 20px; padding: 16px; border-radius: 8px; background: var(--paper-2); }
+.model-note h3 { font-size: .875rem; font-weight: 650; }
+.model-note p { margin-top: 8px; color: var(--muted); font-size: .8125rem; }
+.practice-layout { display: grid; grid-template-columns: 1fr 1.15fr; gap: 48px; align-items: start; }
+.practice-guidance { margin-top: 24px; padding: 16px 0 0; border-top: 1px solid var(--line); }
+.practice-guidance h3 { font-size: 1rem; }
+.practice-guidance p { margin-top: 8px; font-size: .875rem; color: var(--muted); }
+.practice-guidance p:last-child { font-size: .8125rem; }
+.target-opportunities .quest-grid { display: block; }
+.target-opportunities .quest { margin: 0; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.target-opportunities .quest-title .chart-link { font-weight: 650; }
+.target-opportunities .quest-icon { color: var(--aqua-deep); }
+.chart-dialog-open { overflow: hidden; }
+.chart-dialog { width: min(620px,calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid #bbcfd3; border-radius: 14px; background: white; color: var(--ink); box-shadow: 0 24px 80px #102b3b30; overflow: auto; overscroll-behavior: contain; }
+.chart-dialog::backdrop { background: #14374680; }
+.chart-dialog-header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px 8px 24px; border-bottom: 1px solid var(--line); background: white; }
+.chart-dialog-header>span { font-size: .875rem; color: var(--muted); }
+.detail-close { flex: 0 0 44px; width: 44px; height: 44px; border: 0; border-radius: 6px; background: var(--paper-2); color: var(--ink); font-size: 1.5rem; }
+.detail-close:hover { background: #def0f3; }
+.chart-dialog-body { padding: 24px; }
+.detail-song { display: grid; grid-template-columns: 64px minmax(0,1fr); align-items: center; gap: 16px; }
+.detail-song .song-jacket { width: 64px; height: 64px; }
+.detail-song h2 { font-size: 1.25rem; line-height: 1.4; }
+.detail-song p { margin-top: 4px; color: var(--muted); font-size: .8125rem; }
+.detail-result { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 20px 0; }
+.detail-result>div>span:first-child { display: block; color: var(--muted); font-size: .8125rem; }
+.detail-result strong { display: inline-block; margin: 4px 8px 0 0; font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+.detail-result strong small { font-size: .75rem; margin-left: 4px; color: var(--muted); }
+.detail-section { padding: 20px 0; border-top: 1px solid var(--line); }
+.detail-section h3 { margin-bottom: 12px; font-size: .9375rem; }
+.detail-facts, .judgement-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px 20px; margin: 0; }
+.judgement-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.detail-section dt { font-size: .8125rem; color: var(--muted); }
+.detail-section dd { margin: 3px 0 0; font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.detail-comparison { width: 100%; font-size: .875rem; border-collapse: collapse; }
+.detail-comparison th, .detail-comparison td { padding: 10px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+.detail-comparison th:first-child { text-align: left; }
+.detail-comparison thead { color: var(--muted); }
+.detail-comparison thead th { font-weight: 400; }
+.detail-note { margin-top: 12px; font-size: .8125rem; color: var(--muted); line-height: 1.6; }
+.target-detail>p:first-of-type { font-variant-numeric: tabular-nums; color: var(--aqua-deep); font-weight: 600; }
+@media (max-width: 1000px) {
+  .practice-layout { gap: 28px; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .practice-layout { display: block; }
+  .practice-profile { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .pool-controls { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(9rem,100%),1fr)); gap: 12px; }
+  .pool-controls label { min-width: 0; }
+  .pool-occupancy { font-size: .6875rem; }
+  .chart-dialog { width: calc(100% - 24px); max-height: calc(100dvh - 24px); }
+  .chart-dialog-header { padding-left: 16px; }
+  .chart-dialog-body { padding: 20px 16px; }
+  .detail-song { grid-template-columns: 56px minmax(0,1fr); gap: 12px; }
+  .detail-song .song-jacket { width: 56px; height: 56px; }
+  .detail-song h2 { font-size: 1.125rem; }
+  .detail-result { gap: 12px; }
+  .detail-result strong { font-size: 1.5rem; }
+  .detail-comparison { font-size: .8125rem; }
+  .detail-comparison th, .detail-comparison td { padding: 10px 3px; }
+}
+@media print {
+  .chart-dialog, .pool-controls { display: none !important; }
+  .rating-plaque { print-color-adjust: exact; }
+}
+
+
+/* Original CSS-only rating display. No game images, fonts or vector assets. */
+.rating-plaque {
+  --rating-ink: #173c47;
+  border: 1px solid color-mix(in srgb, var(--tier) 42%, white);
+  border-radius: 12px;
+  background: linear-gradient(120deg, white 12%, var(--tint) 100%);
+  box-shadow: inset 0 -5px var(--tier), 0 3px 0 #173c4708;
+  overflow: hidden;
+}
+.rating-plaque::before {
+  content: "DX RATING";
+  position: absolute;
+  top: 13%;
+  left: 6%;
+  color: var(--rating-ink);
+  font-size: 3.1cqi;
+  font-weight: 750;
+  letter-spacing: .16em;
+  line-height: 1;
+}
+.rating-plaque::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  right: 6%;
+  width: 18%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tier);
+}
+.namecard .rating-value {
+  left: 5%;
+  right: 5%;
+  top: 31%;
+  bottom: 14%;
+  color: var(--rating-ink);
+  font-family: ui-monospace, "Cascadia Code", "DejaVu Sans Mono", monospace;
+  font-size: 14.5cqi;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+}
+.tier-rainbow .rating-plaque,
+.tier-rainbow-ex .rating-plaque {
+  background: linear-gradient(115deg, #eaf9f8, #f2efff 52%, #fff3e6);
+}
+@media print {
+  .rating-plaque { print-color-adjust: exact; }
+}
+@media (forced-colors: active) {
+  .rating-plaque { border: 2px solid CanvasText; box-shadow: none; }
+  .rating-plaque::before, .namecard .rating-value { color: CanvasText; }
+  .rating-plaque::after { background: CanvasText; }
+}
+
+
+.support-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid rgba(204, 234, 240, .95);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .66);
+  box-shadow: 0 6px 20px rgba(9, 64, 81, .05);
+  backdrop-filter: blur(10px);
+}
+
+.support-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.support-kicker {
+  color: var(--muted);
+  font-size: .67rem;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.support-prompt {
+  color: var(--ink-2);
+  font-size: .95rem;
+  font-weight: 800;
+}
+
+.support-action-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.support-button {
+  --support-color: #5f7fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 8px 15px 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--support-color) 38%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--support-color) 7%, white);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 900;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--support-color) 12%, transparent);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease,
+    box-shadow .18s ease;
+}
+
+.support-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--support-color) 62%, var(--line));
+  background: color-mix(in srgb, var(--support-color) 11%, white);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--support-color) 17%, transparent);
+}
+
+.support-button:active { transform: translateY(0); }
+
+.support-button:focus-visible,
+.support-dialog-close:focus-visible,
+.support-fallback:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--aqua) 58%, white);
+  outline-offset: 3px;
+}
+
+.support-button-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--support-color);
+  color: white;
+  font-size: .9rem;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .24);
+}
+
+.support-via {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+body.support-dialog-open { overflow: hidden; }
+
+.support-dialog {
+  width: min(420px, calc(100vw - 32px));
+  height: min(680px, calc(100dvh - 48px));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 30px 90px rgba(5, 41, 54, .34);
+}
+
+.support-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  animation: support-dialog-in .22s ease both;
+}
+
+.support-dialog::backdrop {
+  background: rgba(3, 35, 47, .58);
+  backdrop-filter: blur(5px);
+}
+
+.support-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 17px 17px 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(135deg, #f8feff, #fff9fc);
+}
+
+.support-dialog-heading { min-width: 0; }
+
+.support-dialog-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.support-dialog-description {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.support-dialog-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0 0 2px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.45rem;
+  font-weight: 500;
+  line-height: 1;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.support-dialog-close:hover {
+  transform: rotate(3deg);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.support-frame-wrap {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: white;
+}
+
+.support-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+
+.support-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  background: white;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.support-loading[hidden] { display: none; }
+
+.support-loading-ring {
+  width: 46px;
+  height: 46px;
+  border: 5px solid rgba(24, 207, 224, .2);
+  border-top-color: var(--pink);
+  border-radius: 50%;
+  animation: support-spin .9s linear infinite;
+}
+
+.support-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 18px 12px;
+  border-top: 1px solid var(--line);
+  background: #fbfeff;
+}
+
+.support-privacy-note {
+  color: var(--muted);
+  font-size: .64rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.support-fallback {
+  flex: 0 0 auto;
+  color: var(--ink-2);
+  font-size: .67rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.support-fallback:hover { color: var(--pink); }
+
+@keyframes support-spin { to { transform: rotate(360deg); } }
+@keyframes support-dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 620px) {
+  .support-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 13px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .support-action-group {
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .support-button { width: 100%; }
+
+  .support-dialog {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .support-dialog-header {
+    padding-top: max(17px, env(safe-area-inset-top));
+  }
+
+  .support-dialog-footer {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-button,
+  .support-dialog-close,
+  .support-dialog[open] { transition: none; animation: none; }
+  .support-loading-ring { animation-duration: 1.8s; }
+}
+
+@media print {
+  .support-card,
+  .support-dialog { display: none !important; }
+}
+
+/* Footer checkout styling only. The isolated modal implementation is unchanged. */
+.clean-checkpoint .support-card { margin-top: 40px; padding: 24px 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0; background: white; box-shadow: none; backdrop-filter: none; }
+.clean-checkpoint .support-kicker { display: none; }
+.clean-checkpoint .support-prompt { font-size: 1rem; font-weight: 500; }
+.clean-checkpoint .support-button { font-size: var(--text-label); font-weight: 600; min-height: 44px; border: 1px solid #adcad0; border-radius: 6px; background: white; color: var(--aqua-deep); box-shadow: none; padding: 8px 12px; transform: none; }
+.clean-checkpoint .support-button:hover { background: var(--paper-2); }
+.clean-checkpoint .support-button-icon { color: var(--aqua-deep); background: transparent; box-shadow: none; }
+.clean-checkpoint .support-via { font-size: .75rem; font-weight: 400; }
+.clean-checkpoint .support-button:focus-visible, .clean-checkpoint .support-dialog-close:focus-visible, .clean-checkpoint .support-fallback:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px; }
+.clean-checkpoint .support-dialog-title { font-size: 1.125rem; font-weight: 650; }
+.clean-checkpoint .support-dialog-description { font-size: var(--text-label); font-weight: 400; }
+.clean-checkpoint .support-dialog-close { width: 44px; height: 44px; }
+.clean-checkpoint .support-privacy-note, .clean-checkpoint .support-fallback { font-size: .75rem; font-weight: 500; }
+
+@media (max-width: 720px) {
+  .clean-checkpoint .support-card { margin-top: 28px; padding: 20px 0; gap: 12px; }
+  .clean-checkpoint .support-button { width: auto; }
+  .clean-checkpoint .support-action-group { gap: 8px; }
+}
+</style>
+</head>
+<body class="clean-checkpoint">
+  <main id="app" class="app-shell">
+    <div class="boot-card">
+      
+      <p>Loading your report…</p>
+    </div>
+  </main>
+
+  <script id="report-data" type="application/json">{"after":{"naiveRating":14497,"new15":[{"artist":"Example Composer 1","chartID":"synthetic-chart-new-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"11.0","levelNum":11.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":326,"slow":6,"songID":"synthetic-song-new-00","timeAchieved":1780000000000,"title":"星屑コンチェルト（Synthetic）"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-01","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":15,"good":3,"grade":"S+","great":11,"lamp":"FULL COMBO","level":"11.4","levelNum":11.4,"miss":1,"pcrit":705,"percent":96.73,"perfect":403,"rate":323,"slow":17,"songID":"synthetic-song-new-01","timeAchieved":1779913600000,"title":"夜明けのシグナル（Synthetic）"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-02","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":22,"good":4,"grade":"SS","great":12,"lamp":"FULL COMBO+","level":"11.8","levelNum":11.8,"miss":2,"pcrit":710,"percent":97.26,"perfect":406,"rate":320,"slow":28,"songID":"synthetic-song-new-02","timeAchieved":1779827200000,"title":"月光ステップ（Synthetic）"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"12.2","levelNum":12.2,"miss":0,"pcrit":715,"percent":97.79,"perfect":409,"rate":317,"slow":39,"songID":"synthetic-song-new-03","timeAchieved":1779740800000,"title":"虹色リズム（Synthetic）"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-04","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":36,"good":6,"grade":"SSS","great":14,"lamp":"CLEAR","level":"12.6","levelNum":12.6,"miss":1,"pcrit":720,"percent":98.32,"perfect":412,"rate":314,"slow":50,"songID":"synthetic-song-new-04","timeAchieved":1779654400000,"title":"Synthetic Current Track 05"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"13.0","levelNum":13.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":311,"slow":9,"songID":"synthetic-song-new-05","timeAchieved":1779568000000,"title":"Synthetic Current Track 06"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-06","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":50,"good":8,"grade":"S","great":16,"lamp":"FULL COMBO+","level":"13.4","levelNum":13.4,"miss":0,"pcrit":730,"percent":99.38,"perfect":418,"rate":308,"slow":20,"songID":"synthetic-song-new-06","timeAchieved":1779481600000,"title":"Synthetic Current Track 07"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-07","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":9,"good":2,"grade":"S+","great":17,"lamp":"ALL PERFECT","level":"13.8","levelNum":13.8,"miss":1,"pcrit":735,"percent":99.91,"perfect":421,"rate":305,"slow":31,"songID":"synthetic-song-new-07","timeAchieved":1779395200000,"title":"Synthetic Current Track 08"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"14.2","levelNum":14.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":302,"slow":42,"songID":"synthetic-song-new-08","timeAchieved":1779308800000,"title":"Synthetic Current Track 09"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"14.6","levelNum":14.6,"miss":0,"pcrit":745,"percent":96.2,"perfect":427,"rate":299,"slow":53,"songID":"synthetic-song-new-09","timeAchieved":1779222400000,"title":"Synthetic Current Track 10"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-10","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":30,"good":5,"grade":"SSS","great":20,"lamp":"FULL COMBO+","level":"11.0","levelNum":11.0,"miss":1,"pcrit":750,"percent":96.73,"perfect":430,"rate":296,"slow":12,"songID":"synthetic-song-new-10","timeAchieved":1779136000000,"title":"Synthetic Current Track 11"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-11","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":37,"good":6,"grade":"SSS+","great":21,"lamp":"ALL PERFECT","level":"11.4","levelNum":11.4,"miss":2,"pcrit":755,"percent":97.26,"perfect":433,"rate":293,"slow":23,"songID":"synthetic-song-new-11","timeAchieved":1779049600000,"title":"Synthetic Current Track 12"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-12","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":44,"good":7,"grade":"S","great":22,"lamp":"CLEAR","level":"11.8","levelNum":11.8,"miss":0,"pcrit":760,"percent":97.79,"perfect":436,"rate":290,"slow":34,"songID":"synthetic-song-new-12","timeAchieved":1778963200000,"title":"Synthetic Current Track 13"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-13","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":51,"good":8,"grade":"S+","great":23,"lamp":"FULL COMBO","level":"12.2","levelNum":12.2,"miss":1,"pcrit":765,"percent":98.32,"perfect":439,"rate":287,"slow":45,"songID":"synthetic-song-new-13","timeAchieved":1778876800000,"title":"Synthetic Current Track 14"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-14","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":10,"good":2,"grade":"SS","great":24,"lamp":"FULL COMBO+","level":"12.6","levelNum":12.6,"miss":2,"pcrit":770,"percent":98.85,"perfect":442,"rate":284,"slow":56,"songID":"synthetic-song-new-14","timeAchieved":1778790400000,"title":"Synthetic Current Track 15"}],"new15Floor":284,"new15Rating":4575,"newPool":[{"artist":"Example Composer 1","chartID":"synthetic-chart-new-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"11.0","levelNum":11.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":326,"slow":6,"songID":"synthetic-song-new-00","timeAchieved":1780000000000,"title":"星屑コンチェルト（Synthetic）"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-01","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":15,"good":3,"grade":"S+","great":11,"lamp":"FULL COMBO","level":"11.4","levelNum":11.4,"miss":1,"pcrit":705,"percent":96.73,"perfect":403,"rate":323,"slow":17,"songID":"synthetic-song-new-01","timeAchieved":1779913600000,"title":"夜明けのシグナル（Synthetic）"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-02","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":22,"good":4,"grade":"SS","great":12,"lamp":"FULL COMBO+","level":"11.8","levelNum":11.8,"miss":2,"pcrit":710,"percent":97.26,"perfect":406,"rate":320,"slow":28,"songID":"synthetic-song-new-02","timeAchieved":1779827200000,"title":"月光ステップ（Synthetic）"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"12.2","levelNum":12.2,"miss":0,"pcrit":715,"percent":97.79,"perfect":409,"rate":317,"slow":39,"songID":"synthetic-song-new-03","timeAchieved":1779740800000,"title":"虹色リズム（Synthetic）"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-04","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":36,"good":6,"grade":"SSS","great":14,"lamp":"CLEAR","level":"12.6","levelNum":12.6,"miss":1,"pcrit":720,"percent":98.32,"perfect":412,"rate":314,"slow":50,"songID":"synthetic-song-new-04","timeAchieved":1779654400000,"title":"Synthetic Current Track 05"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"13.0","levelNum":13.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":311,"slow":9,"songID":"synthetic-song-new-05","timeAchieved":1779568000000,"title":"Synthetic Current Track 06"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-06","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":50,"good":8,"grade":"S","great":16,"lamp":"FULL COMBO+","level":"13.4","levelNum":13.4,"miss":0,"pcrit":730,"percent":99.38,"perfect":418,"rate":308,"slow":20,"songID":"synthetic-song-new-06","timeAchieved":1779481600000,"title":"Synthetic Current Track 07"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-07","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":9,"good":2,"grade":"S+","great":17,"lamp":"ALL PERFECT","level":"13.8","levelNum":13.8,"miss":1,"pcrit":735,"percent":99.91,"perfect":421,"rate":305,"slow":31,"songID":"synthetic-song-new-07","timeAchieved":1779395200000,"title":"Synthetic Current Track 08"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"14.2","levelNum":14.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":302,"slow":42,"songID":"synthetic-song-new-08","timeAchieved":1779308800000,"title":"Synthetic Current Track 09"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"14.6","levelNum":14.6,"miss":0,"pcrit":745,"percent":96.2,"perfect":427,"rate":299,"slow":53,"songID":"synthetic-song-new-09","timeAchieved":1779222400000,"title":"Synthetic Current Track 10"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-10","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":30,"good":5,"grade":"SSS","great":20,"lamp":"FULL COMBO+","level":"11.0","levelNum":11.0,"miss":1,"pcrit":750,"percent":96.73,"perfect":430,"rate":296,"slow":12,"songID":"synthetic-song-new-10","timeAchieved":1779136000000,"title":"Synthetic Current Track 11"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-11","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":37,"good":6,"grade":"SSS+","great":21,"lamp":"ALL PERFECT","level":"11.4","levelNum":11.4,"miss":2,"pcrit":755,"percent":97.26,"perfect":433,"rate":293,"slow":23,"songID":"synthetic-song-new-11","timeAchieved":1779049600000,"title":"Synthetic Current Track 12"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-12","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":44,"good":7,"grade":"S","great":22,"lamp":"CLEAR","level":"11.8","levelNum":11.8,"miss":0,"pcrit":760,"percent":97.79,"perfect":436,"rate":290,"slow":34,"songID":"synthetic-song-new-12","timeAchieved":1778963200000,"title":"Synthetic Current Track 13"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-13","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":51,"good":8,"grade":"S+","great":23,"lamp":"FULL COMBO","level":"12.2","levelNum":12.2,"miss":1,"pcrit":765,"percent":98.32,"perfect":439,"rate":287,"slow":45,"songID":"synthetic-song-new-13","timeAchieved":1778876800000,"title":"Synthetic Current Track 14"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-14","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":10,"good":2,"grade":"SS","great":24,"lamp":"FULL COMBO+","level":"12.6","levelNum":12.6,"miss":2,"pcrit":770,"percent":98.85,"perfect":442,"rate":284,"slow":56,"songID":"synthetic-song-new-14","timeAchieved":1778790400000,"title":"Synthetic Current Track 15"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-15","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":17,"good":3,"grade":"SS+","great":25,"lamp":"ALL PERFECT","level":"13.0","levelNum":13.0,"miss":0,"pcrit":775,"percent":99.38,"perfect":445,"rate":281,"slow":15,"songID":"synthetic-song-new-15","timeAchieved":1778704000000,"title":"Synthetic Current Track 16"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-16","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":24,"good":4,"grade":"SSS","great":26,"lamp":"CLEAR","level":"13.4","levelNum":13.4,"miss":1,"pcrit":780,"percent":99.91,"perfect":448,"rate":278,"slow":26,"songID":"synthetic-song-new-16","timeAchieved":1778617600000,"title":"Synthetic Current Track 17"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"13.8","levelNum":13.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"rate":275,"slow":37,"songID":"synthetic-song-new-17","timeAchieved":1778531200000,"title":"Synthetic Current Track 18"}],"newPoolPlayed":18,"newSlotsFilled":15,"old35":[{"artist":"Example Composer 1","chartID":"synthetic-chart-old-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":315,"slow":6,"songID":"synthetic-song-old-00","timeAchieved":1771360000000,"title":"Synthetic Legacy Track 01"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-01","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":15,"good":3,"grade":"S+","great":11,"lamp":"FULL COMBO","level":"10.4","levelNum":10.4,"miss":1,"pcrit":705,"percent":96.73,"perfect":403,"rate":313,"slow":17,"songID":"synthetic-song-old-01","timeAchieved":1771273600000,"title":"Synthetic Legacy Track 02"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-02","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":22,"good":4,"grade":"SS","great":12,"lamp":"FULL COMBO+","level":"10.8","levelNum":10.8,"miss":2,"pcrit":710,"percent":97.26,"perfect":406,"rate":311,"slow":28,"songID":"synthetic-song-old-02","timeAchieved":1771187200000,"title":"Synthetic Legacy Track 03"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"11.2","levelNum":11.2,"miss":0,"pcrit":715,"percent":97.79,"perfect":409,"rate":309,"slow":39,"songID":"synthetic-song-old-03","timeAchieved":1771100800000,"title":"Synthetic Legacy Track 04"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-04","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":36,"good":6,"grade":"SSS","great":14,"lamp":"CLEAR","level":"11.6","levelNum":11.6,"miss":1,"pcrit":720,"percent":98.32,"perfect":412,"rate":307,"slow":50,"songID":"synthetic-song-old-04","timeAchieved":1771014400000,"title":"Synthetic Legacy Track 05"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"12.0","levelNum":12.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":305,"slow":9,"songID":"synthetic-song-old-05","timeAchieved":1770928000000,"title":"Synthetic Legacy Track 06"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-06","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":50,"good":8,"grade":"S","great":16,"lamp":"FULL COMBO+","level":"12.4","levelNum":12.4,"miss":0,"pcrit":730,"percent":99.38,"perfect":418,"rate":303,"slow":20,"songID":"synthetic-song-old-06","timeAchieved":1770841600000,"title":"Synthetic Legacy Track 07"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-07","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":9,"good":2,"grade":"S+","great":17,"lamp":"ALL PERFECT","level":"12.8","levelNum":12.8,"miss":1,"pcrit":735,"percent":99.91,"perfect":421,"rate":301,"slow":31,"songID":"synthetic-song-old-07","timeAchieved":1770755200000,"title":"Synthetic Legacy Track 08"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":299,"slow":42,"songID":"synthetic-song-old-08","timeAchieved":1770668800000,"title":"Synthetic Legacy Track 09"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"13.6","levelNum":13.6,"miss":0,"pcrit":745,"percent":96.2,"perfect":427,"rate":297,"slow":53,"songID":"synthetic-song-old-09","timeAchieved":1770582400000,"title":"Synthetic Legacy Track 10"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-10","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":30,"good":5,"grade":"SSS","great":20,"lamp":"FULL COMBO+","level":"10.0","levelNum":10.0,"miss":1,"pcrit":750,"percent":96.73,"perfect":430,"rate":295,"slow":12,"songID":"synthetic-song-old-10","timeAchieved":1770496000000,"title":"Synthetic Legacy Track 11"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-11","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":37,"good":6,"grade":"SSS+","great":21,"lamp":"ALL PERFECT","level":"10.4","levelNum":10.4,"miss":2,"pcrit":755,"percent":97.26,"perfect":433,"rate":293,"slow":23,"songID":"synthetic-song-old-11","timeAchieved":1770409600000,"title":"Synthetic Legacy Track 12"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-12","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":44,"good":7,"grade":"S","great":22,"lamp":"CLEAR","level":"10.8","levelNum":10.8,"miss":0,"pcrit":760,"percent":97.79,"perfect":436,"rate":291,"slow":34,"songID":"synthetic-song-old-12","timeAchieved":1770323200000,"title":"Synthetic Legacy Track 13"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-13","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":51,"good":8,"grade":"S+","great":23,"lamp":"FULL COMBO","level":"11.2","levelNum":11.2,"miss":1,"pcrit":765,"percent":98.32,"perfect":439,"rate":289,"slow":45,"songID":"synthetic-song-old-13","timeAchieved":1770236800000,"title":"Synthetic Legacy Track 14"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-14","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":10,"good":2,"grade":"SS","great":24,"lamp":"FULL COMBO+","level":"11.6","levelNum":11.6,"miss":2,"pcrit":770,"percent":98.85,"perfect":442,"rate":287,"slow":56,"songID":"synthetic-song-old-14","timeAchieved":1770150400000,"title":"Synthetic Legacy Track 15"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-15","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":17,"good":3,"grade":"SS+","great":25,"lamp":"ALL PERFECT","level":"12.0","levelNum":12.0,"miss":0,"pcrit":775,"percent":99.38,"perfect":445,"rate":285,"slow":15,"songID":"synthetic-song-old-15","timeAchieved":1770064000000,"title":"Synthetic Legacy Track 16"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-16","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":24,"good":4,"grade":"SSS","great":26,"lamp":"CLEAR","level":"12.4","levelNum":12.4,"miss":1,"pcrit":780,"percent":99.91,"perfect":448,"rate":283,"slow":26,"songID":"synthetic-song-old-16","timeAchieved":1769977600000,"title":"Synthetic Legacy Track 17"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"12.8","levelNum":12.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"rate":281,"slow":37,"songID":"synthetic-song-old-17","timeAchieved":1769891200000,"title":"Synthetic Legacy Track 18"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-18","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":38,"good":6,"grade":"S","great":28,"lamp":"FULL COMBO+","level":"13.2","levelNum":13.2,"miss":0,"pcrit":790,"percent":96.2,"perfect":454,"rate":279,"slow":48,"songID":"synthetic-song-old-18","timeAchieved":1769804800000,"title":"Synthetic Legacy Track 19"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-19","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":45,"good":7,"grade":"S+","great":10,"lamp":"ALL PERFECT","level":"13.6","levelNum":13.6,"miss":1,"pcrit":795,"percent":96.73,"perfect":457,"rate":277,"slow":7,"songID":"synthetic-song-old-19","timeAchieved":1769718400000,"title":"Synthetic Legacy Track 20"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-20","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":52,"good":8,"grade":"SS","great":11,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":2,"pcrit":800,"percent":97.26,"perfect":460,"rate":275,"slow":18,"songID":"synthetic-song-old-20","timeAchieved":1769632000000,"title":"Synthetic Legacy Track 21"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-21","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":11,"good":2,"grade":"SS+","great":12,"lamp":"FULL COMBO","level":"10.4","levelNum":10.4,"miss":0,"pcrit":805,"percent":97.79,"perfect":463,"rate":273,"slow":29,"songID":"synthetic-song-old-21","timeAchieved":1769545600000,"title":"Synthetic Legacy Track 22"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-22","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":18,"good":3,"grade":"SSS","great":13,"lamp":"FULL COMBO+","level":"10.8","levelNum":10.8,"miss":1,"pcrit":810,"percent":98.32,"perfect":466,"rate":271,"slow":40,"songID":"synthetic-song-old-22","timeAchieved":1769459200000,"title":"Synthetic Legacy Track 23"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-23","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":25,"good":4,"grade":"SSS+","great":14,"lamp":"ALL PERFECT","level":"11.2","levelNum":11.2,"miss":2,"pcrit":815,"percent":98.85,"perfect":469,"rate":269,"slow":51,"songID":"synthetic-song-old-23","timeAchieved":1769372800000,"title":"Synthetic Legacy Track 24"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-24","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":32,"good":5,"grade":"S","great":15,"lamp":"CLEAR","level":"11.6","levelNum":11.6,"miss":0,"pcrit":820,"percent":99.38,"perfect":472,"rate":267,"slow":10,"songID":"synthetic-song-old-24","timeAchieved":1769286400000,"title":"Synthetic Legacy Track 25"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-25","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":39,"good":6,"grade":"S+","great":16,"lamp":"FULL COMBO","level":"12.0","levelNum":12.0,"miss":1,"pcrit":825,"percent":99.91,"perfect":475,"rate":265,"slow":21,"songID":"synthetic-song-old-25","timeAchieved":1769200000000,"title":"Synthetic Legacy Track 26"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-26","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":46,"good":7,"grade":"SS","great":17,"lamp":"FULL COMBO+","level":"12.4","levelNum":12.4,"miss":2,"pcrit":830,"percent":100.44,"perfect":478,"rate":263,"slow":32,"songID":"synthetic-song-old-26","timeAchieved":1769113600000,"title":"Synthetic Legacy Track 27"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-27","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":53,"good":8,"grade":"SS+","great":18,"lamp":"ALL PERFECT","level":"12.8","levelNum":12.8,"miss":0,"pcrit":835,"percent":96.2,"perfect":481,"rate":261,"slow":43,"songID":"synthetic-song-old-27","timeAchieved":1769027200000,"title":"Synthetic Legacy Track 28"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-28","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":12,"good":2,"grade":"SSS","great":19,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":1,"pcrit":840,"percent":96.73,"perfect":484,"rate":259,"slow":54,"songID":"synthetic-song-old-28","timeAchieved":1768940800000,"title":"Synthetic Legacy Track 29"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-29","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":19,"good":3,"grade":"SSS+","great":20,"lamp":"FULL COMBO","level":"13.6","levelNum":13.6,"miss":2,"pcrit":845,"percent":97.26,"perfect":487,"rate":257,"slow":13,"songID":"synthetic-song-old-29","timeAchieved":1768854400000,"title":"Synthetic Legacy Track 30"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-30","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":26,"good":4,"grade":"S","great":21,"lamp":"FULL COMBO+","level":"10.0","levelNum":10.0,"miss":0,"pcrit":850,"percent":97.79,"perfect":490,"rate":255,"slow":24,"songID":"synthetic-song-old-30","timeAchieved":1768768000000,"title":"Synthetic Legacy Track 31"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-31","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":33,"good":5,"grade":"S+","great":22,"lamp":"ALL PERFECT","level":"10.4","levelNum":10.4,"miss":1,"pcrit":855,"percent":98.32,"perfect":493,"rate":253,"slow":35,"songID":"synthetic-song-old-31","timeAchieved":1768681600000,"title":"Synthetic Legacy Track 32"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-32","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":40,"good":6,"grade":"SS","great":23,"lamp":"CLEAR","level":"10.8","levelNum":10.8,"miss":2,"pcrit":860,"percent":98.85,"perfect":496,"rate":251,"slow":46,"songID":"synthetic-song-old-32","timeAchieved":1768595200000,"title":"Synthetic Legacy Track 33"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-33","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":47,"good":7,"grade":"SS+","great":24,"lamp":"FULL COMBO","level":"11.2","levelNum":11.2,"miss":0,"pcrit":865,"percent":99.38,"perfect":499,"rate":249,"slow":57,"songID":"synthetic-song-old-33","timeAchieved":1768508800000,"title":"Synthetic Legacy Track 34"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-34","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":54,"good":8,"grade":"SSS","great":25,"lamp":"FULL COMBO+","level":"11.6","levelNum":11.6,"miss":1,"pcrit":870,"percent":99.91,"perfect":502,"rate":247,"slow":16,"songID":"synthetic-song-old-34","timeAchieved":1768422400000,"title":"Synthetic Legacy Track 35"}],"old35Floor":247,"old35Rating":9835,"pbCount":53,"reconstructedRating":14410},"before":{"naiveRating":14426,"new15":[{"artist":"Example Composer 1","chartID":"synthetic-chart-new-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"11.0","levelNum":11.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":326,"slow":6,"songID":"synthetic-song-new-00","timeAchieved":1780000000000,"title":"星屑コンチェルト（Synthetic）"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-01","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":15,"good":3,"grade":"S+","great":11,"lamp":"FULL COMBO","level":"11.4","levelNum":11.4,"miss":1,"pcrit":705,"percent":96.73,"perfect":403,"rate":323,"slow":17,"songID":"synthetic-song-new-01","timeAchieved":1779913600000,"title":"夜明けのシグナル（Synthetic）"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-02","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":22,"good":4,"grade":"SS","great":12,"lamp":"FULL COMBO+","level":"11.8","levelNum":11.8,"miss":2,"pcrit":710,"percent":97.26,"perfect":406,"rate":320,"slow":28,"songID":"synthetic-song-new-02","timeAchieved":1779827200000,"title":"月光ステップ（Synthetic）"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"12.2","levelNum":12.2,"miss":0,"pcrit":715,"percent":97.79,"perfect":409,"rate":317,"slow":39,"songID":"synthetic-song-new-03","timeAchieved":1779740800000,"title":"虹色リズム（Synthetic）"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-04","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":36,"good":6,"grade":"SSS","great":14,"lamp":"CLEAR","level":"12.6","levelNum":12.6,"miss":1,"pcrit":720,"percent":98.32,"perfect":412,"rate":314,"slow":50,"songID":"synthetic-song-new-04","timeAchieved":1779654400000,"title":"Synthetic Current Track 05"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"13.0","levelNum":13.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":311,"slow":9,"songID":"synthetic-song-new-05","timeAchieved":1779568000000,"title":"Synthetic Current Track 06"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-06","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":50,"good":8,"grade":"S","great":16,"lamp":"FULL COMBO+","level":"13.4","levelNum":13.4,"miss":0,"pcrit":730,"percent":99.38,"perfect":418,"rate":308,"slow":20,"songID":"synthetic-song-new-06","timeAchieved":1779481600000,"title":"Synthetic Current Track 07"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-07","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":9,"good":2,"grade":"S+","great":17,"lamp":"ALL PERFECT","level":"13.8","levelNum":13.8,"miss":1,"pcrit":735,"percent":99.91,"perfect":421,"rate":305,"slow":31,"songID":"synthetic-song-new-07","timeAchieved":1779395200000,"title":"Synthetic Current Track 08"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"14.2","levelNum":14.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":302,"slow":42,"songID":"synthetic-song-new-08","timeAchieved":1779308800000,"title":"Synthetic Current Track 09"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"14.6","levelNum":14.6,"miss":0,"pcrit":745,"percent":96.2,"perfect":427,"rate":299,"slow":53,"songID":"synthetic-song-new-09","timeAchieved":1779222400000,"title":"Synthetic Current Track 10"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-10","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":30,"good":5,"grade":"SSS","great":20,"lamp":"FULL COMBO+","level":"11.0","levelNum":11.0,"miss":1,"pcrit":750,"percent":96.73,"perfect":430,"rate":296,"slow":12,"songID":"synthetic-song-new-10","timeAchieved":1779136000000,"title":"Synthetic Current Track 11"},{"artist":"Example Composer 2","chartID":"synthetic-chart-new-11","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Current","fast":37,"good":6,"grade":"SSS+","great":21,"lamp":"ALL PERFECT","level":"11.4","levelNum":11.4,"miss":2,"pcrit":755,"percent":97.26,"perfect":433,"rate":293,"slow":23,"songID":"synthetic-song-new-11","timeAchieved":1779049600000,"title":"Synthetic Current Track 12"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-12","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":44,"good":7,"grade":"S","great":22,"lamp":"CLEAR","level":"11.8","levelNum":11.8,"miss":0,"pcrit":760,"percent":97.79,"perfect":436,"rate":290,"slow":34,"songID":"synthetic-song-new-12","timeAchieved":1778963200000,"title":"Synthetic Current Track 13"},{"artist":"Example Composer 4","chartID":"synthetic-chart-new-13","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Current","fast":51,"good":8,"grade":"S+","great":23,"lamp":"FULL COMBO","level":"12.2","levelNum":12.2,"miss":1,"pcrit":765,"percent":98.32,"perfect":439,"rate":287,"slow":45,"songID":"synthetic-song-new-13","timeAchieved":1778876800000,"title":"Synthetic Current Track 14"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-14","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":10,"good":2,"grade":"SS","great":24,"lamp":"FULL COMBO+","level":"12.6","levelNum":12.6,"miss":2,"pcrit":770,"percent":98.85,"perfect":442,"rate":284,"slow":56,"songID":"synthetic-song-new-14","timeAchieved":1778790400000,"title":"Synthetic Current Track 15"}],"new15Floor":284,"new15Rating":4528,"newPoolPlayed":16,"newSlotsFilled":13,"old35":[{"artist":"Example Composer 1","chartID":"synthetic-chart-old-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":315,"slow":6,"songID":"synthetic-song-old-00","timeAchieved":1771360000000,"title":"Synthetic Legacy Track 01"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-01","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":15,"good":3,"grade":"S+","great":11,"lamp":"FULL COMBO","level":"10.4","levelNum":10.4,"miss":1,"pcrit":705,"percent":96.73,"perfect":403,"rate":313,"slow":17,"songID":"synthetic-song-old-01","timeAchieved":1771273600000,"title":"Synthetic Legacy Track 02"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-02","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":22,"good":4,"grade":"SS","great":12,"lamp":"FULL COMBO+","level":"10.8","levelNum":10.8,"miss":2,"pcrit":710,"percent":97.26,"perfect":406,"rate":311,"slow":28,"songID":"synthetic-song-old-02","timeAchieved":1771187200000,"title":"Synthetic Legacy Track 03"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"11.2","levelNum":11.2,"miss":0,"pcrit":715,"percent":97.79,"perfect":409,"rate":309,"slow":39,"songID":"synthetic-song-old-03","timeAchieved":1771100800000,"title":"Synthetic Legacy Track 04"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-04","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":36,"good":6,"grade":"SSS","great":14,"lamp":"CLEAR","level":"11.6","levelNum":11.6,"miss":1,"pcrit":720,"percent":98.32,"perfect":412,"rate":307,"slow":50,"songID":"synthetic-song-old-04","timeAchieved":1771014400000,"title":"Synthetic Legacy Track 05"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"12.0","levelNum":12.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":305,"slow":9,"songID":"synthetic-song-old-05","timeAchieved":1770928000000,"title":"Synthetic Legacy Track 06"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-06","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":50,"good":8,"grade":"S","great":16,"lamp":"FULL COMBO+","level":"12.4","levelNum":12.4,"miss":0,"pcrit":730,"percent":99.38,"perfect":418,"rate":303,"slow":20,"songID":"synthetic-song-old-06","timeAchieved":1770841600000,"title":"Synthetic Legacy Track 07"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-07","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":9,"good":2,"grade":"S+","great":17,"lamp":"ALL PERFECT","level":"12.8","levelNum":12.8,"miss":1,"pcrit":735,"percent":99.91,"perfect":421,"rate":301,"slow":31,"songID":"synthetic-song-old-07","timeAchieved":1770755200000,"title":"Synthetic Legacy Track 08"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":299,"slow":42,"songID":"synthetic-song-old-08","timeAchieved":1770668800000,"title":"Synthetic Legacy Track 09"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"13.6","levelNum":13.6,"miss":0,"pcrit":745,"percent":96.2,"perfect":427,"rate":297,"slow":53,"songID":"synthetic-song-old-09","timeAchieved":1770582400000,"title":"Synthetic Legacy Track 10"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-10","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":30,"good":5,"grade":"SSS","great":20,"lamp":"FULL COMBO+","level":"10.0","levelNum":10.0,"miss":1,"pcrit":750,"percent":96.73,"perfect":430,"rate":295,"slow":12,"songID":"synthetic-song-old-10","timeAchieved":1770496000000,"title":"Synthetic Legacy Track 11"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-11","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":37,"good":6,"grade":"SSS+","great":21,"lamp":"ALL PERFECT","level":"10.4","levelNum":10.4,"miss":2,"pcrit":755,"percent":97.26,"perfect":433,"rate":293,"slow":23,"songID":"synthetic-song-old-11","timeAchieved":1770409600000,"title":"Synthetic Legacy Track 12"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-12","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":44,"good":7,"grade":"S","great":22,"lamp":"CLEAR","level":"10.8","levelNum":10.8,"miss":0,"pcrit":760,"percent":97.79,"perfect":436,"rate":291,"slow":34,"songID":"synthetic-song-old-12","timeAchieved":1770323200000,"title":"Synthetic Legacy Track 13"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-13","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":51,"good":8,"grade":"S+","great":23,"lamp":"FULL COMBO","level":"11.2","levelNum":11.2,"miss":1,"pcrit":765,"percent":98.32,"perfect":439,"rate":289,"slow":45,"songID":"synthetic-song-old-13","timeAchieved":1770236800000,"title":"Synthetic Legacy Track 14"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-14","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":10,"good":2,"grade":"SS","great":24,"lamp":"FULL COMBO+","level":"11.6","levelNum":11.6,"miss":2,"pcrit":770,"percent":98.85,"perfect":442,"rate":287,"slow":56,"songID":"synthetic-song-old-14","timeAchieved":1770150400000,"title":"Synthetic Legacy Track 15"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-15","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":17,"good":3,"grade":"SS+","great":25,"lamp":"ALL PERFECT","level":"12.0","levelNum":12.0,"miss":0,"pcrit":775,"percent":99.38,"perfect":445,"rate":285,"slow":15,"songID":"synthetic-song-old-15","timeAchieved":1770064000000,"title":"Synthetic Legacy Track 16"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-16","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":24,"good":4,"grade":"SSS","great":26,"lamp":"CLEAR","level":"12.4","levelNum":12.4,"miss":1,"pcrit":780,"percent":99.91,"perfect":448,"rate":283,"slow":26,"songID":"synthetic-song-old-16","timeAchieved":1769977600000,"title":"Synthetic Legacy Track 17"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"12.8","levelNum":12.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"rate":281,"slow":37,"songID":"synthetic-song-old-17","timeAchieved":1769891200000,"title":"Synthetic Legacy Track 18"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-18","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":38,"good":6,"grade":"S","great":28,"lamp":"FULL COMBO+","level":"13.2","levelNum":13.2,"miss":0,"pcrit":790,"percent":96.2,"perfect":454,"rate":279,"slow":48,"songID":"synthetic-song-old-18","timeAchieved":1769804800000,"title":"Synthetic Legacy Track 19"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-19","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":45,"good":7,"grade":"S+","great":10,"lamp":"ALL PERFECT","level":"13.6","levelNum":13.6,"miss":1,"pcrit":795,"percent":96.73,"perfect":457,"rate":277,"slow":7,"songID":"synthetic-song-old-19","timeAchieved":1769718400000,"title":"Synthetic Legacy Track 20"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-20","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":52,"good":8,"grade":"SS","great":11,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":2,"pcrit":800,"percent":97.26,"perfect":460,"rate":275,"slow":18,"songID":"synthetic-song-old-20","timeAchieved":1769632000000,"title":"Synthetic Legacy Track 21"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-21","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":11,"good":2,"grade":"SS+","great":12,"lamp":"FULL COMBO","level":"10.4","levelNum":10.4,"miss":0,"pcrit":805,"percent":97.79,"perfect":463,"rate":273,"slow":29,"songID":"synthetic-song-old-21","timeAchieved":1769545600000,"title":"Synthetic Legacy Track 22"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-22","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":18,"good":3,"grade":"SSS","great":13,"lamp":"FULL COMBO+","level":"10.8","levelNum":10.8,"miss":1,"pcrit":810,"percent":98.32,"perfect":466,"rate":271,"slow":40,"songID":"synthetic-song-old-22","timeAchieved":1769459200000,"title":"Synthetic Legacy Track 23"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-23","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":25,"good":4,"grade":"SSS+","great":14,"lamp":"ALL PERFECT","level":"11.2","levelNum":11.2,"miss":2,"pcrit":815,"percent":98.85,"perfect":469,"rate":269,"slow":51,"songID":"synthetic-song-old-23","timeAchieved":1769372800000,"title":"Synthetic Legacy Track 24"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-24","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":32,"good":5,"grade":"S","great":15,"lamp":"CLEAR","level":"11.6","levelNum":11.6,"miss":0,"pcrit":820,"percent":99.38,"perfect":472,"rate":267,"slow":10,"songID":"synthetic-song-old-24","timeAchieved":1769286400000,"title":"Synthetic Legacy Track 25"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-25","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":39,"good":6,"grade":"S+","great":16,"lamp":"FULL COMBO","level":"12.0","levelNum":12.0,"miss":1,"pcrit":825,"percent":99.91,"perfect":475,"rate":265,"slow":21,"songID":"synthetic-song-old-25","timeAchieved":1769200000000,"title":"Synthetic Legacy Track 26"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-26","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":46,"good":7,"grade":"SS","great":17,"lamp":"FULL COMBO+","level":"12.4","levelNum":12.4,"miss":2,"pcrit":830,"percent":100.44,"perfect":478,"rate":263,"slow":32,"songID":"synthetic-song-old-26","timeAchieved":1769113600000,"title":"Synthetic Legacy Track 27"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-27","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":53,"good":8,"grade":"SS+","great":18,"lamp":"ALL PERFECT","level":"12.8","levelNum":12.8,"miss":0,"pcrit":835,"percent":96.2,"perfect":481,"rate":261,"slow":43,"songID":"synthetic-song-old-27","timeAchieved":1769027200000,"title":"Synthetic Legacy Track 28"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-28","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":12,"good":2,"grade":"SSS","great":19,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":1,"pcrit":840,"percent":96.73,"perfect":484,"rate":259,"slow":54,"songID":"synthetic-song-old-28","timeAchieved":1768940800000,"title":"Synthetic Legacy Track 29"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-29","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":19,"good":3,"grade":"SSS+","great":20,"lamp":"FULL COMBO","level":"13.6","levelNum":13.6,"miss":2,"pcrit":845,"percent":97.26,"perfect":487,"rate":257,"slow":13,"songID":"synthetic-song-old-29","timeAchieved":1768854400000,"title":"Synthetic Legacy Track 30"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-30","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":26,"good":4,"grade":"S","great":21,"lamp":"FULL COMBO+","level":"10.0","levelNum":10.0,"miss":0,"pcrit":850,"percent":97.79,"perfect":490,"rate":255,"slow":24,"songID":"synthetic-song-old-30","timeAchieved":1768768000000,"title":"Synthetic Legacy Track 31"},{"artist":"Example Composer 2","chartID":"synthetic-chart-old-31","difficulty":"DX ADVANCED","displayVersion":"maimai DX Synthetic Legacy","fast":33,"good":5,"grade":"S+","great":22,"lamp":"ALL PERFECT","level":"10.4","levelNum":10.4,"miss":1,"pcrit":855,"percent":98.32,"perfect":493,"rate":253,"slow":35,"songID":"synthetic-song-old-31","timeAchieved":1768681600000,"title":"Synthetic Legacy Track 32"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-32","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":40,"good":6,"grade":"SS","great":23,"lamp":"CLEAR","level":"10.8","levelNum":10.8,"miss":2,"pcrit":860,"percent":98.85,"perfect":496,"rate":251,"slow":46,"songID":"synthetic-song-old-32","timeAchieved":1768595200000,"title":"Synthetic Legacy Track 33"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-33","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":47,"good":7,"grade":"SS+","great":24,"lamp":"FULL COMBO","level":"11.2","levelNum":11.2,"miss":0,"pcrit":865,"percent":99.38,"perfect":499,"rate":249,"slow":57,"songID":"synthetic-song-old-33","timeAchieved":1768508800000,"title":"Synthetic Legacy Track 34"},{"artist":"Example Composer 5","chartID":"synthetic-chart-old-34","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":54,"good":8,"grade":"SSS","great":25,"lamp":"FULL COMBO+","level":"11.6","levelNum":11.6,"miss":1,"pcrit":870,"percent":99.91,"perfect":502,"rate":247,"slow":16,"songID":"synthetic-song-old-34","timeAchieved":1768422400000,"title":"Synthetic Legacy Track 35"}],"old35Floor":247,"old35Rating":9811,"pbCount":50,"reconstructedRating":14339},"currentNewDisplayVersions":["maimai DX Synthetic Current"],"delta":{"naiveRating":71,"new15Rating":47,"old35Rating":24,"pbCount":3,"reconstructedRating":71},"generatedAt":"2026-05-28T18:30:00Z","player":{"displayName":"Sample Player","game":"maimai DX","timezone":"UTC","username":"sample-player"},"ratingVersionAssumption":"Synthetic configured-version B35/N15","schemaVersion":1,"session":{"changedPBCount":6,"changedPBs":[{"artist":"Example Composer 1","changeType":"new","chartID":"synthetic-chart-new-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"11.0","levelNum":11.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"previousPercent":null,"previousRate":null,"rate":326,"slow":6,"songID":"synthetic-song-new-00","timeAchieved":1780000000000,"title":"星屑コンチェルト（Synthetic）"},{"artist":"Example Composer 3","changeType":"new","chartID":"synthetic-chart-new-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"13.8","levelNum":13.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"previousPercent":null,"previousRate":null,"rate":275,"slow":37,"songID":"synthetic-song-new-17","timeAchieved":1780000420000,"title":"Synthetic Current Track 18"},{"artist":"Example Composer 1","changeType":"improved","chartID":"synthetic-chart-old-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"previousPercent":95.78,"previousRate":306,"rate":315,"slow":6,"songID":"synthetic-song-old-00","timeAchieved":1780000840000,"title":"Synthetic Legacy Track 01"},{"artist":"Example Composer 4","changeType":"improved","chartID":"synthetic-chart-old-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"previousPercent":100.02,"previousRate":288,"rate":299,"slow":42,"songID":"synthetic-song-old-08","timeAchieved":1780001260000,"title":"Synthetic Legacy Track 09"},{"artist":"Example Composer 1","changeType":"new","chartID":"synthetic-chart-new-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"13.0","levelNum":13.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"previousPercent":null,"previousRate":null,"rate":311,"slow":9,"songID":"synthetic-song-new-05","timeAchieved":1780001680000,"title":"Synthetic Current Track 06"},{"artist":"Example Composer 3","changeType":"improved","chartID":"synthetic-chart-old-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"12.8","levelNum":12.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"previousPercent":100.02,"previousRate":266,"rate":281,"slow":37,"songID":"synthetic-song-old-17","timeAchieved":1780002100000,"title":"Synthetic Legacy Track 18"}],"cutoffTimeAchieved":1779999999999,"endTimeAchieved":1780002940000,"improvedPBCount":3,"newPBCount":3,"scoreCount":8,"scores":[{"artist":"Example Composer 1","chartID":"synthetic-chart-new-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"11.0","levelNum":11.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":326,"slow":6,"songID":"synthetic-song-new-00","timeAchieved":1780000000000,"title":"星屑コンチェルト（Synthetic）"},{"artist":"Example Composer 3","chartID":"synthetic-chart-new-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Current","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"13.8","levelNum":13.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"rate":275,"slow":37,"songID":"synthetic-song-new-17","timeAchieved":1780000420000,"title":"Synthetic Current Track 18"},{"artist":"Example Composer 1","chartID":"synthetic-chart-old-00","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Legacy","fast":8,"good":2,"grade":"S","great":10,"lamp":"CLEAR","level":"10.0","levelNum":10.0,"miss":0,"pcrit":700,"percent":96.2,"perfect":400,"rate":315,"slow":6,"songID":"synthetic-song-old-00","timeAchieved":1780000840000,"title":"Synthetic Legacy Track 01"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-08","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":16,"good":3,"grade":"SS","great":18,"lamp":"CLEAR","level":"13.2","levelNum":13.2,"miss":2,"pcrit":740,"percent":100.44,"perfect":424,"rate":299,"slow":42,"songID":"synthetic-song-old-08","timeAchieved":1780001260000,"title":"Synthetic Legacy Track 09"},{"artist":"Example Composer 1","chartID":"synthetic-chart-new-05","difficulty":"DX BASIC","displayVersion":"maimai DX Synthetic Current","fast":43,"good":7,"grade":"SSS+","great":15,"lamp":"FULL COMBO","level":"13.0","levelNum":13.0,"miss":2,"pcrit":725,"percent":98.85,"perfect":415,"rate":311,"slow":9,"songID":"synthetic-song-new-05","timeAchieved":1780001680000,"title":"Synthetic Current Track 06"},{"artist":"Example Composer 3","chartID":"synthetic-chart-old-17","difficulty":"DX EXPERT","displayVersion":"maimai DX Synthetic Legacy","fast":31,"good":5,"grade":"SSS+","great":27,"lamp":"FULL COMBO","level":"12.8","levelNum":12.8,"miss":2,"pcrit":785,"percent":100.44,"perfect":451,"rate":281,"slow":37,"songID":"synthetic-song-old-17","timeAchieved":1780002100000,"title":"Synthetic Legacy Track 18"},{"artist":"Example Composer 4","chartID":"synthetic-chart-old-03","difficulty":"DX MASTER","displayVersion":"maimai DX Synthetic Legacy","fast":29,"good":5,"grade":"SS+","great":13,"lamp":"ALL PERFECT","level":"11.2","levelNum":11.2,"miss":0,"pcrit":715,"percent":97.48,"perfect":409,"rate":300,"slow":39,"songID":"synthetic-song-old-03","timeAchieved":1780002520000,"title":"Synthetic Legacy Track 04"},{"artist":"Example Composer 5","chartID":"synthetic-chart-new-09","difficulty":"DX Re:MASTER","displayVersion":"maimai DX Synthetic Current","fast":23,"good":4,"grade":"SS+","great":19,"lamp":"FULL COMBO","level":"14.6","levelNum":14.6,"miss":0,"pcrit":745,"percent":95.89,"perfect":427,"rate":290,"slow":53,"songID":"synthetic-song-new-09","timeAchieved":1780002940000,"title":"Synthetic Current Track 10"}],"startTimeAchieved":1780000000000}}</script>
+  <script id="jacket-data" type="application/json">{}</script>
+  <script id="download-data" type="application/json">{"href":null,"unavailable":false}</script>
+  <script>(() => {
+  "use strict";
+
+  const raw = document.getElementById("report-data")?.textContent || "{}";
+  const data = JSON.parse(raw);
+  const jackets = JSON.parse(document.getElementById("jacket-data")?.textContent || "{}");
+  const download = JSON.parse(document.getElementById("download-data")?.textContent || "{}");
+  const app = document.getElementById("app");
+
+  const presentNum = value => value == null ? "—" : num(value);
+  const presentPct = value => value == null ? "—" : pct(value);
+  const palette = ["#ff4f98", "#18cfe0", "#ffcf32", "#7566ff", "#20c79a"];
+  const safe = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  }[char]));
+  const num = (value) => Number(value || 0).toLocaleString("en-US");
+  const signed = (value) => `${Number(value || 0) > 0 ? "+" : ""}${num(value || 0)}`;
+  const pct = (value, digits = 4) => Number(value || 0).toFixed(digits) + "%";
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const rate = (item) => Number(item?.rate || 0);
+  const gain = (item) => rate(item) - Number(item?.previousRate || 0);
+
+  const player = data.player || { displayName: "Player", username: "player", timezone: "UTC", game: "maimai DX" };
+  const before = data.before || {};
+  const after = data.after || {};
+  const delta = data.delta || {};
+  const session = data.session || {};
+  const sessionScores = Array.isArray(session.scores) ? session.scores : [];
+  const changedPBs = Array.isArray(session.changedPBs) ? session.changedPBs : [];
+  const hasSession = changedPBs.length > 0 || sessionScores.length > 0 || Number(delta.reconstructedRating || 0) !== 0;
+
+  function timeRange() {
+    const allTimes = sessionScores.map((x) => x.timeAchieved).filter(Number.isFinite);
+    const start = Number(session.startTimeAchieved || (allTimes.length ? Math.min(...allTimes) : 0));
+    const end = Number(session.endTimeAchieved || (allTimes.length ? Math.max(...allTimes) : 0));
+    const generated = Date.parse(data.generatedAt || new Date().toISOString());
+    const zone = player.timezone || "UTC";
+    const date = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date(end || generated));
+    if (!start || !end) return date;
+    const tf = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" });
+    return `${date} • ${tf.format(new Date(start))}–${tf.format(new Date(end))}`;
+  }
+
+  function durationText() {
+    const times = sessionScores.map((x) => x.timeAchieved).filter(Number.isFinite);
+    const start = Number(session.startTimeAchieved || (times.length ? Math.min(...times) : 0));
+    const end = Number(session.endTimeAchieved || (times.length ? Math.max(...times) : 0));
+    if (!start || !end || end < start) return "synced session";
+    const mins = Math.max(1, Math.round((end - start) / 60000));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h ? `${h}h ${m}m session` : `${m}m session`;
+  }
+
+  function diffClass(difficulty = "") {
+    const d = String(difficulty).toLowerCase();
+    if (d.includes("re:master") || d.includes("remaster")) return "diff-remaster";
+    if (d.includes("master")) return "diff-master";
+    if (d.includes("expert")) return "diff-expert";
+    if (d.includes("advanced")) return "diff-advanced";
+    if (d.includes("basic")) return "diff-basic";
+    return "diff-unknown";
+  }
+
+  const gradeOrder = ["SSS+", "SSS", "SS+", "SS", "S+", "S", "AAA", "AA", "A", "BBB", "BB", "B", "C", "D"];
+  const gradeIndex = (grade) => gradeOrder.includes(grade) ? gradeOrder.indexOf(grade) : gradeOrder.length;
+  function gradeHtml(grade) {
+    const value = String(grade || "—");
+    const kind = /^SSS/.test(value) ? "rainbow" : /^S/.test(value) ? "gold" : /^A/.test(value) ? "red" : /^B/.test(value) ? "blue" : "unknown";
+    return `<span class="grade-pill grade-${kind}">${kind==="rainbow"?[...value].map(letter=>`<span>${safe(letter)}</span>`).join(""):safe(value)}</span>`;
+  }
+
+  function chartBadge(item) {
+    const d = String(item.difficulty || "");
+    const name = d.replace(/^(DX|Standard|Std)\s+/i, "") || "Unknown";
+    return `<span class="chart-identity"><span class="difficulty-pill ${diffClass(d)}">${safe(name)} <b>${safe(item.level || "—")}</b></span><span class="chart-format">${/^DX\s/i.test(d) ? "DX" : "STD"}</span></span>`;
+  }
+
+  function jacketHtml(item) {
+    const image = jackets[item.songID];
+    return typeof image === "string" && /^data:image\/(png|jpeg|webp);base64,/.test(image)
+      ? `<img class="song-jacket" src="${safe(image)}" alt="" width="56" height="56" loading="lazy" decoding="async" />`
+      : `<span class="song-jacket jacket-missing" role="img" aria-label="Jacket unavailable"><span aria-hidden="true">♪</span><small aria-hidden="true">NO ART</small></span>`;
+  }
+
+  // Presentation tiers from SEGA's DX rating reference. Rating calculations are unchanged.
+  const ratingTiers = [[0,"White"],[1000,"Blue"],[2000,"Green"],[4000,"Yellow"],[7000,"Red"],[10000,"Purple"],[12000,"Bronze"],[13000,"Silver"],[14000,"Gold"],[14500,"Platinum"],[15000,"Rainbow"],[16000,"Rainbow EX"]];
+  function ratingTier(value) {
+    const index = ratingTiers.findLastIndex(([floor]) => Number(value || 0) >= floor);
+    const [floor, name] = ratingTiers[Math.max(0,index)];
+    const next = ratingTiers[Math.max(0,index)+1];
+    return {floor, name, next, key:name.toLowerCase().replace(/ /g,"-")};
+  }
+
+  function shortDifficulty(difficulty = "") {
+    return String(difficulty).replace(/^DX\s+/i, "DX ").replace(/^Standard\s+/i, "Std ");
+  }
+
+  function story() {
+    const emptyBefore = Math.max(0, 15 - Number(before.newSlotsFilled || 0));
+    const emptyAfter = Math.max(0, 15 - Number(after.newSlotsFilled || 0));
+    const newGain = Number(delta.new15Rating || 0);
+    const oldGain = Number(delta.old35Rating || 0);
+    const total = Number(delta.reconstructedRating || 0);
+
+    if (!hasSession) return {
+      title: "Your account was already fully synced.",
+      copy: "No new MYT scores landed in this import. Run another explicit sync after your next play session.",
+    };
+    if (emptyBefore > 0 && emptyAfter === 0) return {
+      title: `You filled ${emptyBefore} New 15 slot${emptyBefore === 1 ? "" : "s"} — then started attacking the floor.`,
+      copy: `New 15 supplied ${signed(newGain)} rating, while Old 35 added ${signed(oldGain)}. The ${signed(total)} jump combined smart routing with real performance.`,
+    };
+    if (newGain > oldGain * 2) return {
+      title: "Current-version charts drove the session.",
+      copy: `Your New 15 moved ${signed(newGain)}, compared with ${signed(oldGain)} from Old 35. You are extracting much more value from the current song pool.`,
+    };
+    if (oldGain > newGain * 2) return {
+      title: "This was an Old 35 refinement session.",
+      copy: `Old 35 climbed ${signed(oldGain)} as stronger legacy scores replaced your floor. New 15 contributed ${signed(newGain)}.`,
+    };
+    return {
+      title: "Balanced gains across both rating pools.",
+      copy: `Old 35 added ${signed(oldGain)} and New 15 added ${signed(newGain)}, for ${signed(total)} overall.`,
+    };
+  }
+
+  function difficultyBands() {
+    const source = sessionScores.length ? sessionScores : changedPBs;
+    const groups = new Map();
+    for (const item of source) {
+      const levelNum = Number(item.levelNum || parseFloat(item.level) || 0);
+      const base = Math.floor(levelNum);
+      const label = `${base} / ${base}+`;
+      if (!groups.has(label)) groups.set(label, { label, base, items: [], rate: 0, percent: 0, fast: 0, slow: 0 });
+      const g = groups.get(label);
+      g.items.push(item);
+      g.rate += rate(item);
+      g.percent += Number(item.percent || 0);
+      g.fast += Number(item.fast || 0);
+      g.slow += Number(item.slow || 0);
+    }
+    const values = [...groups.values()].map((g) => ({
+      ...g,
+      count: g.items.length,
+      avgRate: g.items.length ? g.rate / g.items.length : 0,
+      avgPercent: g.items.length ? g.percent / g.items.length : 0,
+    })).sort((a,b) => a.base - b.base);
+    const best = values.reduce((winner, item) => !winner || item.avgRate > winner.avgRate ? item : winner, null);
+    return { values, best };
+  }
+
+  function timingStats() {
+    const source = sessionScores.length ? sessionScores : changedPBs;
+    const fast = source.reduce((sum, x) => sum + Number(x.fast || 0), 0);
+    const slow = source.reduce((sum, x) => sum + Number(x.slow || 0), 0);
+    const total = fast + slow;
+    const fastPct = total ? fast / total * 100 : 50;
+    const diff = slow - fast;
+    let label = "balanced";
+    if (diff > Math.max(15, total * .12)) label = "slow-leaning";
+    if (diff < -Math.max(15, total * .12)) label = "fast-leaning";
+    return { fast, slow, total, fastPct, label };
+  }
+
+  function gradeCounts() {
+    const source = sessionScores.length ? sessionScores : changedPBs;
+    const counts = {};
+    for (const item of source) counts[item.grade || "—"] = (counts[item.grade || "—"] || 0) + 1;
+    return Object.entries(counts).sort((a,b) => gradeIndex(a[0]) - gradeIndex(b[0]) || a[0].localeCompare(b[0]));
+  }
+
+  function thresholdRate(levelNum, targetPercent) {
+    const coeffs = targetPercent >= 100.5 ? 22.4 : targetPercent >= 100 ? 21.6 : targetPercent >= 99.5 ? 21.1 : targetPercent >= 99 ? 20.8 : targetPercent >= 98 ? 20.3 : targetPercent >= 97 ? 20.0 : 17.6;
+    return Math.floor(Number(levelNum || 0) * Math.min(targetPercent, 100.5) / 100 * coeffs);
+  }
+
+  function quests() {
+    const floor = Number(after.new15Floor || 0);
+    const pool = Array.isArray(after.newPool) ? after.newPool : (Array.isArray(after.new15) ? after.new15 : []);
+    const candidates = pool
+      .filter((x) => Number(x.percent || 0) < 97 && 97 - Number(x.percent || 0) <= 2.5)
+      .map((x) => {
+        const projected = thresholdRate(x.levelNum, 97);
+        const current = rate(x);
+        const base = Math.max(current, floor);
+        return { ...x, projected, estimatedGain: Math.max(0, projected - base), gap: 97 - Number(x.percent || 0) };
+      })
+      .filter((x) => x.estimatedGain > 0)
+      .sort((a,b) => b.estimatedGain - a.estimatedGain || a.gap - b.gap)
+      .slice(0, 2);
+
+    const bands = difficultyBands();
+    const out = candidates.map((x, i) => ({
+      chart: x,
+      icon: "♪",
+      color: palette[i],
+      title: x.title,
+      sub: `${pct(x.percent)} → 97%`,
+      reward: `+${x.estimatedGain} est.`,
+      copy: `Reach the S threshold for a sharp coefficient jump on this ${safe(x.level)} chart.`,
+    }));
+    out.push({
+      chart: (after.new15 || []).slice(-1)[0],
+      icon: "◎", color: varColor("yellow"), title: (after.new15 || []).slice(-1)[0]?.title || "New 15 floor",
+      sub: `Current floor ${floor}`, reward: "FLOOR",
+      copy: "A fresh current-version chart above this value immediately improves your New 15.",
+    });
+    if (bands.best) out.push({
+      icon: "★", color: varColor("purple"), title: `Explore current-version ${bands.best.label}`,
+      sub: `Aim for 97–99%`, reward: `~${Math.round(bands.best.avgRate)} RT`,
+      copy: "This was your best-performing difficulty band in the synced session sample.",
+    });
+    return out.slice(0,4);
+  }
+
+  function varColor(name) {
+    return ({yellow:"#ffcf32", purple:"#7566ff", aqua:"#18cfe0", pink:"#ff4f98", mint:"#20c79a"})[name] || "#18cfe0";
+  }
+
+
+
+  function heroHtml() {
+    const d = Number(delta.reconstructedRating || 0);
+    const dateParts = timeRange().split(" • ");
+    const tier = ratingTier(after.reconstructedRating);
+    const previous = ratingTier(before.reconstructedRating);
+    const progress = tier.next ? clamp((Number(after.reconstructedRating || 0)-tier.floor)/(tier.next[0]-tier.floor)*100,0,100) : 100;
+    const ratingDigits = String(Math.trunc(Number(after.reconstructedRating || 0))).padStart(5, " ");
+    return `<header class="session-header">
+      <div class="scorecard-result">
+        <div class="namecard tier-${tier.key}">
+        <div class="namecard-identity"><h1>${safe(player.displayName || player.username)}</h1><strong class="namecard-tier">${tier.name}</strong></div>
+        <div class="rating-plaque" role="img" aria-label="Reconstructed rating ${num(after.reconstructedRating)}"><strong class="rating-value" aria-hidden="true">${[...ratingDigits].map(digit=>`<span>${digit===" "?"":safe(digit)}</span>`).join("")}</strong></div>
+        <div class="namecard-label"><span>Reconstructed rating</span><span class="session-change ${d<0?"negative":d===0?"flat":""}">${signed(d)}<span>this session</span></span></div>
+        <div class="tier-progress" role="progressbar" aria-label="Progress through ${tier.name} rating tier" aria-valuenow="${Math.round(progress)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${progress}%"></span></div><p class="tier-next">${previous.name!==tier.name && d>0 ? `<strong>${previous.name} → ${tier.name}</strong>` : `<strong>${num(tier.floor)}${tier.next?`–${num(tier.next[0]-1)}`:"+"}</strong>`}${tier.next?`<span>${num(tier.next[0]-Number(after.reconstructedRating||0))} to ${tier.next[1]}</span>`:""}</p></div>
+        <div class="session-receipt"><p class="session-date">${safe(dateParts[0])}${dateParts[1] ? `<span>${safe(dateParts[1])}</span>` : ""}</p><p class="session-facts"><span><strong>${num(session.scoreCount ?? sessionScores.length)}</strong> plays</span><span><strong>${num(session.newPBCount ?? delta.pbCount)}</strong> new PBs</span><span>${safe(durationText().replace(/ session$/,""))}</span></p>
+          <div class="contribution-heading"><h2>Rating gained</h2><button type="button" class="text-action" data-open-view="pools">Breakdown</button></div><div class="contributions"><div class="contribution old"><span>Old 35</span><strong class="${Number(delta.old35Rating)<0?"negative":""}">${signed(delta.old35Rating)}</strong></div><div class="contribution new"><span>New 15</span><strong class="${Number(delta.new15Rating)<0?"negative":""}">${signed(delta.new15Rating)}</strong></div></div>
+        </div>
+      </div>
+    </header>`;
+  }
+
+  function bandsHtml() {
+    const {values,best}=difficultyBands();
+    if (!values.length) return `<p class="section-subtitle">No session score data available.</p>`;
+    const order = ["diff-basic","diff-advanced","diff-expert","diff-master","diff-remaster","diff-unknown"];
+    return `<div class="difficulty-breakdown">${values.map(g=>{
+      const types = new Map();
+      for (const x of g.items) {
+        const key = `${x.difficulty}|${x.level}`;
+        if (!types.has(key)) types.set(key,{...x,count:0,totalRate:0,totalPercent:0});
+        const group = types.get(key); group.count++; group.totalRate+=rate(x); group.totalPercent+=Number(x.percent||0);
+      }
+      const rows = [...types.values()].sort((a,b)=>order.indexOf(diffClass(a.difficulty))-order.indexOf(diffClass(b.difficulty)) || Number(a.levelNum)-Number(b.levelNum) || String(a.difficulty).localeCompare(String(b.difficulty)));
+      return `<section class="level-group"><div class="level-heading"><h3>Level ${safe(g.label)}</h3><span>${g.count} ${g.count===1?"play":"plays"} · ${g.avgRate.toFixed(1)} avg RT</span></div><p class="level-totals">All chart types: ${g.avgPercent.toFixed(2)}% average · ${g.fast} fast / ${g.slow} slow</p>${rows.map(x=>`<div class="difficulty-sample">${chartBadge(x)}<span>${x.count} ${x.count===1?"play":"plays"}</span><strong>${(x.totalPercent/x.count).toFixed(2)}%<small>${(x.totalRate/x.count).toFixed(1)} avg RT</small></strong></div>`).join("")}</section>`;
+    }).join("")}</div>${best?`<p class="section-subtitle">Across chart types, level ${safe(best.label)} had the highest average return: ${best.avgRate.toFixed(1)} rating per chart.</p>`:""}`;
+  }
+
+  function timingHtml() {
+    const t = timingStats();
+    const max = Math.max(t.fast,t.slow,1);
+    return `<div class="timing-summary"><p class="timing-balance">${safe(t.label.charAt(0).toUpperCase()+t.label.slice(1))}</p>
+      <div class="timing-bars">
+        <div class="timing-line"><span>Fast</span><div class="timing-track"><div class="timing-fill fast" style="width:${t.fast/max*100}%"></div></div><strong>${num(t.fast)}</strong></div>
+        <div class="timing-line"><span>Slow</span><div class="timing-track"><div class="timing-fill slow" style="width:${t.slow/max*100}%"></div></div><strong>${num(t.slow)}</strong></div>
+      </div><p class="section-subtitle">${t.label === "balanced" ? "Your timing distribution was broadly balanced across the session. No strong one-sided timing bias appeared in this sample." : `The session leaned ${t.label.replace("-leaning","")}. Watch whether this repeats on harder charts before changing offset.`}</p>
+    </div>`;
+  }
+
+
+  function questsHtml() {
+    const all = quests();
+    const floor = all.find(q=>q.reward==="FLOOR");
+    const candidates = all.filter(q=>q.reward.endsWith(" est."));
+    return `<div class="quest-grid">${all.filter(q=>q.reward!=="FLOOR").map(q=>`<article class="quest">${q.chart?jacketHtml(q.chart):`<span class="quest-icon" aria-hidden="true">${q.icon}</span>`}<div><h3 class="quest-title">${q.chart?`<button type="button" class="chart-link" data-detail-source="targets" data-detail-index="${(after.newPool||[]).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${safe(q.title)}</button>`:safe(q.title)}</h3>${q.chart?chartBadge(q.chart):""}<div class="quest-sub">${safe(q.sub)}</div></div><div class="quest-reward">${safe(q.reward)}</div>${q.chart?"":`<p class="quest-copy">${safe(q.copy)}</p>`}</article>`).join("")}</div>${candidates.length?`<p class="target-explanation">Reach the S threshold for a sharp rating-coefficient jump. Gains are estimates after the New 15 floor is considered.</p>`:""}${floor?`<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p><p>${safe(floor.copy)}</p></aside>`:""}`;
+  }
+
+  function sessionRows(scope = "plays", sort = "recent") {
+    const source = scope === "pbs" ? changedPBs : sessionScores;
+    const list = [...source].sort((a,b)=>sort==="achievement" ? Number(b.percent)-Number(a.percent) || rate(b)-rate(a) : sort==="rating" ? rate(b)-rate(a) || Number(b.percent)-Number(a.percent) : (b.timeAchieved||0)-(a.timeAchieved||0));
+    if (!list.length) return `<tr class="empty-score-row"><td colspan="7">${scope==="pbs"?"No score changes detected.":"No session plays retained."}</td></tr>`;
+    return list.map(x=>`<tr data-search="${safe(`${x.title} ${x.artist} ${x.difficulty} ${x.grade} ${x.level}`.toLowerCase())}" data-difficulty="${diffClass(x.difficulty)}">
+      <td><button type="button" class="song-cell chart-link" data-detail-source="${scope}" data-detail-index="${source.indexOf(x)}" aria-label="Score details: ${safe(x.title)}, ${safe(x.difficulty)} ${safe(x.level)}">${jacketHtml(x)}<span><span class="song-name">${safe(x.title || "Untitled chart")}</span><span class="song-artist">${safe(x.artist || "Artist unavailable")}</span></span></button></td>
+      <td>${chartBadge(x)}</td><td data-label="Achievement" class="mono">${presentPct(x.percent)}${scope==="pbs"?`<small class="previous-score">${x.changeType==="new"?"First recorded PB":`from ${presentPct(x.previousPercent)}`}</small>`:""}</td><td data-label="Grade">${gradeHtml(x.grade)}</td>
+      <td data-label="Rating" class="mono">${presentNum(x.rate)}${scope==="pbs" && x.previousRate!=null?`<small class="previous-score">from ${num(x.previousRate)}</small>`:""}</td><td data-label="PB gain" ${scope==="plays"?"hidden":""} class="mono ${gain(x)<0?"negative":"positive"}">${signed(gain(x))}</td><td data-label="Fast / Slow" class="mono">${presentNum(x.fast)} / ${presentNum(x.slow)}</td>
+    </tr>`).join("");
+  }
+
+
+  function poolItems(list, type, snapshot = "after") {
+    if (!Array.isArray(list) || !list.length) return `<p class="mini-empty">No ${type === "new" ? "current-version" : "legacy"} scores are counted in this snapshot.</p>`;
+    return [...list].sort((a,b)=>rate(b)-rate(a)||Number(b.percent)-Number(a.percent)||String(a.title).localeCompare(String(b.title))).map((x,i)=>`<button type="button" class="pool-item" data-detail-source="${snapshot}-${type}" data-detail-index="${list.indexOf(x)}" aria-label="Score details: ${safe(x.title)}, ${safe(x.difficulty)} ${safe(x.level)}" data-search="${safe(`${x.title} ${x.artist} ${x.difficulty} ${x.level} ${x.grade}`.toLowerCase())}">
+      <span class="rank-number">${i+1}</span>${jacketHtml(x)}<span class="pool-name"><span class="pool-title">${safe(x.title)}</span>${chartBadge(x)}<span class="pool-meta">${presentPct(x.percent)} ${gradeHtml(x.grade)}</span></span><span class="pool-rate">${presentNum(x.rate)}<small>RT</small></span>
+    </button>`).join("");
+  }
+
+
+  function overviewScoresHtml() {
+    const moments = [...changedPBs].sort((a,b)=>gain(b)-gain(a)||rate(b)-rate(a)).slice(0,4);
+    if (!moments.length) return `<p class="mini-empty">No new PBs this time.</p>`;
+    return `<div class="score-list">${moments.map(x=>`<button type="button" class="score-row" data-detail-source="pbs" data-detail-index="${changedPBs.indexOf(x)}" aria-label="View ${safe(x.title)} score details">
+      ${jacketHtml(x)}<span class="score-info"><strong>${safe(x.title)}</strong>${chartBadge(x)}<span class="score-achievement">${pct(x.percent)} ${gradeHtml(x.grade)}</span></span><span class="score-gain ${gain(x)<0?"negative":""}">${signed(gain(x))}<small>chart gain</small></span>
+    </button>`).join("")}</div>`;
+  }
+
+  function poolSummaryHtml() {
+    const rows = [{key:"old35Rating",name:"Old 35",kind:"old",pool:"old35",limit:35},{key:"new15Rating",name:"New 15",kind:"new",pool:"new15",limit:15},{key:"reconstructedRating",name:"Total",kind:"total"},{key:"naiveRating",name:"Kama Naive",kind:"naive"}];
+    const gap = Math.abs(Number(after.naiveRating||0)-Number(after.reconstructedRating||0));
+    return `<div class="comparison-wrap" role="region" aria-label="Rating before and after" tabindex="0"><table class="comparison-table"><thead><tr><th scope="col">Rating</th><th scope="col">Before</th><th scope="col">Now</th><th scope="col">Change</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.kind}"><th scope="row">${r.name}</th>${[before,after].map(snapshot=>`<td>${num(snapshot[r.key])}${r.pool?`<small class="pool-occupancy">${r.pool==="new15"?snapshot.newSlotsFilled??(snapshot.new15||[]).length:(snapshot[r.pool]||[]).length}/${r.limit} counted</small>`:""}</td>`).join("")}<td class="${Number(delta[r.key])<0?"negative":""}">${signed(delta[r.key])}</td></tr>`).join("")}</tbody></table></div>
+    <div class="pool-floors"><p><strong>Old 35 floor</strong><span>${num(before.old35Floor)} → ${num(after.old35Floor)}</span></p><p><strong>New 15 floor</strong><span>${num(before.new15Floor)} → ${num(after.new15Floor)}${Number(after.newSlotsFilled||0)<15?" · Open slot":""}</span></p></div>
+    <p class="pool-advice">Use these floors to judge whether a new chart is likely to count before spending a credit grinding it.</p>
+    <dl class="account-coverage"><div><dt>Recorded PBs</dt><dd>${num(before.pbCount)} → ${num(after.pbCount)}</dd></div><div><dt>Current-version charts played</dt><dd>${num(before.newPoolPlayed)} → ${num(after.newPoolPlayed)}</dd></div></dl>
+    <div class="model-note"><h3>Rating model · ${num(gap)} point Naive gap</h3><p>${gap<=20?"Your NaiveRating now closely mirrors the reconstructed B35/N15 total.":"Your unrestricted Best 50 still differs materially from the version-split rating model."}</p><p>Reconstructed rating counts Old 35 and New 15 separately. Kama Naive uses an unrestricted Best 50. ${safe(data.ratingVersionAssumption || "Configured-version Old 35 + New 15")}.</p></div>`;
+  }
+
+
+  function overviewTargetsHtml() {
+    const candidates = quests().filter(q=>q.reward.endsWith(" est."));
+    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length?`<p class="target-explanation">Reach S for the next rating jump. Gains are estimates.</p>`:""}`;
+  }
+
+  function overviewView() {
+    return `<section id="overview-view" class="view active" data-view="overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>Session highlights</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
+        <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Difficulty, sweet spots & coaching</small></span><span aria-hidden="true">→</span></button></section></div>
+    </section>`;
+  }
+
+  function sessionView() {
+    const grades = gradeCounts();
+    const total = grades.reduce((sum,[,count])=>sum+count,0);
+    return `<section id="session-view" class="view" data-view="session" data-score-scope="plays"><header class="view-heading"><h1>Session scores</h1><p class="session-record-counts">${sessionScores.length} plays · ${changedPBs.length} PB changes<br>${num(session.newPBCount)} first PBs · ${num(session.improvedPBCount)} existing PBs changed</p></header>
+      <section class="grade-section"><div class="section-heading"><h2>Grade distribution</h2><span class="section-caption">Highest to lowest · ${total} ${sessionScores.length?"plays":"PB records"}</span></div><div class="grade-distribution">${grades.map(([grade,count])=>`<div class="grade-count">${gradeHtml(grade)}<strong>${count}<small>${count===1?"play":"plays"}</small></strong><span class="grade-count-bar" style="--fill:${total?count/total*100:0}%"></span></div>`).join("")||`<p class="mini-empty">No session grades available.</p>`}</div></section>
+      <section class="score-detail-section"><div class="score-controls"><label>Show<select id="score-scope"><option value="plays">All plays (${sessionScores.length})</option><option value="pbs">PB changes (${changedPBs.length})</option></select></label><label>Sort<select id="score-sort"><option value="recent">Latest first</option><option value="achievement">Achievement ↓</option><option value="rating">Chart rating ↓</option></select></label><label>Chart type<select id="score-difficulty"><option value="">All difficulties</option><option value="diff-basic">Basic</option><option value="diff-advanced">Advanced</option><option value="diff-expert">Expert</option><option value="diff-master">Master</option><option value="diff-remaster">Re:Master</option></select></label><label class="song-search">Search<input id="session-search" class="search-box" type="search" placeholder="Song or level…" /></label></div><p id="score-count" class="section-caption" role="status"></p>
+        <div class="session-table-wrap"><table class="session-table"><thead><tr><th>Song</th><th>Chart</th><th>Achievement</th><th>Grade</th><th>Rating</th><th id="pb-gain-heading" hidden>PB gain</th><th>F / S</th></tr></thead><tbody id="session-rows">${sessionRows()}</tbody></table></div><p class="section-subtitle">PB changes compares each chart with its previous best. Chart gains can be larger than the net gain after pool replacements.</p></section>
+      <section class="detail-timing"><div class="section-heading"><h2>Session timing</h2></div>${timingHtml()}</section>
+    </section>`;
+  }
+
+  function poolsView() {
+    const interpretation = story();
+    return `<section id="pools-view" class="view" data-view="pools"><header class="view-heading"><h1>Rating breakdown</h1><p>Before and after, followed by every counted score.</p></header>
+      <section class="rating-explanation"><div class="session-interpretation"><h2>${safe(interpretation.title)}</h2><p>${safe(interpretation.copy)}</p><p>New 15 version: ${safe((data.currentNewDisplayVersions || []).join(", ") || "Not specified")}</p></div><div>${poolSummaryHtml()}</div></section>
+      <section class="counted-pools"><div class="section-heading"><h2>Counted scores</h2></div><div class="pool-controls"><label>Snapshot<select id="pool-snapshot"><option value="after">After session</option><option value="before">Before session</option></select></label><label>Search<input id="pool-search" class="search-box" type="search" placeholder="Song, grade or level…" aria-label="Filter rating pools" /></label></div><p id="pool-count" class="section-caption" role="status"></p><div class="pool-grid">
+        <section aria-labelledby="old-pool-title"><header class="section-header"><div><h3 id="old-pool-title" class="section-title">Old 35</h3><p id="old-pool-summary" class="section-subtitle"></p></div></header><div id="old-pool" class="pool-list"></div></section>
+        <section aria-labelledby="new-pool-title"><header class="section-header"><div><h3 id="new-pool-title" class="section-title">New 15</h3><p id="new-pool-summary" class="section-subtitle"></p></div></header><div id="new-pool" class="pool-list"></div></section>
+      </div><p id="pool-empty" class="mini-empty" hidden>No counted charts match this search.</p></section></section>`;
+  }
+
+
+  function targetsView() {
+    const bands = difficultyBands();
+    return `<section id="targets-view" class="view" data-view="targets"><header class="view-heading"><h1>Targets & practice</h1><p>Rating opportunities, chart types and coaching for your next session.</p></header>
+      <div class="practice-layout"><section class="target-opportunities"><h2 class="section-title">Next targets</h2>${questsHtml()}</section><section class="practice-profile"><h2 class="section-title">Difficulty profile</h2><p class="section-subtitle">Level bands, with each chart type shown separately.</p>${bandsHtml()}<aside class="practice-guidance"><h3>Coach’s read</h3><p>${bands.best?"Keep stretching within this band while maintaining S/S+ consistency.":"A non-empty session will reveal your most efficient difficulty band."}</p><p>The band model uses all retained session chart types and versions. The current-version exploration quest is a recommendation, not a separate current-version sample.</p></aside></section></div></section>`;
+  }
+
+
+  function toolbarHtml() {
+    return `<nav class="toolbar" aria-label="Report views"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a><div class="tabs" role="tablist" aria-label="Report sections">
+      <button id="tab-overview" class="tab active" role="tab" aria-selected="true" aria-controls="overview-view" data-target="overview"><span>Scorecard</span></button>
+      <button id="tab-session" class="tab" role="tab" aria-selected="false" aria-controls="session-view" tabindex="-1" data-target="session"><span>Scores</span></button>
+      <button id="tab-pools" class="tab" role="tab" aria-selected="false" aria-controls="pools-view" tabindex="-1" data-target="pools"><span>Rating pools</span></button>
+      <button id="tab-targets" class="tab" role="tab" aria-selected="false" aria-controls="targets-view" tabindex="-1" data-target="targets"><span>Targets</span></button>
+    </div>${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</nav>`;
+  }
+
+
+  function footerHtml() {
+    return `<footer class="footer"><span>maimai DX · Independent / unofficial companion</span><span>Private report · on-demand sync</span></footer>`;
+  }
+
+  app.innerHTML = `<div class="report">${toolbarHtml()}${heroHtml()}${overviewView()}${sessionView()}${poolsView()}${targetsView()}${footerHtml()}</div>`;
+
+
+  function showView(target, moveFocus = false) {
+    const selected = document.querySelector(`.tab[data-target="${target}"]`);
+    if (!selected) return;
+    document.querySelectorAll(".tab").forEach((button) => {
+      const active = button === selected;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+      button.tabIndex = active ? 0 : -1;
+    });
+    document.querySelectorAll(".view").forEach((view) => {
+      const active = view.dataset.view === target;
+      view.classList.toggle("active", active);
+      view.hidden = !active;
+    });
+    document.querySelector(".report").dataset.currentView = target;
+    if (moveFocus) selected.focus();
+    document.querySelector(".toolbar").scrollIntoView({block:"start",behavior:"instant"});
+  }
+  document.querySelectorAll(".view").forEach((view) => {
+    view.setAttribute("role", "tabpanel");
+    view.setAttribute("aria-labelledby", `tab-${view.dataset.view}`);
+    view.hidden = !view.classList.contains("active");
+  });
+  document.querySelectorAll(".tab").forEach((button) => {
+    button.addEventListener("click", () => showView(button.dataset.target));
+    button.addEventListener("keydown", (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const tabs = [...document.querySelectorAll(".tab")];
+      const index = tabs.indexOf(button);
+      const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (!step && event.key !== "Home" && event.key !== "End") return;
+      event.preventDefault();
+      const next = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs[tabs.length-1] : tabs[(index+step+tabs.length)%tabs.length];
+      showView(next.dataset.target, true);
+    });
+  });
+  document.querySelectorAll("[data-open-view]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      const target = button.dataset.openView;
+      const input = document.getElementById(target === "session" ? "session-search" : "pool-search");
+      if (target === "session") {
+        document.getElementById("score-scope").value = button.dataset.song ? "pbs" : "plays";
+        document.getElementById("score-difficulty").value = "";
+        document.getElementById("score-sort").value = "recent";
+        updateScores();
+      }
+      if (input) { input.value = button.dataset.song || ""; input.dispatchEvent(new Event("input")); }
+      showView(target, true);
+    });
+  });
+  document.getElementById("session-search")?.setAttribute("aria-label", "Filter session scores");
+  document.getElementById("pool-search")?.setAttribute("aria-label", "Filter rating pools");
+  document.getElementById("print-report")?.addEventListener("click", () => window.print());
+
+  function filterScores() {
+    const query = document.getElementById("session-search").value.trim().toLowerCase();
+    const difficulty = document.getElementById("score-difficulty").value;
+    const rows = [...document.querySelectorAll("#session-rows tr[data-search]")];
+    rows.forEach(row=>{row.hidden = !!((query && !query.split(/\s+/).every(token=>row.dataset.search.includes(token))) || (difficulty && row.dataset.difficulty!==difficulty));});
+    document.getElementById("score-count").textContent = `${rows.filter(x=>!x.hidden).length} of ${rows.length} ${document.getElementById("score-scope").value === "pbs"?"PB changes":"plays"}`;
+  }
+  function updateScores() {
+    document.getElementById("session-view").dataset.scoreScope = document.getElementById("score-scope").value;
+    document.getElementById("session-rows").innerHTML = sessionRows(document.getElementById("score-scope").value,document.getElementById("score-sort").value);
+    document.getElementById("pb-gain-heading").hidden = document.getElementById("score-scope").value !== "pbs";
+    filterScores();
+  }
+  ["score-scope","score-sort"].forEach(id=>document.getElementById(id).addEventListener("change",updateScores));
+  document.getElementById("session-search").addEventListener("input",filterScores);
+  document.getElementById("score-difficulty").addEventListener("change",filterScores);
+  filterScores();
+  function filterPools() {
+    const query = document.getElementById("pool-search").value.trim().toLowerCase();
+    const rows = [...document.querySelectorAll(".pool-list .pool-item")];
+    rows.forEach(row=>{row.hidden=!!(query && !query.split(/\s+/).every(token=>row.dataset.search.includes(token)));});
+    const shown = rows.filter(row=>!row.hidden).length;
+    const snapshot = document.getElementById("pool-snapshot").value;
+    document.getElementById("pool-count").textContent = `${shown} of ${rows.length} counted charts · ${snapshot==="before"?"Before":"After"} session · Highest rating first`;
+    document.getElementById("pool-empty").hidden = !rows.length || shown !== 0;
+  }
+  function updatePools() {
+    const snapshot = document.getElementById("pool-snapshot").value;
+    const model = snapshot === "before" ? before : after;
+    for (const [type, key, limit] of [["old","old35",35],["new","new15",15]]) {
+      document.getElementById(`${type}-pool`).innerHTML = poolItems(model[key],type,snapshot);
+      document.getElementById(`${type}-pool-summary`).textContent = `${num(model[key+"Rating"])} rating · ${(model[key]||[]).length}/${limit} counted · floor ${num(model[key+"Floor"])}`;
+    }
+    filterPools();
+  }
+  document.getElementById("pool-snapshot").addEventListener("change",updatePools);
+  document.getElementById("pool-search").addEventListener("input",filterPools);
+  updatePools();
+
+  // Detail records are references to retained inputs; no score is recalculated here.
+  const detailSources = {
+    plays: sessionScores, pbs: changedPBs, targets: after.newPool || [],
+    "before-old": before.old35 || [], "before-new": before.new15 || [],
+    "after-old": after.old35 || [], "after-new": after.new15 || []
+  };
+  const chartDialog = document.createElement("dialog");
+  chartDialog.className = "chart-dialog";
+  chartDialog.setAttribute("aria-labelledby", "chart-detail-title");
+  document.body.appendChild(chartDialog);
+  let detailOpener;
+
+  function recordedTime(value) {
+    if (!Number.isFinite(value)) return "Time not retained";
+    return new Intl.DateTimeFormat("en-US", {timeZone:player.timezone||"UTC",dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
+  }
+  function openChartDetails(button) {
+    const source = button.dataset.detailSource;
+    const item = detailSources[source]?.[Number(button.dataset.detailIndex)];
+    if (!item) return;
+    const context = ({plays:"Session play",pbs:"Personal-best change",targets:"Target chart","before-old":"Old 35 · Before session","before-new":"New 15 · Before session","after-old":"Old 35 · After session","after-new":"New 15 · After session"})[source];
+    const target = source === "targets" ? quests().find(q=>q.chart?.chartID===item.chartID && q.reward.endsWith(" est.")) : null;
+    const field = (label,value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
+    chartDialog.innerHTML = `<header class="chart-dialog-header"><span>${context}</span><button type="button" class="detail-close" aria-label="Close score details">×</button></header><div class="chart-dialog-body">
+      <div class="detail-song">${jacketHtml(item)}<div><h2 id="chart-detail-title">${safe(item.title || "Untitled chart")}</h2><p>${safe(item.artist || "Artist unavailable")}</p>${chartBadge(item)}</div></div>
+      <div class="detail-result"><div><span>Achievement</span><strong>${presentPct(item.percent)}</strong>${gradeHtml(item.grade)}</div><div><span>Chart rating</span><strong>${presentNum(item.rate)}<small>RT</small></strong></div></div>
+      ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements.</p></section>`:""}
+      ${target?`<section class="detail-section target-detail"><h3>Next rating opportunity</h3><p>${safe(target.sub)} · ${safe(target.reward)}</p><p class="detail-note">${safe(target.copy)} This estimate considers the New 15 floor.</p></section>`:""}
+      <section class="detail-section"><h3>Recorded score details</h3><dl class="detail-facts">${field("Lamp",safe(item.lamp || "—"))}${field("Chart constant",presentNum(item.levelNum))}${field("Fast",presentNum(item.fast))}${field("Slow",presentNum(item.slow))}</dl></section>
+      <section class="detail-section"><h3>Judgements</h3><dl class="judgement-grid">${[["Critical perfect","pcrit"],["Perfect","perfect"],["Great","great"],["Good","good"],["Miss","miss"]].map(([label,key])=>field(label,presentNum(item[key]))).join("")}</dl></section>
+      <p class="detail-note">${safe(recordedTime(item.timeAchieved))} · ${safe(player.timezone || "UTC")}<br>${safe(item.displayVersion || "Version not retained")}</p><p class="detail-note">A dash means that field was not retained.</p>
+    </div>`;
+    detailOpener = button;
+    chartDialog.showModal();
+    document.body.classList.add("chart-dialog-open");
+    chartDialog.querySelector(".detail-close").focus();
+  }
+  app.addEventListener("click", event=>{
+    const button = event.target.closest("button[data-detail-source]");
+    if (button) openChartDetails(button);
+  });
+  chartDialog.addEventListener("click", event=>{
+    if (event.target.closest(".detail-close")) chartDialog.close();
+    if (event.target === chartDialog) {
+      const box = chartDialog.getBoundingClientRect();
+      if (event.clientX<box.left || event.clientX>box.right || event.clientY<box.top || event.clientY>box.bottom) chartDialog.close();
+    }
+  });
+  chartDialog.addEventListener("close", ()=>{
+    document.body.classList.remove("chart-dialog-open");
+    if (detailOpener?.isConnected) detailOpener.focus();
+  });
+  chartDialog.addEventListener("keydown", event=>{
+    if (event.key !== "Tab") return;
+    const controls = [...chartDialog.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.getClientRects().length);
+    const first = controls[0], last = controls[controls.length-1];
+    if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first)?.focus();
+    }
+  });
+
+})();
+
+
+(function initializeSupportCheckout() {
+  "use strict";
+
+  const raw = document.getElementById("report-data")?.textContent || "{}";
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  const support = data?.support;
+  if (!support || support.provider !== "buy_me_a_coffee") return;
+
+  const id = String(support.id || "");
+  const label = String(support.label || "Buy me a maimai credit");
+  const description = String(support.description || "Support this maimai report");
+  const color = String(support.color || "#5F7FFF");
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id)) return;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(color)) return;
+
+  const reportFooter = document.querySelector(".footer");
+  if (!reportFooter) return;
+
+  function makeElement(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  const card = makeElement("aside", "support-card");
+  card.setAttribute("aria-label", "Optional support");
+
+  const copy = makeElement("div", "support-copy");
+  copy.appendChild(makeElement("span", "support-kicker", "Optional support"));
+  copy.appendChild(makeElement("span", "support-prompt", "Enjoyed the report?"));
+
+  const actionGroup = makeElement("div", "support-action-group");
+  const openButton = makeElement("button", "support-button");
+  openButton.type = "button";
+  openButton.style.setProperty("--support-color", color);
+  openButton.setAttribute("aria-haspopup", "dialog");
+  openButton.setAttribute("aria-controls", "support-checkout-dialog");
+  const icon = makeElement("span", "support-button-icon", "♪");
+  icon.setAttribute("aria-hidden", "true");
+  openButton.appendChild(icon);
+  openButton.appendChild(makeElement("span", "support-button-label", label));
+  actionGroup.appendChild(openButton);
+  actionGroup.appendChild(makeElement("span", "support-via", "via Buy Me a Coffee"));
+
+  card.appendChild(copy);
+  card.appendChild(actionGroup);
+  reportFooter.before(card);
+
+  const dialog = makeElement("dialog", "support-dialog");
+  dialog.id = "support-checkout-dialog";
+  dialog.setAttribute("aria-labelledby", "support-dialog-title");
+  dialog.setAttribute("aria-describedby", "support-dialog-description");
+
+  const dialogHeader = makeElement("header", "support-dialog-header");
+  const headingGroup = makeElement("div", "support-dialog-heading");
+  const heading = makeElement("h2", "support-dialog-title", label);
+  heading.id = "support-dialog-title";
+  const subheading = makeElement(
+    "p",
+    "support-dialog-description",
+    "Secure checkout provided by Buy Me a Coffee."
+  );
+  subheading.id = "support-dialog-description";
+  headingGroup.appendChild(heading);
+  headingGroup.appendChild(subheading);
+
+  const closeButton = makeElement("button", "support-dialog-close", "×");
+  closeButton.type = "button";
+  closeButton.setAttribute("aria-label", "Close support checkout");
+  dialogHeader.appendChild(headingGroup);
+  dialogHeader.appendChild(closeButton);
+
+  const frameWrap = makeElement("div", "support-frame-wrap");
+  const loading = makeElement("div", "support-loading");
+  loading.setAttribute("role", "status");
+  loading.appendChild(makeElement("span", "support-loading-ring"));
+  loading.appendChild(makeElement("span", "support-loading-copy", "Opening secure checkout…"));
+
+  const frame = document.createElement("iframe");
+  frame.className = "support-frame";
+  frame.title = "Buy Me a Coffee support checkout";
+  // The parent HTTP Permissions-Policy constrains payment to Buy Me a Coffee.
+  // Keeping the iframe delegation broad avoids losing wallet support if BMC
+  // changes an internal navigation while leaving the parent allowlist strict.
+  frame.allow = "payment *";
+  frame.loading = "lazy";
+  frame.referrerPolicy = "no-referrer";
+  frameWrap.appendChild(loading);
+  frameWrap.appendChild(frame);
+
+  const dialogFooter = makeElement("footer", "support-dialog-footer");
+  dialogFooter.appendChild(
+    makeElement("span", "support-privacy-note", "Payment details never pass through this report.")
+  );
+  const fallback = makeElement("a", "support-fallback", "Open separately ↗");
+  fallback.target = "_blank";
+  fallback.rel = "noopener noreferrer";
+  fallback.referrerPolicy = "no-referrer";
+  dialogFooter.appendChild(fallback);
+
+  dialog.appendChild(dialogHeader);
+  dialog.appendChild(frameWrap);
+  dialog.appendChild(dialogFooter);
+  document.body.appendChild(dialog);
+
+  const origin = ["https:", "", "buymeacoffee.com"].join("/");
+  fallback.href = `${origin}/${encodeURIComponent(id)}`;
+
+  let frameStarted = false;
+  function startCheckout() {
+    if (frameStarted) return;
+    const url = new URL(`${origin}/widget/page/${encodeURIComponent(id)}`);
+    url.searchParams.set("description", description);
+    url.searchParams.set("color", color);
+    frame.src = url.toString();
+    frameStarted = true;
+  }
+
+  function openCheckout() {
+    startCheckout();
+    if (typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+    document.body.classList.add("support-dialog-open");
+    closeButton.focus();
+  }
+
+  function closeCheckout() {
+    if (typeof dialog.close === "function" && dialog.open) {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+      document.body.classList.remove("support-dialog-open");
+      openButton.focus();
+    }
+  }
+
+  openButton.addEventListener("click", openCheckout);
+  closeButton.addEventListener("click", closeCheckout);
+  frame.addEventListener("load", () => {
+    loading.hidden = true;
+  });
+  dialog.addEventListener("close", () => {
+    document.body.classList.remove("support-dialog-open");
+    openButton.focus();
+  });
+  dialog.addEventListener("cancel", () => {
+    document.body.classList.remove("support-dialog-open");
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) closeCheckout();
+  });
+})();
+</script>
+</body>
+</html>

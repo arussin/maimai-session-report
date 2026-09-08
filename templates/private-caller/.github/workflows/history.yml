@@ -1,0 +1,55 @@
+name: Maintain hosted history
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Verify-fresh uses temporary synthetic data in empty resources only
+        type: choice
+        options: [plan, setup, preflight, verify-fresh, archive, backup, rebuild, health]
+        default: plan
+      source_run:
+        description: Original retained workflow run for archive
+        type: string
+      renderer_commit:
+        description: Original renderer SHA only for older captures without a receipt
+        type: string
+      apply:
+        description: Authorize setup writes or verify-fresh fixture writes and cleanup
+        type: boolean
+        default: false
+      recovery:
+        description: Use the independent backup and recovery index
+        type: boolean
+        default: false
+      promote:
+        description: The retained capture's original publication gate passed
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: maimai-history
+  cancel-in-progress: false
+jobs:
+  maintain:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
+        with:
+          operation: ${{ inputs.operation }}
+          source-run: ${{ inputs.source_run }}
+          renderer-commit: ${{ inputs.renderer_commit }}
+          apply: ${{ inputs.apply }}
+          recovery: ${{ inputs.recovery }}
+          promote: ${{ inputs.promote }}
+          cloudflare-token: ${{ (inputs.operation == 'preflight') && secrets.CLOUDFLARE_API_TOKEN || '' }}
+          history-token: ${{ (inputs.operation != 'plan') && secrets.CLOUDFLARE_HISTORY_API_TOKEN || '' }}
+          r2-access-key-id: ${{ (inputs.operation != 'plan' && inputs.operation != 'setup') && secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID || '' }}
+          r2-secret-access-key: ${{ (inputs.operation != 'plan' && inputs.operation != 'setup') && secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY || '' }}

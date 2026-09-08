@@ -1,0 +1,54 @@
+/* Original CSS-only rating display. No game images, fonts or vector assets. */
+.rating-plaque {
+  --rating-ink: #173c47;
+  border: 1px solid color-mix(in srgb, var(--tier) 42%, white);
+  border-radius: 12px;
+  background: linear-gradient(120deg, white 12%, var(--tint) 100%);
+  box-shadow: inset 0 -5px var(--tier), 0 3px 0 #173c4708;
+  overflow: hidden;
+}
+.rating-plaque::before {
+  content: "DX RATING";
+  position: absolute;
+  top: 13%;
+  left: 6%;
+  color: var(--rating-ink);
+  font-size: 3.1cqi;
+  font-weight: 750;
+  letter-spacing: .16em;
+  line-height: 1;
+}
+.rating-plaque::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  right: 6%;
+  width: 18%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tier);
+}
+.namecard .rating-value {
+  left: 5%;
+  right: 5%;
+  top: 31%;
+  bottom: 14%;
+  color: var(--rating-ink);
+  font-family: ui-monospace, "Cascadia Code", "DejaVu Sans Mono", monospace;
+  font-size: 14.5cqi;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+}
+.tier-rainbow .rating-plaque,
+.tier-rainbow-ex .rating-plaque {
+  background: linear-gradient(115deg, #eaf9f8, #f2efff 52%, #fff3e6);
+}
+@media print {
+  .rating-plaque { print-color-adjust: exact; }
+}
+@media (forced-colors: active) {
+  .rating-plaque { border: 2px solid CanvasText; box-shadow: none; }
+  .rating-plaque::before, .namecard .rating-value { color: CanvasText; }
+  .rating-plaque::after { background: CanvasText; }
+}

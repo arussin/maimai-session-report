@@ -1,0 +1,57 @@
+name: Archive retained maimai capture
+description: Save a completed capture to private R2 and D1 without contacting a score API
+inputs:
+  capture:
+    description: Directory containing the six retained capture JSON files and optional B50
+    required: true
+  config:
+    description: Provisioned private hosted-history configuration JSON
+    required: true
+  renderer-commit:
+    description: Exact canonical SHA that generated the supplied HTML
+    required: true
+  scope:
+    description: Stable installation owner and game scope
+    required: true
+  timezone:
+    description: IANA timezone used by this capture
+    required: true
+  source-id:
+    description: Original workflow run ID or other stable source label
+    required: true
+  promote:
+    description: Whether the original report publication gate succeeded
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Require a private caller
+      shell: bash
+      env:
+        HISTORY_CALLER_PRIVATE: ${{ github.event.repository.private }}
+      run: test "$HISTORY_CALLER_PRIVATE" = true
+    - name: Install hosted archive dependencies
+      shell: bash
+      run: python -m pip install --disable-pip-version-check "${{ github.action_path }}/..[history]"
+    - name: Validate and archive retained inputs
+      shell: bash
+      env:
+        ARCHIVE_CAPTURE: ${{ inputs.capture }}
+        ARCHIVE_CONFIG: ${{ inputs.config }}
+        ARCHIVE_RENDERER: ${{ inputs.renderer-commit }}
+        ARCHIVE_SCOPE: ${{ inputs.scope }}
+        ARCHIVE_TIMEZONE: ${{ inputs.timezone }}
+        ARCHIVE_SOURCE: ${{ inputs.source-id }}
+        ARCHIVE_PROMOTE: ${{ inputs.promote }}
+      run: |
+        set -euo pipefail
+        bundle="$RUNNER_TEMP/maimai-history-$GITHUB_RUN_ID-$GITHUB_JOB"
+        flags=()
+        if [ "$ARCHIVE_PROMOTE" = true ]; then flags+=(--promote); fi
+        if [ -f "$ARCHIVE_CAPTURE/maimai-report.html" ]; then
+          flags+=(--rendered-html "$ARCHIVE_CAPTURE/maimai-report.html")
+        fi
+        python -m maimai_report.history prepare "$ARCHIVE_CAPTURE" "$bundle" \
+          --scope "$ARCHIVE_SCOPE" --timezone "$ARCHIVE_TIMEZONE" \
+          --source-id "$ARCHIVE_SOURCE" --renderer-commit "$ARCHIVE_RENDERER" "${flags[@]}"
+        python -m maimai_report.history archive "$bundle" --config "$ARCHIVE_CONFIG"

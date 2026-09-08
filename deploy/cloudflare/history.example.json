@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "accountId": "00000000000000000000000000000000",
+  "bucket": "my-private-maimai-history",
+  "backupBucket": "my-private-maimai-history-backup",
+  "databaseName": "my-maimai-history",
+  "recoveryDatabaseName": "my-maimai-history-recovery",
+  "scope": "my-installation:maimaidx",
+  "timezone": "UTC",
+  "origin": "https://reports.example.com",
+  "prefix": "/maimai/"
+}
