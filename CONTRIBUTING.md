@@ -51,16 +51,23 @@ maimai-report doctor
 maimai-report demo --output output/demo-report.html
 ```
 
-Verify the generated file has no external HTTP/HTTPS URL. In PowerShell:
+Validate the report's restrictive policy and fixed checkout-origin allowance:
+
+```console
+python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; validate_generated_html(Path('output/demo-report.html').read_text(encoding='utf-8'))"
+maimai-report demo --no-support --output output/sealed-report.html
+```
+
+The disabled report must contain no external HTTP/HTTPS URL. In PowerShell:
 
 ```powershell
-if (Select-String -Path .\output\demo-report.html -Pattern 'https?://') { throw 'external URL found' }
+if (Select-String -Path .\output\sealed-report.html -Pattern 'https?://') { throw 'external URL found' }
 ```
 
 On macOS/Linux:
 
 ```bash
-! grep -Ein 'https?://' ./output/demo-report.html
+! grep -Ein 'https?://' ./output/sealed-report.html
 ```
 
 For adapter changes, also run Node.js 22 or newer checks:

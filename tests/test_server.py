@@ -9,10 +9,39 @@ from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
+from maimai_report.render import BUY_ME_A_COFFEE_ORIGIN, render_demo
 from maimai_report.server import make_handler, serve_file
 
 
 class LocalServerTests(unittest.TestCase):
+    def test_checkout_headers_follow_each_report_without_leaking_between_handlers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for enabled in (True, False, True):
+                report = render_demo(Path(directory, "demo.html"), support=enabled)
+                server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(report))
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = HTTPConnection("127.0.0.1", server.server_port, timeout=2)
+                    connection.request("HEAD", "/")
+                    response = connection.getresponse()
+                    response.read()
+                    csp = response.getheader("Content-Security-Policy")
+                    payment = response.getheader("Permissions-Policy")
+                    if enabled:
+                        self.assertIn(f"frame-src {BUY_ME_A_COFFEE_ORIGIN}", csp)
+                        self.assertIn(f'payment=(self "{BUY_ME_A_COFFEE_ORIGIN}")', payment)
+                    else:
+                        self.assertIn("frame-src 'none'", csp)
+                        self.assertIn("payment=()", payment)
+                    self.assertIn("connect-src 'none'", csp)
+                    self.assertEqual(response.getheader("Referrer-Policy"), "no-referrer")
+                    connection.close()
+                finally:
+                    server.shutdown()
+                    server.server_close()
+                    thread.join(timeout=2)
+
     def test_wildcard_bind_is_rejected_for_private_reports(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory, "report.html")

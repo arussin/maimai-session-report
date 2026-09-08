@@ -11,7 +11,6 @@ the history schema and capture IDs.
 | Existing setting or implementation | New destination |
 | --- | --- |
 | Refresh workflow player/game/timezone/version environment settings | `instance.toml`: kamaitachi, player, report |
-| Footer BMC environment settings | `instance.toml`: support |
 | Publication JSON and history-enabled repository variable | `publishing.enabled` and `history.enabled` in TOML |
 | History JSON resource names, scope and resolved IDs | `instance.toml`: history + cloudflare |
 | Worker account, route and zone | `instance.toml`: cloudflare; route generated from origin/prefix |

@@ -1,12 +1,21 @@
 const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
-const BUY_ME_A_COFFEE_MARKER = '"provider":"buy_me_a_coffee"';
 
-function buyMeACoffeeEnabled(html) {
-  return html.includes(BUY_ME_A_COFFEE_MARKER);
+export function developerSupportEnabled(html) {
+  // Read only the renderer's data block; incidental page text grants no permissions.
+  const blocks = [...html.matchAll(
+    /<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/gu,
+  )];
+  if (blocks.length !== 1) return false;
+  try {
+    const data = JSON.parse(blocks[0][1]);
+    return data !== null && typeof data === "object" && !Array.isArray(data) && data.support === true;
+  } catch {
+    return false;
+  }
 }
 
 export function contentSecurityPolicyFor(html) {
-  const supportEnabled = buyMeACoffeeEnabled(html);
+  const supportEnabled = developerSupportEnabled(html);
   return [
     "default-src 'none'",
     "base-uri 'none'",
@@ -26,7 +35,7 @@ export function contentSecurityPolicyFor(html) {
 }
 
 export function permissionsPolicyFor(html) {
-  const supportEnabled = buyMeACoffeeEnabled(html);
+  const supportEnabled = developerSupportEnabled(html);
   return [
     "accelerometer=()",
     "autoplay=()",

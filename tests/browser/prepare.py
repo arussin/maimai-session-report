@@ -17,6 +17,7 @@ from maimai_report.render import build_html, enrich_report, render_demo
 ROOT = Path(__file__).parent / "generated"
 ROOT.mkdir(exist_ok=True)
 render_demo(ROOT / "demo.html")
+render_demo(ROOT / "sealed-demo.html", support=False)
 with TemporaryDirectory() as directory:
     pack = export_badge_pack(Path(directory) / "pack")
     render_demo(ROOT / "custom-badges.html", badge_pack=pack)
@@ -33,13 +34,7 @@ art = (
 def save(name: str, report: dict) -> None:
     report = deepcopy(report)
     report["player"]["displayName"] = "Synthetic Test Player"
-    report["support"] = {
-        "provider": "buy_me_a_coffee",
-        "id": "synthetic-test",
-        "label": "Buy me a maimai credit",
-        "description": "Synthetic checkout container test",
-        "color": "#087d90",
-    }
+    report["support"] = True
     html = build_html(report, jackets={"synthetic-song-old-00": art}, b50_path="b50.webp")
     html = html.replace(
         '<body class="clean-checkpoint">',

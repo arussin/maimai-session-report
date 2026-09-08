@@ -48,6 +48,17 @@ def _add_config_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--badge-pack", help="Rating frames: builtin, plain, or a local TOML artwork manifest"
     )
+    _add_support_option(parser)
+
+
+def _add_support_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--support",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        dest="support_enabled",
+        help="Show or hide developer support (checkout loads only after a click)",
+    )
 
 
 def _add_artwork_options(parser: argparse.ArgumentParser) -> None:
@@ -86,6 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument(
         "--badge-pack", help="Rating frames: builtin, plain, or a local TOML artwork manifest"
     )
+    _add_support_option(demo)
     demo.add_argument(
         "--scenario",
         choices=("complete", "empty", "incomplete"),
@@ -153,6 +165,7 @@ def _load_cli_config(args: argparse.Namespace, environ: Mapping[str, str]) -> Ap
         "current_version_display_names": getattr(args, "current_versions", None),
         "output_dir": getattr(args, "output_dir", None),
         "badge_pack": getattr(args, "badge_pack", None),
+        "support_enabled": getattr(args, "support_enabled", None),
     }
     overrides = {key: value for key, value in pairs.items() if value is not None}
     return load_config(_config_path(args, environ), cli_overrides=overrides, environ=environ)
@@ -166,18 +179,6 @@ def _player(config: AppConfig) -> dict[str, str]:
         "displayName": display_name,
         "game": game_name,
         "timezone": config.timezone,
-    }
-
-
-def _support(config: AppConfig) -> dict[str, str] | None:
-    if not config.buy_me_a_coffee_id:
-        return None
-    return {
-        "provider": "buy_me_a_coffee",
-        "id": config.buy_me_a_coffee_id,
-        "label": config.support_label,
-        "description": config.support_description,
-        "color": config.support_color,
     }
 
 
@@ -227,10 +228,10 @@ def _doctor(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
             )
         )
 
-    if config.buy_me_a_coffee_id:
-        checks.append(("Optional support", f"Buy Me a Coffee /{config.buy_me_a_coffee_id}"))
+    if config.support_enabled:
+        checks.append(("Developer support", "enabled; in-page checkout loads only after a click"))
     else:
-        checks.append(("Optional support", "disabled; report remains fully sealed"))
+        checks.append(("Developer support", "disabled; report remains fully sealed"))
 
     if args.network:
         token = get_api_token(environ, required=True)
@@ -254,7 +255,7 @@ def _render_command(args: argparse.Namespace, environ: Mapping[str, str]) -> int
         read_json(args.after_pbs),
         player=_player(config),
         current_version_display_names=(config.current_version_display_names or None),
-        support=_support(config),
+        support=config.support_enabled,
     )
     output = render_report(
         report, args.output, jackets=_artwork(args, config, report), badge_pack=config.badge_pack
@@ -314,7 +315,7 @@ def _sync_command(args: argparse.Namespace, environ: Mapping[str, str], *, rende
             result.after_pbs,
             player=_player(config),
             current_version_display_names=config.current_version_display_names,
-            support=_support(config),
+            support=config.support_enabled,
         )
         output = render_report(
             report,
@@ -331,10 +332,24 @@ def run(args: argparse.Namespace, *, environ: Mapping[str, str] | None = None) -
     if args.command == "doctor":
         return _doctor(args, env)
     if args.command == "demo":
+        config = load_config(
+            None,
+            environ={
+                key: value
+                for key, value in env.items()
+                if key in {"MAIMAI_REPORT_BADGE_PACK", "MAIMAI_REPORT_SUPPORT_ENABLED"}
+            },
+            cli_overrides={
+                "badge_pack": args.badge_pack,
+                "support_enabled": args.support_enabled,
+                "output_dir": args.output.parent,
+            },
+        )
         output = render_demo(
             args.output,
             scenario=args.scenario,
-            badge_pack=args.badge_pack or env.get("MAIMAI_REPORT_BADGE_PACK", "builtin"),
+            badge_pack=config.badge_pack,
+            support=config.support_enabled,
         )
         print(f"Rendered offline synthetic report: {output.resolve()}")
         return EXIT_OK

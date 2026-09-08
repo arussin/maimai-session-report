@@ -102,10 +102,16 @@ jobs:
         shell: bash
         run: |
           [[ -f artifact/report.html ]] || { echo 'The selected artifact does not contain report.html.' >&2; exit 2; }
-          if grep -Eqi 'https?://' artifact/report.html; then
-            echo 'The report contains an external HTTP/HTTPS URL and will not be published.' >&2
-            exit 2
-          fi
+
+      - name: Set up Python for offline report validation
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Validate the report and exact checkout origin allowance
+        env:
+          PYTHONPATH: src
+        run: python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; validate_generated_html(Path('artifact/report.html').read_text(encoding='utf-8'))"
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6

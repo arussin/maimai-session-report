@@ -38,13 +38,7 @@ def create(destination: Path, count: int = 23) -> None:
     for i in range(count):
         report, pbs = load_scenario("empty" if i == count - 1 else "complete")
         report["player"]["displayName"] = "Synthetic History Player"
-        report["support"] = {
-            "provider": "buy_me_a_coffee",
-            "id": "synthetic-test",
-            "label": "Buy me a maimai credit",
-            "description": "Synthetic checkout container",
-            "color": "#007887",
-        }
+        report["support"] = True
         # IDs, dates and version labels are deliberately fictional and isolated from real captures.
         for score in report["session"]["scores"]:
             score["timeAchieved"] += i * 86400000

@@ -6,7 +6,7 @@ import re
 import unittest
 
 from maimai_report.fixtures import load_scenario
-from maimai_report.render import build_html, enrich_report
+from maimai_report.render import build_html, enrich_report, validate_generated_html
 
 
 class LocalJacketTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class LocalJacketTests(unittest.TestCase):
             r'<script id="jacket-data" type="application/json">(.*?)</script>', with_art
         )[1]
         self.assertEqual(json.loads(artwork), {"synthetic-song": self.image})
-        self.assertNotIn("https://", with_art)
+        validate_generated_html(with_art)
 
     def test_remote_images_svg_and_disguised_html_are_rejected(self) -> None:
         for image in [

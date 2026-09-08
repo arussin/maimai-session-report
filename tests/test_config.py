@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import fields
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,7 +25,56 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.current_version_display_names, ())
         self.assertEqual(config.output_dir, Path("output"))
         self.assertFalse(config.publishing_enabled)
+        self.assertTrue(config.support_enabled)
         self.assertFalse(hasattr(config, "api_token"))
+
+    def test_support_has_one_boolean_setting_with_full_precedence(self) -> None:
+        self.assertEqual(
+            [field.name for field in fields(AppConfig) if field.name.startswith("support_")],
+            ["support_enabled"],
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            path.write_text("[support]\nenabled = false\n", encoding="utf-8")
+            self.assertFalse(load_config(path, environ={}).support_enabled)
+            self.assertTrue(
+                load_config(path, environ={"MAIMAI_REPORT_SUPPORT_ENABLED": "true"}).support_enabled
+            )
+            self.assertFalse(
+                load_config(
+                    path,
+                    environ={"MAIMAI_REPORT_SUPPORT_ENABLED": "true"},
+                    cli_overrides={"support_enabled": False},
+                ).support_enabled
+            )
+
+    def test_support_boolean_values_and_invalid_configuration(self) -> None:
+        for value in ("false", "0", "off", "no"):
+            with self.subTest(value=value):
+                self.assertFalse(
+                    load_config(
+                        None, environ={"MAIMAI_REPORT_SUPPORT_ENABLED": value}
+                    ).support_enabled
+                )
+        for value in ("true", "1", "on", "yes"):
+            with self.subTest(value=value):
+                self.assertTrue(
+                    load_config(
+                        None, environ={"MAIMAI_REPORT_SUPPORT_ENABLED": value}
+                    ).support_enabled
+                )
+        with self.assertRaisesRegex(ConfigError, "true or false"):
+            load_config(None, environ={"MAIMAI_REPORT_SUPPORT_ENABLED": "not-a-boolean"})
+        for value in ("false", None, 0, 1, {}):
+            with self.subTest(value=value), self.assertRaisesRegex(ConfigError, "true or false"):
+                AppConfig(support_enabled=value).validate()
+
+    def test_support_unknown_keys_use_general_configuration_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            path.write_text("[support]\nunknown_setting = true\n", encoding="utf-8")
+            with self.assertRaisesRegex(ConfigError, r"Unknown key\(s\) in \[support\]"):
+                load_config(path, environ={})
 
     def test_precedence_is_cli_then_environment_then_file_then_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

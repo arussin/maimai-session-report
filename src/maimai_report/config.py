@@ -17,8 +17,6 @@ from .errors import ConfigError, MissingTokenError
 DEFAULT_CONFIG_PATH = Path("config.toml")
 # This is an environment-variable name, never a credential value.
 TOKEN_ENVIRONMENT_VARIABLE = "KAMAITACHI_API_TOKEN"  # noqa: S105
-BUY_ME_A_COFFEE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
-HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,10 +31,7 @@ class AppConfig:
     current_version_display_names: tuple[str, ...] = ()
     output_dir: Path = Path("output")
     badge_pack: str = "builtin"
-    buy_me_a_coffee_id: str = ""
-    support_label: str = "Buy me a maimai credit"
-    support_description: str = "Support this maimai report"
-    support_color: str = "#5F7FFF"
+    support_enabled: bool = True
     artifact_retention_days: int = 7
     publishing_enabled: bool = False
     publishing_provider: str = "cloudflare"
@@ -92,18 +87,8 @@ class AppConfig:
                 "report.current_version_display_names in config.toml before a live sync."
             )
 
-        _validate_text("Buy Me a Coffee ID", self.buy_me_a_coffee_id, required=False, maximum=128)
-        if self.buy_me_a_coffee_id and not BUY_ME_A_COFFEE_ID.fullmatch(self.buy_me_a_coffee_id):
-            raise ConfigError(
-                "Invalid Buy Me a Coffee ID; use letters, digits, dots, underscores, or hyphens."
-            )
-        _validate_text("support label", self.support_label, required=True, maximum=80)
-        _validate_text("support description", self.support_description, required=True, maximum=200)
-        _validate_text("support color", self.support_color, required=True, maximum=7)
-        if not HEX_COLOR.fullmatch(self.support_color):
-            raise ConfigError(
-                "Support color must be a six-digit hexadecimal color such as #5F7FFF."
-            )
+        if not isinstance(self.support_enabled, bool):
+            raise ConfigError("support.enabled must be true or false.")
 
         if self.output_dir.exists() and not self.output_dir.is_dir():
             raise ConfigError(f"Configured output directory is a file: {self.output_dir}")
@@ -167,12 +152,7 @@ _TOML_LAYOUT: dict[str, dict[str, str]] = {
         "output_dir": "output_dir",
         "badge_pack": "badge_pack",
     },
-    "support": {
-        "buy_me_a_coffee_id": "buy_me_a_coffee_id",
-        "label": "support_label",
-        "description": "support_description",
-        "color": "support_color",
-    },
+    "support": {"enabled": "support_enabled"},
     "actions": {"artifact_retention_days": "artifact_retention_days"},
     "publishing": {
         "enabled": "publishing_enabled",
@@ -213,16 +193,13 @@ _ENVIRONMENT_FIELDS: tuple[tuple[str, str], ...] = (
     ("MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES", "current_version_display_names"),
     ("MAIMAI_REPORT_OUTPUT_DIR", "output_dir"),
     ("MAIMAI_REPORT_BADGE_PACK", "badge_pack"),
-    ("MAIMAI_REPORT_BUY_ME_A_COFFEE_ID", "buy_me_a_coffee_id"),
-    ("MAIMAI_REPORT_SUPPORT_LABEL", "support_label"),
-    ("MAIMAI_REPORT_SUPPORT_DESCRIPTION", "support_description"),
-    ("MAIMAI_REPORT_SUPPORT_COLOR", "support_color"),
+    ("MAIMAI_REPORT_SUPPORT_ENABLED", "support_enabled"),
     ("MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS", "artifact_retention_days"),
     ("MAIMAI_REPORT_PUBLISHING_ENABLED", "publishing_enabled"),
 )
 
 _FIELD_NAMES = {field.name for field in fields(AppConfig)}
-_BOOLEAN_FIELDS = {"publishing_enabled"}
+_BOOLEAN_FIELDS = {"publishing_enabled", "support_enabled"}
 _INTEGER_FIELDS = {"artifact_retention_days"}
 _PATH_FIELDS = {"output_dir"}
 _VERSION_FIELDS = {"current_version_display_names"}

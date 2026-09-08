@@ -28,7 +28,7 @@ If private advisories are unavailable, request a private contact channel from th
 - Each explicit live invocation starts at most one import and waits through SSE; there is no retry/polling loop.
 - Upstream import failure bodies are never relayed to CLI or Actions logs.
 - Installation, module import, tests, demo, render, serve, offline doctor, push, and pull request events never sync.
-- Reports embed their data, styles, scripts and artwork. No remote fonts, analytics or telemetry are allowed. The sole optional runtime service is the footer-activated, isolated BMC checkout iframe; its parent-page script is prohibited.
+- Reports embed their data, styles, scripts and artwork. No remote fonts, analytics or telemetry are allowed. The removable developer-support footer is enabled by default but makes no background request. Its click-activated, isolated BMC checkout iframe is the sole optional runtime service; the provider's parent-page script is prohibited. `--no-support` or `support.enabled = false` removes the footer and forbids external frames.
 - Embedded JSON cannot terminate its script-data element through `</script>` or HTML-special input.
 - Generated JSON/HTML and local deployment state are ignored and must never be committed.
 - The local server allows only the selected Host header, logs no request target, and rejects wildcard binds.

@@ -8,12 +8,17 @@ import path from 'node:path';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const python=process.env.PYTHON || (process.platform==='win32'?'python':'python3');
-const run=spawnSync(python,['-m','maimai_report','demo','--output','docs/sample-report.html'],{
+const run=spawnSync(python,['-m','maimai_report','demo','--support','--output','docs/sample-report.html'],{
   cwd:root,encoding:'utf8',env:{...process.env,PYTHONPATH:path.join(root,'src')}
 });
 assert.equal(run.status,0,run.stderr);
 const sample=path.join(root,'docs/sample-report.html');
-assert.doesNotMatch(await readFile(sample,'utf8'),/https?:\/\//i);
+const validation=spawnSync(python,['-c',
+  'from pathlib import Path; from maimai_report.render import validate_generated_html; validate_generated_html(Path("docs/sample-report.html").read_text(encoding="utf-8"))'],{
+  cwd:root,encoding:'utf8',env:{...process.env,PYTHONPATH:path.join(root,'src')}
+});
+assert.equal(validation.status,0,validation.stderr);
+assert.match(await readFile(sample,'utf8'),/"support":true/);
 await mkdir(path.join(root,'docs/images'),{recursive:true});
 const browser=await chromium.launch();
 async function readyForCapture(page) {

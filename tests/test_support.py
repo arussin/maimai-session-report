@@ -1,150 +1,88 @@
-from __future__ import annotations
+"""Developer support is a single boolean with a fixed, click-only checkout."""
 
-import json
-import re
-import tempfile
 import unittest
-from pathlib import Path
 
-from maimai_report.cli import _support
-from maimai_report.config import AppConfig, ConfigError, load_config
 from maimai_report.fixtures import load_scenario
-from maimai_report.render import build_html, enrich_report
-
-BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com"
-SUPPORT = {
-    "provider": "buy_me_a_coffee",
-    "id": "synthetic-test",
-    "label": "Buy me a maimai credit",
-    "description": "Support me on Buy me a coffee!",
-    "color": "#5F7FFF",
-}
-_REPORT_DATA = re.compile(
-    r'<script id="report-data" type="application/json">(.*?)</script>', re.DOTALL
+from maimai_report.render import (
+    BUY_ME_A_COFFEE_ORIGIN,
+    build_html,
+    enrich_report,
+    support_enabled_in_html,
+    validate_generated_html,
 )
-
-
-def embedded_report(html: str) -> dict[str, object]:
-    match = _REPORT_DATA.search(html)
-    if match is None:
-        raise AssertionError("generated HTML has no report-data element")
-    value = json.loads(match.group(1))
-    if not isinstance(value, dict):
-        raise AssertionError("embedded report is not an object")
-    return value
+from tests.test_render import embedded_report
 
 
 class SupportRendererTests(unittest.TestCase):
-    def test_default_report_remains_sealed(self) -> None:
-        report, after_payload = load_scenario("complete")
-        html = build_html(enrich_report(report, after_payload))
-
-        self.assertNotIn(BUY_ME_A_COFFEE_ORIGIN, html)
-        self.assertIn("frame-src 'none'", html)
-        self.assertNotIn("support", embedded_report(html))
-        self.assertNotIn("cdnjs.buymeacoffee.com", html)
-        self.assertNotIn("cdn.buymeacoffee.com", html)
-
-    def test_enabled_report_uses_isolated_on_page_checkout(self) -> None:
-        report, after_payload = load_scenario("complete")
-        html = build_html(enrich_report(report, after_payload, support=SUPPORT))
-        embedded = embedded_report(html)
-
-        self.assertEqual(embedded["support"], SUPPORT)
-        self.assertEqual(html.count(BUY_ME_A_COFFEE_ORIGIN), 1)
+    def test_default_report_uses_isolated_developer_checkout(self):
+        report, pbs = load_scenario()
+        html = build_html(enrich_report(report, pbs))
+        self.assertIs(embedded_report(html)["support"], True)
+        self.assertEqual(html.count(BUY_ME_A_COFFEE_ORIGIN), 2)
         self.assertIn(f"frame-src {BUY_ME_A_COFFEE_ORIGIN}", html)
-        self.assertNotIn("https://www.buymeacoffee.com", html)
-        self.assertNotIn("cdnjs.buymeacoffee.com", html)
-        self.assertNotIn("cdn.buymeacoffee.com", html)
-        self.assertNotIn("<script src=", html.lower())
-        self.assertIn('document.createElement("iframe")', html)
-        self.assertIn('frame.allow = "payment *"', html)
+        self.assertIn('const id = "russin";', html)
+        self.assertIn('const label = "Buy the developer a maimai credit";', html)
         self.assertIn('frame.referrerPolicy = "no-referrer"', html)
         self.assertIn('fallback.referrerPolicy = "no-referrer"', html)
         self.assertIn('openButton.addEventListener("click", openCheckout)', html)
-        self.assertIn('"buymeacoffee.com"].join("/")', html)
-        self.assertIn("reportFooter.before(card)", html)
-        self.assertIn("support-checkout-dialog", html)
-        self.assertIn("@media print", html)
+        self.assertNotIn("<script src=", html.lower())
+        self.assertNotIn("cdnjs.buymeacoffee.com", html)
+        validate_generated_html(html)
 
-    def test_support_values_are_normalized_without_mutating_input(self) -> None:
-        report, after_payload = load_scenario("complete")
-        supplied = {**SUPPORT, "color": "#5f7fff"}
-        enriched = enrich_report(report, after_payload, support=supplied)
+    def test_disabled_report_is_sealed_and_contains_no_checkout_controller(self):
+        report, pbs = load_scenario()
+        html = build_html(enrich_report(report, pbs, support=False))
+        self.assertIs(embedded_report(html)["support"], False)
+        self.assertNotRegex(html, r"https?://")
+        self.assertIn("frame-src 'none'", html)
+        self.assertNotIn("initializeSupportCheckout", html)
+        self.assertFalse(support_enabled_in_html(html))
+        validate_generated_html(html)
 
-        self.assertEqual(enriched["support"]["color"], "#5F7FFF")
-        self.assertEqual(supplied["color"], "#5f7fff")
+    def test_disabled_flag_survives_rerender_and_override_does_not_mutate_input(self):
+        report, pbs = load_scenario()
+        report["support"] = True
+        disabled = enrich_report(report, pbs, support=False)
+        self.assertIs(report["support"], True)
+        self.assertIs(enrich_report(disabled, pbs)["support"], False)
+        self.assertIs(enrich_report(disabled, pbs, support=True)["support"], True)
 
-    def test_invalid_or_unexpected_support_configuration_is_rejected(self) -> None:
-        report, after_payload = load_scenario("complete")
-        invalid_cases = (
-            ({**SUPPORT, "provider": "other"}, "provider"),
-            ({**SUPPORT, "id": 'synthetic-test"><script'}, "ID"),
-            ({**SUPPORT, "color": "blue"}, "color"),
-            ({**SUPPORT, "extra": "value"}, "Unknown support"),
-        )
-        for support, message in invalid_cases:
-            with self.subTest(support=support):
-                with self.assertRaisesRegex(ValueError, message):
-                    enrich_report(report, after_payload, support=support)
+    def test_support_only_accepts_a_boolean(self):
+        report, pbs = load_scenario()
+        for invalid in (0, 1, "true", [], {}, {"unexpected": "value"}, None):
+            with self.subTest(value=invalid):
+                report["support"] = invalid
+                with self.assertRaisesRegex(ValueError, "Support must be true or false"):
+                    build_html(report)
+                with self.assertRaisesRegex(ValueError, "Support must be true or false"):
+                    enrich_report(report, pbs)
 
-    def test_unapproved_url_in_support_text_is_rejected(self) -> None:
-        report, after_payload = load_scenario("complete")
-        support = {**SUPPORT, "description": "See https://example.invalid"}
-        enriched = enrich_report(report, after_payload, support=support)
+    def test_checkout_origin_in_player_data_is_not_an_allowlist_escape(self):
+        report, pbs = load_scenario()
+        for text in (BUY_ME_A_COFFEE_ORIGIN, BUY_ME_A_COFFEE_ORIGIN + ".invalid"):
+            report["player"]["displayName"] = text
+            with self.assertRaisesRegex(ValueError, "unapproved external"):
+                build_html(enrich_report(report, pbs))
 
-        with self.assertRaisesRegex(ValueError, "unapproved external"):
-            build_html(enriched)
+    def test_validation_rejects_unexpected_external_urls_and_missing_controller(self):
+        report, pbs = load_scenario()
+        html = build_html(enrich_report(report, pbs))
+        for changed in (
+            html + '<img src="https://example.invalid/image.png">',
+            html + '<a href="https://buymeacoffee.com">extra</a>',
+            html.replace('const id = "russin";', 'const id = "unexpected";'),
+            html.replace('"support":true', '"support":"true"'),
+        ):
+            with self.subTest():
+                with self.assertRaises(ValueError):
+                    validate_generated_html(changed)
 
-
-class SupportConfigurationTests(unittest.TestCase):
-    def test_environment_values_enable_support(self) -> None:
-        config = load_config(
-            None,
-            environ={
-                "MAIMAI_REPORT_BUY_ME_A_COFFEE_ID": "synthetic-test",
-                "MAIMAI_REPORT_SUPPORT_LABEL": "Buy me a maimai credit",
-                "MAIMAI_REPORT_SUPPORT_DESCRIPTION": "Support me on Buy me a coffee!",
-                "MAIMAI_REPORT_SUPPORT_COLOR": "#5f7fff",
-            },
-        )
-
-        self.assertEqual(config.buy_me_a_coffee_id, "synthetic-test")
-        self.assertEqual(
-            _support(config),
-            {
-                **SUPPORT,
-                "color": "#5f7fff",
-            },
-        )
-
-    def test_toml_values_enable_support(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            config_path = Path(temporary_directory, "config.toml")
-            config_path.write_text(
-                """
-[support]
-buy_me_a_coffee_id = "synthetic-test"
-label = "Buy me a maimai credit"
-description = "Support me on Buy me a coffee!"
-color = "#5F7FFF"
-""".strip(),
-                encoding="utf-8",
-            )
-            config = load_config(config_path, environ={})
-
-        self.assertEqual(config.buy_me_a_coffee_id, "synthetic-test")
-        self.assertEqual(_support(config), SUPPORT)
-
-    def test_empty_id_keeps_support_disabled(self) -> None:
-        self.assertIsNone(_support(AppConfig()))
-
-    def test_invalid_account_id_and_color_fail_during_config_load(self) -> None:
-        with self.assertRaisesRegex(ConfigError, "Buy Me a Coffee ID"):
-            load_config(None, environ={"MAIMAI_REPORT_BUY_ME_A_COFFEE_ID": "bad/id"})
-        with self.assertRaisesRegex(ConfigError, "Support color"):
-            load_config(None, environ={"MAIMAI_REPORT_SUPPORT_COLOR": "not-a-color"})
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_unrelated_or_duplicate_html_data_cannot_enable_payment(self):
+        for html in (
+            '<p>"support":true</p>',
+            '<script id="report-data" type="application/json">{bad}</script>',
+            '<script id="report-data" type="application/json">{"support":true}</script>' * 2,
+        ):
+            self.assertFalse(support_enabled_in_html(html))
+            with self.assertRaises(ValueError):
+                validate_generated_html(html)

@@ -118,10 +118,7 @@ its own backward-compatible defaults.
 | `report.current_version_display_names` | string array, empty | Exact as-of aliases; nonempty before sync. Retained renders keep their recorded aliases. |
 | `report.output_dir` | relative path, `output` | Private capture artifact directory; no absolute/traversal/source paths. |
 | `report.badge_pack` | string, `builtin` | Original embedded 12-tier frames; `plain` omits game frames; a local manifest selects owner artwork. Custom files must be present in the private caller checkout. See [badge packs](BADGES.md). |
-| `support.buy_me_a_coffee_id` | string, blank | Blank disables support; otherwise your BMC creator ID. |
-| `support.label` | string, `Buy me a maimai credit` | Footer trigger text. |
-| `support.description` | string, `Support this maimai report` | Checkout description. |
-| `support.color` | hex string, `#5F7FFF` | Checkout accent. |
+| `support.enabled` | boolean, `true` | Show the developer-support footer. Checkout loads only after a click; `false` removes it. |
 | `artwork.enabled` | boolean, `true` | Build-time public jacket preparation on explicit sync. Retained render reuses saved jackets without network. |
 | `b50.mode` | enum, `optional` | `optional`, `required`, or `disabled`; see below. |
 | `actions.artifact_retention_days` | integer, `14` | Capture artifact retention, 1–90 days; R2 history has no automatic expiry. |
@@ -219,7 +216,8 @@ The B50 wrapper is an optional [separately licensed AGPL component](../adapters/
 Song jackets use the existing documented public artwork source at build time;
 HTML embeds them. No browser-time jacket API, font CDN or analytics is added.
 
-Support remains a footer-triggered on-page modal on the latest report, selected
+Developer support is enabled by default and removable with `support.enabled = false`.
+It uses a footer-triggered on-page modal on the latest report, selected
 historical reports and the history index. The isolated cross-origin BMC iframe
 activates lazily; the parent page has no third-party BMC script. Browser tests mock
 only the checkout container and never submit payments.

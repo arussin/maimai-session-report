@@ -76,7 +76,7 @@ Render previously saved local inputs without network access:
 maimai-report render --config config.toml --report-input output/report-input.json --after-pbs output/after-pbs.json --output output/report.html
 ```
 
-`report-input.json` is the calculated session document written by `sync`; `after-pbs.json` is the matching Kamaitachi response used to enrich song/chart details. Both are private. Rendering embeds CSS, JavaScript, and escaped report JSON in one file. It adds no analytics, fonts, CDN resources, or other external URLs.
+`report-input.json` is the calculated session document written by `sync`; `after-pbs.json` is the matching Kamaitachi response used to enrich song/chart details. Both are private. Rendering embeds CSS, JavaScript, and escaped report JSON in one file. It adds no analytics, remote fonts or CDN resources. The developer-support footer loads checkout only after a click. Add `--no-support` to omit it and forbid all external frames. See [developer support](SUPPORT.md).
 
 Song jackets can be embedded from a prepared local mapping with `render --jackets output/jackets.json`. Optional public artwork preparation is explicit on the CLI and enabled by the reusable action’s `artwork` input (set `"false"` to disable). See [artwork preparation](ARTWORK.md). It adds no browser requests.
 
@@ -234,6 +234,7 @@ A copied or forked repository receives no secrets. In **Settings → Secrets and
 - Secret `KAMAITACHI_API_TOKEN`.
 - Required variables `MAIMAI_REPORT_USERNAME`, `MAIMAI_REPORT_DISPLAY_NAME`, `MAIMAI_REPORT_TIMEZONE`, and `MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES` (a nonempty JSON string array).
 - Optional variables `MAIMAI_REPORT_GAME` (default `maimaidx`), `MAIMAI_REPORT_IMPORT_TYPE` (default `api/myt-maimaidx`), and `MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS` (default `7`, workflow range `1`–`30`).
+- Optional variable `MAIMAI_REPORT_SUPPORT_ENABLED` (default `true`; set to `false` to remove the developer-support footer).
 
 Do not create Cloudflare values for artifact mode. From **Actions**, choose the workflow, use **Run workflow**, and wait for the single run. Required configuration is checked before installation or sync, and missing names are reported without displaying secret values.
 
@@ -268,7 +269,7 @@ GitHub required-reviewer protection has plan limitations: GitHub currently docum
 - **Output denied or path is a file:** choose a writable directory and run offline `doctor`; Windows ACLs and managed folders can override ordinary permissions.
 - **Empty session:** this is valid when no post-cutoff score or PB change appears. Generate `demo --scenario empty` to compare the intended UI.
 - **Incomplete New 15:** this is valid for an account without 15 qualifying current-version PBs. Recheck the exact version-name configuration before interpreting it.
-- **Report has an external URL:** generation or deployment validation will reject it. Do not weaken that check; investigate newly added template content.
+- **Report has an unexpected external URL:** generation or deployment validation will reject it. Only the exact developer-support origin in the matching CSP and fixed footer script is allowed; disabled reports allow no external URL. Do not weaken that check; investigate newly added template content.
 - **Artifact cannot be downloaded:** verify the run ID, workflow success, artifact retention window, and your access to the private repository.
 - **Cloudflare publish is blocked:** keep publishing off while checking the Environment, token, account ID, exactly one routing mode, zone ID for routes, and Access protection. Artifact and local modes do not depend on Cloudflare.
 

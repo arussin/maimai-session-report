@@ -23,6 +23,8 @@ test('public demo shows real targets, embedded demo tiles and original compact r
   expect(geometry.width).toBeLessThan(.55);
   for(const name of ['Scorecard','Scores','Rating pools','Targets']) {
     await page.getByRole('tab',{name,exact:true}).click();
+    await expect(page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true})).toBeVisible();
+    await expect(page.locator('.support-frame')).not.toHaveAttribute('src');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([]);
     await testInfo.attach(`public-demo-${name}.png`,{body:await page.screenshot(),contentType:'image/png'});
@@ -47,6 +49,26 @@ test('public demo print exposes every report section and respects reduced motion
     await expect(page.getByRole('tabpanel',{name,exact:true})).toBeVisible();
   }
   await expect(page.getByRole('navigation',{name:'Report views'})).toBeHidden();
+  await expect(page.locator('.support-card')).toBeHidden();
+  await expect(page.locator('#support-checkout-dialog')).toBeHidden();
   expect(await page.locator('.rating-plaque').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
   await testInfo.attach('public-demo-print.png',{body:await page.screenshot(),contentType:'image/png'});
+});
+
+test('disabled developer support stays absent and sealed across every view', async ({page})=> {
+  const external=[];
+  await page.route(/^https?:/,route=> {
+    if(route.request().url().startsWith('http://127.0.0.1:4180/')) return route.continue();
+    external.push(route.request().url()); return route.abort();
+  });
+  await page.goto('/sealed-demo.html');
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute('content',/frame-src 'none'/);
+  for(const name of ['Scorecard','Scores','Rating pools','Targets']) {
+    await page.getByRole('tab',{name,exact:true}).click();
+    await expect(page.getByRole('tabpanel',{name,exact:true})).toBeVisible();
+    await expect(page.locator('.support-card')).toHaveCount(0);
+    await expect(page.locator('iframe')).toHaveCount(0);
+    await expect(page.locator('a[href^="http"]')).toHaveCount(0);
+  }
+  expect(external).toEqual([]);
 });

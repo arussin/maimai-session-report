@@ -2,8 +2,8 @@
 
 The renderer performs no network access. It accepts already-fetched JSON data,
 adds display-only metadata, and embeds the report plus all presentation assets in
-one HTML file. Reports remain fully sealed unless an optional, explicitly
-configured Buy Me a Coffee checkout frame is enabled.
+one HTML file. Developer support loads an isolated checkout only after a click;
+disabling support seals the report against all external requests.
 """
 
 from __future__ import annotations
@@ -33,8 +33,6 @@ TEMPLATE_TOKENS = (
 )
 EXTERNAL_URL = re.compile(r"https?://", re.IGNORECASE)
 BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com"
-BUY_ME_A_COFFEE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
-HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
 SEALED_CONTENT_SECURITY_POLICY = (
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
     "img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; "
@@ -46,7 +44,9 @@ BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY = (
     f"object-src 'none'; frame-src {BUY_ME_A_COFFEE_ORIGIN}; base-uri 'none'; "
     "form-action 'none'"
 )
-_SUPPORT_KEYS = {"provider", "id", "label", "description", "color"}
+_REPORT_DATA = re.compile(
+    r'<script id="report-data" type="application/json">(.*?)</script>', re.DOTALL
+)
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -242,49 +242,48 @@ def _player_data(existing: object, overlay: Mapping[str, str] | None) -> dict[st
     return result
 
 
-def _support_text(value: object, *, field: str, maximum: int) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"Support {field} must be a non-empty string")
-    normalized = value.strip()
-    if len(normalized) > maximum:
-        raise ValueError(f"Support {field} is too long (maximum {maximum} characters)")
-    if any(ord(character) < 32 or ord(character) == 127 for character in normalized):
-        raise ValueError(f"Support {field} may not contain control characters")
-    return normalized
+def _support_enabled(value: object) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError("Support must be true or false")
+    return value
 
 
-def _support_data(value: object) -> dict[str, str] | None:
-    if value is None:
-        return None
-    if not isinstance(value, Mapping):
-        raise ValueError("Support configuration must be an object")
-    unknown = sorted(set(value) - _SUPPORT_KEYS)
-    if unknown:
-        raise ValueError("Unknown support configuration key(s): " + ", ".join(unknown))
+def support_enabled_in_html(html: str) -> bool:
+    """Read the explicit report flag; malformed or unrelated HTML grants nothing."""
+    matches = _REPORT_DATA.findall(html)
+    if len(matches) != 1:
+        return False
+    try:
+        report = json.loads(matches[0])
+    except (ValueError, RecursionError):
+        return False
+    return isinstance(report, dict) and report.get("support") is True
 
-    provider = _support_text(value.get("provider"), field="provider", maximum=40)
-    if provider != "buy_me_a_coffee":
-        raise ValueError("Unsupported support provider; expected buy_me_a_coffee")
 
-    account_id = _support_text(value.get("id"), field="id", maximum=128)
-    if not BUY_ME_A_COFFEE_ID.fullmatch(account_id):
-        raise ValueError(
-            "Invalid Buy Me a Coffee ID; use letters, digits, dots, underscores, or hyphens"
-        )
-
-    label = _support_text(value.get("label"), field="label", maximum=80)
-    description = _support_text(value.get("description"), field="description", maximum=200)
-    color = _support_text(value.get("color"), field="color", maximum=7)
-    if not HEX_COLOR.fullmatch(color):
-        raise ValueError("Support color must be a six-digit hexadecimal color such as #5F7FFF")
-
-    return {
-        "provider": provider,
-        "id": account_id,
-        "label": label,
-        "description": description,
-        "color": color.upper(),
-    }
+def validate_generated_html(html: str) -> None:
+    """Allow only the checkout origin in its CSP and embedded controller."""
+    matches = _REPORT_DATA.findall(html)
+    if len(matches) != 1:
+        raise ValueError("Generated report must contain one report-data element")
+    try:
+        report = json.loads(matches[0])
+    except (ValueError, RecursionError) as exc:
+        raise ValueError("Generated report contains invalid report data") from exc
+    if not isinstance(report, dict):
+        raise ValueError("Generated report data must be an object")
+    enabled = _support_enabled(report.get("support"))
+    policy = BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if enabled else SEALED_CONTENT_SECURITY_POLICY
+    marker = f'<meta http-equiv="Content-Security-Policy" content="{policy}" />'
+    if html.count(marker) != 1:
+        raise ValueError("Generated report must contain its expected content security policy")
+    inspected = html.replace(marker, "", 1)
+    if enabled:
+        controller = _asset_text("support.js")
+        if inspected.count(controller) != 1:
+            raise ValueError("Generated report must contain its developer support controller")
+        inspected = inspected.replace(controller, "", 1)
+    if EXTERNAL_URL.search(inspected):
+        raise ValueError("Generated report contains an unapproved external HTTP or HTTPS URL")
 
 
 def enrich_report(
@@ -293,7 +292,7 @@ def enrich_report(
     *,
     player: Mapping[str, str] | None = None,
     current_version_display_names: Sequence[str] | None = None,
-    support: Mapping[str, str] | None = None,
+    support: bool | None = None,
 ) -> dict[str, Any]:
     """Return a display-ready copy of an existing report input.
 
@@ -352,14 +351,9 @@ def enrich_report(
     session["startTimeAchieved"] = min(achieved_times) if achieved_times else None
     session["endTimeAchieved"] = max(achieved_times) if achieved_times else None
 
-    if support is not None:
-        result["support"] = _support_data(support)
-    elif "support" in result:
-        normalized_support = _support_data(result["support"])
-        if normalized_support is None:
-            result.pop("support", None)
-        else:
-            result["support"] = normalized_support
+    result["support"] = _support_enabled(
+        support if support is not None else result.get("support", True)
+    )
 
     result["schemaVersion"] = 1
     result["player"] = _player_data(result.get("player"), player)
@@ -418,13 +412,11 @@ def build_html(
         raise ValueError("A B50 download cannot also be unavailable")
 
     report_data = deepcopy(dict(report))
-    support = _support_data(report_data.get("support"))
-    if support is None:
-        report_data.pop("support", None)
-        content_security_policy = SEALED_CONTENT_SECURITY_POLICY
-    else:
-        report_data["support"] = support
-        content_security_policy = BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY
+    support = _support_enabled(report_data.get("support", True))
+    report_data["support"] = support
+    content_security_policy = (
+        BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if support else SEALED_CONTENT_SECURITY_POLICY
+    )
 
     template = _asset_text("template.html")
     substitutions = {
@@ -435,7 +427,8 @@ def build_html(
         "__REPORT_JSON__": json_for_html(report_data),
         "__JACKET_JSON__": json_for_html(_jacket_data(jackets)),
         "__DOWNLOAD_JSON__": json_for_html({"href": b50_path, "unavailable": b50_unavailable}),
-        "__INLINE_JS__": _asset_text("app.js") + "\n\n" + _asset_text("support.js"),
+        "__INLINE_JS__": _asset_text("app.js")
+        + ("\n\n" + _asset_text("support.js") if support else ""),
     }
     for token in TEMPLATE_TOKENS:
         count = template.count(token)
@@ -445,11 +438,7 @@ def build_html(
     token_pattern = re.compile("|".join(map(re.escape, TEMPLATE_TOKENS)))
     html = token_pattern.sub(lambda match: substitutions[match.group(0)], template)
 
-    inspected_html = html
-    if support is not None:
-        inspected_html = inspected_html.replace(BUY_ME_A_COFFEE_ORIGIN, "")
-    if EXTERNAL_URL.search(inspected_html):
-        raise ValueError("Generated report contains an unapproved external HTTP or HTTPS URL")
+    validate_generated_html(html)
     return html
 
 
@@ -491,7 +480,7 @@ def render_from_files(
     *,
     player: Mapping[str, str] | None = None,
     current_version_display_names: Sequence[str] | None = None,
-    support: Mapping[str, str] | None = None,
+    support: bool | None = None,
     jackets: Mapping[str, str] | None = None,
     badge_pack: Path | str | None = None,
 ) -> Path:
@@ -510,7 +499,11 @@ def render_from_files(
 
 
 def render_demo(
-    output_path: Path, *, scenario: str = "complete", badge_pack: Path | str | None = None
+    output_path: Path,
+    *,
+    scenario: str = "complete",
+    badge_pack: Path | str | None = None,
+    support: bool = True,
 ) -> Path:
     """Render a bundled synthetic scenario without credentials or network access."""
 
@@ -519,7 +512,7 @@ def render_demo(
 
     report, after_payload = load_scenario(scenario)
     return render_report(
-        enrich_report(report, after_payload),
+        enrich_report(report, after_payload, support=support),
         Path(output_path),
         jackets=demo_jackets(after_payload),
         badge_pack=badge_pack,
@@ -536,4 +529,5 @@ __all__ = [
     "render_demo",
     "render_from_files",
     "render_report",
+    "validate_generated_html",
 ]

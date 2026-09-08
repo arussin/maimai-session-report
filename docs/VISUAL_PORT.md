@@ -3,8 +3,9 @@
 The four-view layout, spacing, system fonts, navigation, difficulty and grade
 styling, tables, dialogs, filters, print rules, mobile navigation and reduced-motion
 rules preserve the interface from the original standalone report.
-`tests/test_presentation_port.py` checks the exact original Git blob hashes of
-`styles.css`, `app.js`, `support.css` and `support.js` without fetching anything.
+`tests/test_presentation_port.py` checks the preserved presentation assets without
+fetching anything. The developer-support footer uses the same card and popup
+styling, with fixed project-support wording and a simple show/hide setting.
 
 ## Artwork and sample data
 
@@ -14,7 +15,8 @@ rules preserve the interface from the original standalone report.
 | Demo song covers | Original geometric tiles marked **DEMO**, attached only to fictional fixture songs. These are not authentic maimai jackets. Live/local jacket embedding remains unchanged; missing real art still shows the original `NO ART` placeholder. |
 | Demo scores | Entirely fictional. Before/after pools, deltas and target recommendations are computed through the same model used for live reports. |
 | Browser title / project name | Uses “maimai Session Report.” The report's existing maimai DX text wordmark remains unchanged. |
-| Hosted extras | The standalone demo has no account history shell, B50 download, or support checkout. These remain optional installation features, not removed report features. Enabling them has separate dependencies and privacy implications. |
+| Developer support | The footer appears in every active view by default. Its in-page checkout loads only after a click. Use `--no-support` to hide it. The card, popup and mobile behavior preserve the report's styling. |
+| Hosted extras | The standalone demo has no account history shell or B50 download. These remain optional installation features, not removed report features. Enabling them has separate dependencies and privacy implications. |
 
 See [rating assets](RATING_ASSETS.md) for provenance and ownership, and
 [local artwork packs](BADGES.md) for customization.

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from maimai_report.render import render_demo
+from maimai_report.render import render_demo, validate_generated_html
 
 
 class PublicPreviewTests(unittest.TestCase):
@@ -22,8 +22,19 @@ class PublicPreviewTests(unittest.TestCase):
         sample = Path("docs/sample-report.html").read_text(encoding="utf-8")
         self.assertEqual(sample, generated)
         self.assertIn("Sample Player", sample)
-        self.assertNotRegex(sample, r"(?i)https?://")
+        validate_generated_html(sample)
+        self.assertIn('"support":true', sample)
         self.assertIn("data:image/png;base64,", sample)
+
+    def test_explicit_disabled_demo_has_no_external_urls_or_checkout_script(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            generated = render_demo(Path(directory, "demo.html"), support=False).read_text(
+                encoding="utf-8"
+            )
+        validate_generated_html(generated)
+        self.assertNotRegex(generated, r"(?i)https?://")
+        self.assertIn('"support":false', generated)
+        self.assertNotIn("buymeacoffee", generated)
 
     def test_explicit_plain_display_contains_no_bundled_game_art(self) -> None:
         css = Path("src/maimai_report/assets/rating-fallback.css").read_text(encoding="utf-8")

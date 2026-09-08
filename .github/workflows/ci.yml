@@ -56,14 +56,12 @@ jobs:
           maimai-report doctor
           maimai-report demo --output ci-output/demo-report.html
           python -m maimai_report demo --scenario empty --output ci-output/empty-report.html
+          maimai-report demo --no-support --output ci-output/sealed-report.html
 
-      - name: Reject external report URLs
-        shell: bash
+      - name: Validate sealed reports and the exact checkout origin allowance
         run: |
-          if grep -ERqi 'https?://' ci-output/*.html; then
-            echo 'Generated report contains an external HTTP/HTTPS URL.' >&2
-            exit 1
-          fi
+          python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; files = list(Path('ci-output').glob('*.html')); assert len(files) == 3; [validate_generated_html(path.read_text(encoding='utf-8')) for path in files]"
+          python -c "from pathlib import Path; import re; assert not re.search(r'https?://', Path('ci-output/sealed-report.html').read_text(encoding='utf-8'), re.I)"
 
   cloudflare-adapter:
     name: Optional Cloudflare adapter

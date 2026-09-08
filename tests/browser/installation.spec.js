@@ -23,11 +23,12 @@ test('installed Worker keeps the scorecard, complete pools, download and both su
   await expect(page.locator('#session-rows tr[data-search]:visible')).toHaveCount(0);
   for(const url of ['/alpha/','/alpha/history']) {
     await page.goto(origin+url);
-    const trigger=page.getByRole('button',{name:'Buy me a maimai credit',exact:true});
+    const trigger=page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true});
     await expect(trigger).toHaveCount(1);
     await expect(page.locator('#support-checkout-dialog iframe')).not.toHaveAttribute('src');
     await trigger.focus();await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('link',{name:'Open separately ↗',exact:true})).toHaveAttribute('href','https://buymeacoffee.com/russin');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).not.toBeVisible();
     await expect(trigger).toBeFocused();

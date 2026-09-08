@@ -15,7 +15,9 @@ only when you explicitly request it.
 
 Reports contain personal play history. Keep your output and any runner repository
 private. Default reports have embedded data, CSS and JavaScript, with no browser
-network requests, analytics, remote fonts or account requirement to open the file.
+network requests on load, analytics, remote fonts or account requirement to open
+the file. The optional developer-support checkout contacts Buy Me a Coffee only
+after you click its button; report data stays in the report.
 
 ## See the report
 
@@ -163,11 +165,18 @@ See [configuration](docs/CONFIGURATION.md).
 - [B50 image export](adapters/tomomai/README.md): powered by
   [shedaniel/Tomomai](https://github.com/shedaniel/tomomai), with
   its own AGPL license and build dependencies.
-- [Support footer](docs/SUPPORT.md): off by default. If configured, opening it
-  loads a third-party checkout in an isolated iframe.
+- [Developer support](docs/SUPPORT.md): a removable footer is included by default.
+  Clicking it opens an isolated in-page checkout; nothing loads in the background.
 
 The HTML also works on an ordinary static host. An unprotected host can expose
 the whole report, regardless of whether search engines index it.
+
+## Support development
+
+If maimai Session Report is useful to you,
+[buy the developer a maimai credit](https://buymeacoffee.com/russin).
+Reports include the same optional checkout, with no payment setup needed.
+To hide it, set `enabled = false` under `[support]` or generate with `--no-support`.
 
 ## Upgrading an installation
 

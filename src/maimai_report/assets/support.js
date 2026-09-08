@@ -9,15 +9,12 @@
     return;
   }
 
-  const support = data?.support;
-  if (!support || support.provider !== "buy_me_a_coffee") return;
+  if (data?.support !== true) return;
 
-  const id = String(support.id || "");
-  const label = String(support.label || "Buy me a maimai credit");
-  const description = String(support.description || "Support this maimai report");
-  const color = String(support.color || "#5F7FFF");
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id)) return;
-  if (!/^#[0-9A-Fa-f]{6}$/.test(color)) return;
+  const id = "russin";
+  const label = "Buy the developer a maimai credit";
+  const description = "Support maimai Session Report";
+  const color = "#5F7FFF";
 
   const reportFooter = document.querySelector(".footer");
   if (!reportFooter) return;
@@ -34,7 +31,7 @@
 
   const copy = makeElement("div", "support-copy");
   copy.appendChild(makeElement("span", "support-kicker", "Optional support"));
-  copy.appendChild(makeElement("span", "support-prompt", "Enjoyed the report?"));
+  copy.appendChild(makeElement("span", "support-prompt", "Enjoying maimai Session Report?"));
 
   const actionGroup = makeElement("div", "support-action-group");
   const openButton = makeElement("button", "support-button");
@@ -110,7 +107,7 @@
   dialog.appendChild(dialogFooter);
   document.body.appendChild(dialog);
 
-  const origin = ["https:", "", "buymeacoffee.com"].join("/");
+  const origin = "https://buymeacoffee.com";
   fallback.href = `${origin}/${encodeURIComponent(id)}`;
 
   let frameStarted = false;

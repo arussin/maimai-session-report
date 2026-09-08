@@ -15,6 +15,7 @@ from maimai_report.render import (
     json_for_html,
     render_demo,
     render_from_files,
+    validate_generated_html,
 )
 
 _REPORT_DATA = re.compile(
@@ -152,7 +153,7 @@ class RendererBehaviorTests(unittest.TestCase):
         second = build_html(enriched)
 
         self.assertEqual(first, second)
-        self.assertNotRegex(first, re.compile(r"https?://", re.IGNORECASE))
+        validate_generated_html(first)
         self.assertNotIn("<script src=", first.lower())
         self.assertNotIn("<link ", first.lower())
         self.assertNotRegex(first, re.compile(r"@import\s+url", re.IGNORECASE))

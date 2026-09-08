@@ -4,6 +4,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from .render import BUY_ME_A_COFFEE_ORIGIN, support_enabled_in_html, validate_generated_html
+
 SECURITY_HEADERS = {
     "Cache-Control": "private, no-store, max-age=0",
     "Content-Security-Policy": (
@@ -30,6 +32,17 @@ def make_handler(
     allowed_hostnames: frozenset[str] = LOCAL_HOSTNAMES,
 ) -> type[BaseHTTPRequestHandler]:
     payload = report_file.read_bytes()
+    headers = dict(SECURITY_HEADERS)
+    html = payload.decode("utf-8", errors="replace")
+    enabled = support_enabled_in_html(html)
+    if enabled:
+        # Only generated, validated documents receive the checkout exception.
+        validate_generated_html(html)
+        headers["Permissions-Policy"] = headers["Permissions-Policy"].replace(
+            "payment=()", f'payment=(self "{BUY_ME_A_COFFEE_ORIGIN}")'
+        )
+    frame_origin = BUY_ME_A_COFFEE_ORIGIN if enabled else "'none'"
+    headers["Content-Security-Policy"] += f"; frame-src {frame_origin}"
     allowed = frozenset(name.casefold().strip("[]") for name in allowed_hostnames)
 
     class ReportHandler(BaseHTTPRequestHandler):
@@ -40,7 +53,7 @@ def make_handler(
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(length))
-            for name, value in SECURITY_HEADERS.items():
+            for name, value in headers.items():
                 self.send_header(name, value)
             self.end_headers()
 

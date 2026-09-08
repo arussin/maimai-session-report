@@ -1,13 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { developerSupportEnabled } from "../src/security.js";
 
 const ADAPTER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_OUTPUT = path.join(ADAPTER_ROOT, ".wrangler", "wrangler.generated.jsonc");
 const GENERATED_REPORT_MODULE = path.join(ADAPTER_ROOT, ".wrangler", "report.generated.js");
 const WORKER_ENTRYPOINT = path.join(ADAPTER_ROOT, "src", "worker.js");
 const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
-const BUY_ME_A_COFFEE_MARKER = '"provider":"buy_me_a_coffee"';
 
 function fail(message) {
   console.error(`Cloudflare configuration error: ${message}`);
@@ -104,17 +104,27 @@ function validateReportExternalUrls(reportHtml) {
   const externalUrls = [...reportHtml.matchAll(/https?:\/\/[^\s"'<>;]+/giu)].map(
     (match) => match[0],
   );
-  const supportEnabled = reportHtml.includes(BUY_ME_A_COFFEE_MARKER);
+  const supportEnabled = developerSupportEnabled(reportHtml);
+  const policies = [...reportHtml.matchAll(
+    /<meta http-equiv="Content-Security-Policy" content="([^"]*)"\s*\/?>/gu,
+  )];
+  const hasApprovedFramePolicy = policies.length === 1 && policies[0][1]
+    .split(";")
+    .some((directive) => directive.trim() === `frame-src ${BUY_ME_A_COFFEE_ORIGIN}`);
+  const inlineScripts = [...reportHtml.matchAll(/<script>([\s\S]*?)<\/script>/gu)];
+  const originDeclaration = `const origin = "${BUY_ME_A_COFFEE_ORIGIN}";`;
+  const hasCheckoutOrigin = inlineScripts.some((script) => script[1].includes(originDeclaration));
 
   if (!supportEnabled && externalUrls.length > 0) {
     fail("the report contains an external HTTP/HTTPS URL and will not be published");
   }
   if (
     supportEnabled &&
-    (externalUrls.length !== 1 || externalUrls[0] !== BUY_ME_A_COFFEE_ORIGIN)
+    (externalUrls.length !== 2 || externalUrls.some((url) => url !== BUY_ME_A_COFFEE_ORIGIN) ||
+      !hasApprovedFramePolicy || !hasCheckoutOrigin)
   ) {
     fail(
-      "a support-enabled report may contain only one external URL: the exact Buy Me a Coffee frame origin",
+      "a support-enabled report may contain only the two fixed Buy Me a Coffee origin references in its frame CSP and checkout code",
     );
   }
 }

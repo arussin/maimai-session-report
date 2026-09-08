@@ -5,13 +5,19 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  contentSecurityPolicyFor,
+  developerSupportEnabled,
+  permissionsPolicyFor,
+} from "../src/security.js";
 
 const ADAPTER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GENERATOR = path.join(ADAPTER_ROOT, "scripts", "generate-config.mjs");
 const GENERATED_REPORT_MODULE = path.join(ADAPTER_ROOT, ".wrangler", "report.generated.js");
 const WRANGLER = path.join(ADAPTER_ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
 const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
-const SUPPORT_MARKER = '"provider":"buy_me_a_coffee"';
+const SUPPORT_DATA = '<script id="report-data" type="application/json">{"support":true}</script>';
+const SUPPORT_CODE = `<script>const origin = "${BUY_ME_A_COFFEE_ORIGIN}";</script>`;
 
 async function generate({ html = "<!doctype html><title>Fixture</title><p>private</p>", env = {} } = {}) {
   const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "maimai-report-cloudflare-"));
@@ -71,7 +77,7 @@ test("generator allows only the isolated Buy Me a Coffee frame origin", async ()
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
       `content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">` +
-      `<script type="application/json">{"support":{${SUPPORT_MARKER}}}</script>`,
+      SUPPORT_DATA + SUPPORT_CODE,
   });
   try {
     assert.equal(approved.result.status, 0, approved.result.stderr);
@@ -83,14 +89,66 @@ test("generator allows only the isolated Buy Me a Coffee frame origin", async ()
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
       `content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">` +
-      `<script type="application/json">{"support":{${SUPPORT_MARKER}}}</script>` +
+      SUPPORT_DATA + SUPPORT_CODE +
       '<img src="https://example.invalid/tracker.png">',
   });
   try {
     assert.equal(unapproved.result.status, 2);
-    assert.match(unapproved.result.stderr, /only one external URL/u);
+    assert.match(unapproved.result.stderr, /only the two fixed/u);
   } finally {
     await rm(unapproved.temporaryDirectory, { recursive: true, force: true });
+  }
+});
+
+test("only the explicit report support boolean grants frame and payment permissions", () => {
+  assert.equal(developerSupportEnabled(SUPPORT_DATA), true);
+  for (const data of [false, null, {}, [], "true", 1]) {
+    const html = `<script id="report-data" type="application/json">${JSON.stringify({support: data})}</script>`;
+    assert.equal(developerSupportEnabled(html), false);
+    assert.match(contentSecurityPolicyFor(html), /frame-src 'none'/u);
+    assert.match(permissionsPolicyFor(html), /payment=\(\)/u);
+  }
+  for (const html of [
+    '<p>"support":true</p>',
+    '<script type="application/json">{"support":true}</script>',
+    '<script id="report-data" type="application/json">{"support":false,"song":"support"}</script><p>"support":true</p>',
+    '<script id="report-data" type="application/json">{"support":</script>',
+    '<script id="report-data" type="application/json">null</script>',
+    '<script id="report-data" type="application/json">{}</script>',
+    SUPPORT_DATA + SUPPORT_DATA,
+  ]) {
+    assert.equal(developerSupportEnabled(html), false);
+    assert.match(contentSecurityPolicyFor(html), /frame-src 'none'/u);
+    assert.match(permissionsPolicyFor(html), /payment=\(\)/u);
+  }
+});
+
+test("generator permits the fixed origin only in the frame CSP and checkout code", async () => {
+  for (const html of [
+    `<!doctype html>${SUPPORT_DATA}<img src="${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}<meta http-equiv="Content-Security-Policy" content="connect-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}${SUPPORT_CODE}<meta http-equiv="Content-Security-Policy" content="connect-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}<p>const origin = "${BUY_ME_A_COFFEE_ORIGIN}";</p><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}<img src="${BUY_ME_A_COFFEE_ORIGIN}"><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html><p>"support":true</p><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA.replace('true', 'false')}<meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}`,
+  ]) {
+    const generated = await generate({html});
+    try {
+      assert.equal(generated.result.status, 2);
+      assert.match(generated.result.stderr, /external HTTP\/HTTPS URL|only the two fixed/u);
+    } finally {
+      await rm(generated.temporaryDirectory, {recursive: true, force: true});
+    }
+  }
+  const disabled = await generate({
+    html: `<!doctype html>${SUPPORT_DATA.replace('true', 'false')}`,
+  });
+  try {
+    assert.equal(disabled.result.status, 0, disabled.result.stderr);
+  } finally {
+    await rm(disabled.temporaryDirectory, {recursive: true, force: true});
   }
 });
 
@@ -226,7 +284,7 @@ test("worker serves only the configured path with restrictive headers", async ()
     assert.match(response.headers.get("permissions-policy"), /payment=\(\)/u);
     assert.equal(await response.text(), "<!doctype html><title>Fixture</title><p>private</p>");
 
-    const supportHtml = `<script type="application/json">{${SUPPORT_MARKER}}</script>`;
+    const supportHtml = SUPPORT_DATA;
     assert.match(
       contentSecurityPolicyFor(supportHtml),
       new RegExp(`frame-src ${BUY_ME_A_COFFEE_ORIGIN.replaceAll(".", "\\.")}`, "u"),

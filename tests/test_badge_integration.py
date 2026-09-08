@@ -14,6 +14,7 @@ from maimai_report import cli
 from maimai_report.badges import export_badge_pack
 from maimai_report.config import load_config
 from maimai_report.installation import operations
+from maimai_report.render import validate_generated_html
 from tests.installation_fixture import capture, instance_file
 
 
@@ -52,7 +53,7 @@ class BadgeIntegrationTests(unittest.TestCase):
                 cli.main(["demo", "--badge-pack", str(manifest), "--output", str(output)]), 0
             )
             self.assertIn("data:image/webp;base64,", output.read_text())
-            self.assertNotRegex(output.read_text(), r"https?://")
+            validate_generated_html(output.read_text(encoding="utf-8"))
 
     def test_invalid_pack_prevents_network_doctor_and_sync(self):
         with tempfile.TemporaryDirectory() as directory:

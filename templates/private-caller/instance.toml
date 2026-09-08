@@ -17,10 +17,8 @@ current_version_display_names = []
 output_dir = "output"
 
 [support]
-buy_me_a_coffee_id = ""
-label = "Buy me a maimai credit"
-description = "Support this maimai report"
-color = "#5F7FFF"
+# Developer support; checkout loads only after a footer click.
+enabled = true
 
 [artwork]
 enabled = true

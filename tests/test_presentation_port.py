@@ -16,13 +16,13 @@ from maimai_report.render import enrich_report, render_demo
 
 class PresentationPortTests(unittest.TestCase):
     def test_approved_layout_interactions_and_support_assets_are_unchanged(self):
-        # Git blob IDs of the reviewed original presentation (UTF-8 / LF).
-        # A deliberate redesign must update this explicit compatibility decision.
+        # Git blob IDs of the reviewed presentation (UTF-8 / LF).
+        # Support uses fixed developer copy; the report layout remains unchanged.
         expected = {
             "styles.css": "a7f885c289eff931b1dd0efee16d701a427e37f7",
             "app.js": "24180d45654b08a57ed20564ccf886e89a10fb36",
             "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
-            "support.js": "fb2eb58c0b1d0f6d1a538043576babb24012d3e9",
+            "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }
         for name, digest in expected.items():
             with self.subTest(asset=name):

@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ..artwork import prepare_jackets
-from ..cli import _player, _support
+from ..cli import _player
 from ..history.bundle import prepare_capture, report_data
 from ..history.cloudflare import D1, R2, Cloudflare, required
 from ..history.setup import provision, resource_plan, verify_private_bucket
@@ -89,7 +89,7 @@ def render_capture(instance: Instance, source: Path, *, fetch_artwork: bool = Fa
         original,
         read_json(after_path) if after_path.is_file() else None,
         player=_player(instance.app),
-        support=_support(instance.app),
+        support=instance.app.support_enabled,
         current_version_display_names=original.get("currentNewDisplayVersions"),
     )
     jackets = {}

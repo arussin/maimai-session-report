@@ -34,10 +34,36 @@ class InstallationTests(unittest.TestCase):
     def test_template_has_safe_defaults_and_is_not_live_ready(self):
         value = load_instance(ROOT / "templates/private-caller/instance.toml")
         self.assertFalse(value.app.publishing_enabled)
+        self.assertTrue(value.app.support_enabled)
         self.assertEqual(value.b50_mode, "optional")
         for operation in ("sync", "setup", "prepare-release"):
             with self.subTest(operation=operation), self.assertRaises(ConfigError):
                 value.validate(operation)
+
+    def test_support_setting_applies_to_capture_and_first_session_page(self):
+        for enabled in (True, False):
+            with self.subTest(enabled=enabled):
+                instance = replace(
+                    self.instance, app=replace(self.instance.app, support_enabled=enabled)
+                )
+                source = self.path / f"capture-{enabled}"
+                capture(source, instance)
+                with patch("urllib.request.build_opener") as network:
+                    operations.render_capture(instance, source)
+                self.assertIs(
+                    report_data((source / "maimai-report.html").read_bytes())["support"],
+                    enabled,
+                )
+                network.assert_not_called()
+                with (
+                    patch("maimai_report.installation.deployment.verify_empty_installation"),
+                    patch("maimai_report.installation.deployment.stage") as stage,
+                    patch("urllib.request.build_opener") as network,
+                ):
+                    deployment.bootstrap(instance, self.path / f"bootstrap-{enabled}", ROOT)
+                stage.assert_called_once()
+                self.assertIs(report_data(stage.call_args.args[3])["support"], enabled)
+                network.assert_not_called()
 
     def test_secret_keys_unknown_fields_and_environment_conflicts_fail_offline(self):
         original = self.config.read_text()

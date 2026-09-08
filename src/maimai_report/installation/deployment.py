@@ -502,15 +502,12 @@ def verify_empty_installation(instance: Instance) -> None:
 def bootstrap(instance: Instance, destination: Path, core: Path) -> dict:
     from importlib import resources
 
-    from ..cli import _support
-
     verify_empty_installation(instance)
     check(
         not destination.exists() or not any(destination.iterdir()), "Use an empty release directory"
     )
     destination.mkdir(parents=True, exist_ok=True)
-    support = _support(instance.app)
-    data = {"support": support} if support else {}
+    data = {"support": instance.app.support_enabled}
     assets = resources.files(ASSET_PACKAGE)
     html = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -528,7 +525,7 @@ def bootstrap(instance: Instance, destination: Path, core: Path) -> dict:
         '<script id="report-data" type="application/json">'
         + json_for_html(data)
         + "</script><script>"
-        + assets.joinpath("support.js").read_text()
+        + (assets.joinpath("support.js").read_text() if instance.app.support_enabled else "")
         + "</script></body></html>"
     ).encode()
     (destination / "prepared.json").write_bytes(

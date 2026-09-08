@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 
 from maimai_report.history.storage import migration_sql
-from maimai_report.installation.config import load_instance, validate_workflow_pins
+from maimai_report.installation.config import validate_workflow_pins
 from maimai_report.installation.deployment import stage
 from maimai_report.installation.operations import render_capture
 from scripts.package_installation import package
@@ -25,11 +25,6 @@ def create(destination: Path):
     for owner in ("alpha", "beta"):
         config = destination / owner / "instance.toml"
         instance = instance_file(config, owner=owner, template=template)
-        text = config.read_text().replace(
-            'buy_me_a_coffee_id = ""', 'buy_me_a_coffee_id = "synthetic-test"'
-        )
-        config.write_text(text)
-        instance = load_instance(config)
         source = destination / owner / "capture"
         capture(source, instance)
         render_capture(instance, source)

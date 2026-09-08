@@ -20,12 +20,9 @@ output_dir = "output"
 badge_pack = "builtin" # "plain" or "artwork/badges.toml"
 
 [support]
-# Optional. Leave the ID empty to keep the report fully sealed and make no
-# third-party requests. When enabled, checkout loads only after a footer click.
-buy_me_a_coffee_id = ""
-label = "Buy me a maimai credit"
-description = "Support this maimai report"
-color = "#5F7FFF"
+# Developer support. Checkout loads only after a footer click.
+# Set false to remove the footer and forbid all external frames.
+enabled = true
 
 [actions]
 artifact_retention_days = 7

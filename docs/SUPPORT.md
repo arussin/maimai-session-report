@@ -1,70 +1,83 @@
-# Optional Buy Me a Coffee checkout
+# Developer support
 
-The report can show an optional support control at the bottom of the active report view. Support is disabled by default. With no Buy Me a Coffee ID configured, the generated report remains fully sealed: it contains no external URL, permits no frames, and makes no runtime request.
+Reports include a small **Enjoying maimai Session Report?** footer with a
+**Buy the developer a maimai credit** button. Contributions go to the project's
+developer through [Buy Me a Coffee](https://buymeacoffee.com/russin). No payment
+account or payment credentials are needed to generate your report.
 
-## Configuration
+## Show or hide the footer
 
-In `config.toml`:
+Developer support is enabled by default. To remove it, use this in `config.toml`
+or a hosted installation's private `instance.toml`:
 
 ```toml
 [support]
-buy_me_a_coffee_id = "your-creator-id"
-label = "Buy me a maimai credit"
-description = "Support me on Buy me a coffee!"
-color = "#5F7FFF"
+enabled = false
 ```
 
-Equivalent environment variables:
+For the standalone CLI, `MAIMAI_REPORT_SUPPORT_ENABLED=false` provides the same
+setting. `--support` and `--no-support` explicitly override it when generating a
+report. For example:
 
-```text
-MAIMAI_REPORT_BUY_ME_A_COFFEE_ID=your-creator-id
-MAIMAI_REPORT_SUPPORT_LABEL=Buy me a maimai credit
-MAIMAI_REPORT_SUPPORT_DESCRIPTION=Support me on Buy me a coffee!
-MAIMAI_REPORT_SUPPORT_COLOR=#5F7FFF
+```console
+maimai-report demo --no-support --output output/demo-report.html
 ```
 
-Replace `your-creator-id` with your own public creator ID. The ID and display values are public configuration, not credentials. Do not add a Stripe key, Buy Me a Coffee login, bank information, or any payment secret to the report or repository.
+This is the only support setting. It does not affect scores, artwork, hosting,
+or any report feature. A disabled report contains no external HTTP(S) URL,
+permits no frames, and makes no runtime request.
 
-## Browser behavior
+## In-page checkout
 
-When support is enabled, the report renders a small footer card immediately above its metadata footer. No request to Buy Me a Coffee occurs merely because the report loads. The first click opens an accessible modal and assigns the Buy Me a Coffee widget-page URL to a cross-origin iframe.
+The footer appears immediately above the metadata footer in every active report
+view. Loading the report or changing views makes no request to Buy Me a Coffee.
+Only clicking the button opens the checkout popup and loads the provider's
+cross-origin iframe. The report does not send player data to the provider.
 
-The iframe starts at Buy Me a Coffee's canonical `https://buymeacoffee.com` origin. This is deliberate: the `www` widget URL currently redirects to the no-`www` origin, which can be blocked by a strict single-origin `frame-src` policy. Using the canonical origin avoids that redirect while keeping the allowlist narrow.
+The popup stays inside the report. **Open separately** is available as a fallback;
+the provider may also require a separate window for payment verification.
+Checkout needs an internet connection and is controlled by Buy Me a Coffee.
 
-The iframe is isolated from the parent page by the browser's same-origin policy. The report does not load Buy Me a Coffee's parent-page widget script, remote fonts, icons, analytics code, or other third-party assets. A separate link to the public creator page is available as a fallback.
+The iframe uses the canonical `https://buymeacoffee.com` origin, a no-referrer
+policy and payment delegation. The report does not load the provider's
+parent-page widget script, remote fonts, icons or analytics. The browser's
+same-origin policy separates the payment form from report data. Once you open
+checkout, the provider's own privacy and payment terms apply.
 
-The iframe uses `allow="payment *"` so payment delegation survives any internal Buy Me a Coffee navigation. This does not grant arbitrary sites payment capability because the parent HTTP `Permissions-Policy` still limits payment to the exact Buy Me a Coffee origin.
+Desktop uses a narrow popup; mobile uses the full viewport. The checkout and
+support footer are hidden in print output.
 
-The checkout is hidden from print output. Desktop uses a narrow modal; mobile uses the full viewport so the payment interface is not compressed.
+## Hosting and security policy
 
-## Security policy change
-
-The default policy remains:
-
-```text
-frame-src 'none'
-payment=()
-```
-
-A support-enabled report changes only those capabilities needed by the checkout:
+Support-enabled reports permit only the provider's frame origin:
 
 ```text
 frame-src https://buymeacoffee.com
 payment=(self "https://buymeacoffee.com")
 ```
 
-All other report restrictions remain in force, including `connect-src 'none'`, `form-action 'none'`, `font-src 'none'`, `object-src 'none'`, `Referrer-Policy: no-referrer`, and frame denial for the report itself.
+With support disabled, those policies become:
 
-The renderer and Cloudflare adapter fail closed. A support-enabled generated file may contain only the exact Buy Me a Coffee frame origin as an external HTTP(S) URL. Any additional origin is rejected before publishing.
+```text
+frame-src 'none'
+payment=()
+```
+
+All other report restrictions remain in force: `connect-src 'none'`,
+`form-action 'none'`, `font-src 'none'`, `object-src 'none'`,
+`Referrer-Policy: no-referrer` and frame denial for the report itself.
+The renderer and deployment adapter reject unexpected external URLs. The only
+HTTP(S) URL permitted in a support-enabled file is the exact provider origin in
+the matching content security policy and fixed footer script. Payment links are
+created locally by that script; disabled reports omit it entirely.
+
+A host supplying its own response headers must make the same conditional frame
+and payment allowance. A stricter response header overrides the report's meta
+policy and can prevent checkout from loading. Do not loosen unrelated policies.
 
 ## Testing
 
-Automated browser tests use a fictional checkout page to check the modal,
-keyboard focus and mobile layout. They do not contact the payment provider or
-submit payments. Verify your own creator page and checkout after enabling support.
-
-## Hosting requirement
-
-A host that supplies its own response headers must make the same conditional `frame-src` and `Permissions-Policy` allowance. A stricter response header overrides the report's meta policy and will prevent checkout from loading.
-
-The checkout endpoint and payment methods remain controlled by Buy Me a Coffee. Test the live account's checkout after any upstream widget change. Do not claim a particular wallet or cryptocurrency method unless it is actually offered for the creator and supporter accounts involved.
+Automated browser tests substitute a fictional checkout page. They verify the
+fixed destination, lazy loading, keyboard focus, mobile layout and disabled state
+without contacting the provider or submitting a payment. Actual payment methods
+and verification requirements depend on Buy Me a Coffee and the supporter.

@@ -52,7 +52,7 @@ test('archived checkout stays lazy and closes with Escape',async({page})=>{
   expect(unexpected).toEqual([]);
   // Container behavior only: no provider request or payment flow is exercised.
   await page.route('https://buymeacoffee.com/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<p>Synthetic checkout provider container</p>'}));
-  const trigger=page.getByRole('button',{name:'Buy me a maimai credit',exact:true});
+  const trigger=page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true});
   await trigger.click();
   await expect(page.locator('#support-checkout-dialog')).toBeVisible();
   await expect(page.locator('#support-checkout-dialog iframe')).toHaveAttribute('referrerpolicy','no-referrer');
@@ -70,8 +70,8 @@ for (const empty of [false,true]) test(`history footer checkout is lazy and keyb
   await page.route('https://buymeacoffee.com/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<p>Synthetic checkout container</p>'}));
   await page.goto(origin+'/maimai/history'+(empty?'?fixture=empty':''));
   if(empty)await expect(page.getByRole('heading',{name:'No archived sessions yet'})).toBeVisible();
-  const trigger=page.getByRole('button',{name:'Buy me a maimai credit',exact:true});
-  const dialog=page.getByRole('dialog',{name:'Buy me a maimai credit',exact:true});
+  const trigger=page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true});
+  const dialog=page.getByRole('dialog',{name:'Buy the developer a maimai credit',exact:true});
   const frame=page.locator('#support-checkout-dialog iframe');
   await expect(trigger).toHaveCount(1);
   await expect(page.locator('.support-card + .footer')).toHaveCount(1);
@@ -85,7 +85,7 @@ for (const empty of [false,true]) test(`history footer checkout is lazy and keyb
   await expect(frame).toHaveAttribute('referrerpolicy','no-referrer');
   await expect(frame).toHaveAttribute('loading','lazy');
   await expect(frame).toHaveAttribute('allow','payment *');
-  await expect(frame).toHaveAttribute('src',/^https:\/\/buymeacoffee\.com\/widget\/page\/synthetic-test\?/);
+  await expect(frame).toHaveAttribute('src',/^https:\/\/buymeacoffee\.com\/widget\/page\/russin\?/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
   expect(await dialog.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight})).toBeTruthy();
   await close.click();

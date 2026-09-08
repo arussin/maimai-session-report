@@ -14,9 +14,10 @@ and deployment are distinct operations; a PR or validation run performs none of 
 
 ## Ordinary static hosting
 
-`report.html` embeds CSS, JavaScript and report data. With support disabled, it
-makes no runtime request. Optional support lazily loads only the isolated BMC
-checkout iframe. A static host must protect every report and download request.
+`report.html` embeds CSS, JavaScript and report data. It makes no background
+request. The removable developer-support footer is enabled by default and loads
+its isolated BMC checkout only after a click. With support disabled, no external
+frame is permitted. A static host must protect every report and download request.
 
 Before uploading, answer both questions:
 
@@ -48,7 +49,7 @@ The generator creates ignored files under `deploy/cloudflare/.wrangler/` and enf
 - Wrangler metrics and error reporting disabled through config/workflow environment;
 - Worker observability, dependency instrumentation, and Logpush disabled;
 - exactly one owner-supplied custom domain or route;
-- no unexpected HTTP/HTTPS URL in the selected HTML; only the explicitly enabled support origin is allowed;
+- no unexpected HTTP/HTTPS URL in the selected HTML; support-enabled reports allow only the fixed provider origin in the matching CSP and trusted footer script;
 - no committed account, zone, route, hostname, or Worker name.
 
 These settings follow Cloudflare's current [Wrangler configuration reference](https://developers.cloudflare.com/workers/wrangler/configuration/), [workers.dev controls](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/), and [preview URL controls](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/).
