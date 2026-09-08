@@ -45,12 +45,13 @@ def _metadata() -> str:
         "Description-Content-Type: text/markdown\n"
         "Author: arussin\n"
         "Keywords: maimai,kamaitachi,myt,report\n"
-        "License-Expression: MIT\n"
+        "License-Expression: MIT AND LicenseRef-SEGA-Game-Artwork\n"
         "License-File: LICENSE\n"
+        "License-File: THIRD_PARTY_NOTICES.md\n"
+        "License-File: docs/RATING_ASSETS.md\n"
         "Requires-Python: >=3.11\n"
         "Classifier: Development Status :: 4 - Beta\n"
         "Classifier: Environment :: Console\n"
-        "Classifier: License :: OSI Approved :: MIT License\n"
         "Classifier: Programming Language :: Python :: 3\n"
         "Classifier: Programming Language :: Python :: 3.11\n"
         "Classifier: Programming Language :: Python :: 3.12\n"
@@ -117,6 +118,12 @@ def _wheel_entries(editable: bool) -> dict[str, bytes]:
         b"[console_scripts]\nmaimai-report = maimai_report.cli:main\n"
     )
     entries[f"{DIST_INFO}/licenses/LICENSE"] = root.joinpath("LICENSE").read_bytes()
+    entries[f"{DIST_INFO}/licenses/THIRD_PARTY_NOTICES.md"] = root.joinpath(
+        "THIRD_PARTY_NOTICES.md"
+    ).read_bytes()
+    entries[f"{DIST_INFO}/licenses/docs/RATING_ASSETS.md"] = root.joinpath(
+        "docs/RATING_ASSETS.md"
+    ).read_bytes()
     return entries
 
 
@@ -165,6 +172,7 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         ".python-version",
         "CONTRIBUTING.md",
         "LICENSE",
+        "THIRD_PARTY_NOTICES.md",
         "README.md",
         "SECURITY.md",
         "pyproject.toml",
@@ -173,6 +181,7 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         "docs/sample-report.html",
         "docs/images/demo-desktop.png",
         "docs/images/demo-mobile.png",
+        "docs/images/demo-scores.png",
         "deploy/cloudflare/package-lock.json",
         "deploy/cloudflare/package.json",
         "deploy/cloudflare/history.example.json",
@@ -200,7 +209,7 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         ".github/workflows": {".yaml", ".yml"},
         "build_backend": {".py"},
         "docs": {".md"},
-        "src": {".css", ".html", ".js", ".py", ".sql"},
+        "src": {".css", ".html", ".js", ".py", ".sql", ".txt"},
         "tests": {".py"},
         "installation": {".py", ".yml"},
         "scripts": {".py"},

@@ -21,8 +21,9 @@ network requests, analytics, remote fonts or account requirement to open the fil
 
 All names, songs and scores in these previews are **fictional demo data**.
 These are actual browser captures of the included HTML, not mockups. Cover tiles
-marked **DEMO** are original fictional artwork; the CSS rating badge is not the
-game's original image. [Visual compatibility and differences](docs/VISUAL_PORT.md).
+marked **DEMO** are original fictional artwork. Rating badges use the original
+game frames sourced through Tomomai, including all 12 tiers; their ownership is
+separate from our software license. [Visual compatibility](docs/VISUAL_PORT.md).
 
 ![Desktop scorecard showing session highlights and Old 35 / New 15 rating gains](docs/images/demo-desktop.png)
 
@@ -136,12 +137,15 @@ See [configuration](docs/CONFIGURATION.md).
 
 ## Optional extras
 
+- [Rating artwork packs](docs/BADGES.md): all original tier frames are included;
+  export and customize a local pack, or select the CSS-only `plain` alternative.
 - [Song jackets](docs/ARTWORK.md): fetched from public artwork sources at build
   time and embedded; ordinary local rendering remains offline.
 - [Protected hosting and history](docs/INSTALLATION.md): a seven-file private
   runner uses shared code pinned to a full commit. This needs Cloudflare setup;
   choose it when you want an ongoing website, not merely to view one report.
-- [B50 image export](adapters/tomomai/README.md): optional Tomomai adapter, with
+- [B50 image export](adapters/tomomai/README.md): powered by
+  [shedaniel/Tomomai](https://github.com/shedaniel/tomomai), with
   its own AGPL license and build dependencies.
 - [Support footer](docs/SUPPORT.md): off by default. If configured, opening it
   loads a third-party checkout in an isolated iframe.
@@ -171,5 +175,7 @@ Independent community software; no affiliation with SEGA, Kamaitachi or MYT is
 implied. Core code uses the [MIT license](LICENSE). The optional Tomomai adapter
 uses its included AGPL license; [artwork provenance](docs/RATING_ASSETS.md) is
 separate from the software license.
-The default report and sample use an original CSS rating display, not bundled
-game-interface images. Optional downloaded artwork has separate ownership.
+The default report includes SEGA game-interface artwork obtained from Tomomai.
+Attribution is not a grant of artwork redistribution rights. See the exact
+upstream revision, code boundaries, downstream changes and asset ownership in
+[third-party notices](THIRD_PARTY_NOTICES.md). No affiliation or endorsement is implied.

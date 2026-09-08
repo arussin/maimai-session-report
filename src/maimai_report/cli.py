@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import __version__
 from .api import KamaitachiClient, validate_score_payload
 from .artwork import prepare_jackets
+from .badges import export_badge_pack
 from .config import AppConfig, get_api_token, load_config
 from .errors import MaimaiReportError
 from .io import ensure_output_directory, write_json
@@ -44,6 +45,9 @@ def _add_config_options(parser: argparse.ArgumentParser) -> None:
         help="Exact current-version display name; repeat for aliases",
     )
     parser.add_argument("--output-dir", type=Path, help="Private JSON output directory override")
+    parser.add_argument(
+        "--badge-pack", help="Rating frames: builtin, plain, or a local TOML artwork manifest"
+    )
 
 
 def _add_artwork_options(parser: argparse.ArgumentParser) -> None:
@@ -80,11 +84,19 @@ def build_parser() -> argparse.ArgumentParser:
     demo = commands.add_parser("demo", help="Generate a fully offline synthetic report")
     demo.add_argument("--output", type=Path, required=True)
     demo.add_argument(
+        "--badge-pack", help="Rating frames: builtin, plain, or a local TOML artwork manifest"
+    )
+    demo.add_argument(
         "--scenario",
         choices=("complete", "empty", "incomplete"),
         default="complete",
         help="Bundled synthetic scenario",
     )
+
+    export_badges = commands.add_parser(
+        "export-badges", help="Export the bundled rating artwork as an editable local pack"
+    )
+    export_badges.add_argument("--output-dir", type=Path, required=True)
 
     render = commands.add_parser("render", help="Render existing local JSON inputs")
     _add_config_options(render)
@@ -140,6 +152,7 @@ def _load_cli_config(args: argparse.Namespace, environ: Mapping[str, str]) -> Ap
         "import_type": getattr(args, "import_type", None),
         "current_version_display_names": getattr(args, "current_versions", None),
         "output_dir": getattr(args, "output_dir", None),
+        "badge_pack": getattr(args, "badge_pack", None),
     }
     overrides = {key: value for key, value in pairs.items() if value is not None}
     return load_config(_config_path(args, environ), cli_overrides=overrides, environ=environ)
@@ -196,6 +209,7 @@ def _doctor(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
                 "name, or on Windows install this project with the 'timezone' extra"
             ) from exc
     checks.append(("Timezone", config.timezone))
+    checks.append(("Rating badges", "validated; " + config.badge_pack))
 
     output_dir = config.output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -242,7 +256,9 @@ def _render_command(args: argparse.Namespace, environ: Mapping[str, str]) -> int
         current_version_display_names=(config.current_version_display_names or None),
         support=_support(config),
     )
-    output = render_report(report, args.output, jackets=_artwork(args, config, report))
+    output = render_report(
+        report, args.output, jackets=_artwork(args, config, report), badge_pack=config.badge_pack
+    )
     print(f"Rendered private report: {output.resolve()}")
     return EXIT_OK
 
@@ -300,7 +316,12 @@ def _sync_command(args: argparse.Namespace, environ: Mapping[str, str], *, rende
             current_version_display_names=config.current_version_display_names,
             support=_support(config),
         )
-        output = render_report(report, args.output, jackets=_artwork(args, config, report))
+        output = render_report(
+            report,
+            args.output,
+            jackets=_artwork(args, config, report),
+            badge_pack=config.badge_pack,
+        )
         print(f"Rendered private report: {output.resolve()}")
     return EXIT_OK
 
@@ -310,11 +331,19 @@ def run(args: argparse.Namespace, *, environ: Mapping[str, str] | None = None) -
     if args.command == "doctor":
         return _doctor(args, env)
     if args.command == "demo":
-        output = render_demo(args.output, scenario=args.scenario)
+        output = render_demo(
+            args.output,
+            scenario=args.scenario,
+            badge_pack=args.badge_pack or env.get("MAIMAI_REPORT_BADGE_PACK", "builtin"),
+        )
         print(f"Rendered offline synthetic report: {output.resolve()}")
         return EXIT_OK
     if args.command == "render":
         return _render_command(args, env)
+    if args.command == "export-badges":
+        manifest = export_badge_pack(args.output_dir)
+        print(f"Exported local rating artwork pack: {manifest.resolve()}")
+        return EXIT_OK
     if args.command == "prepare-jackets":
         return _artwork_command(args, env)
     if args.command == "sync":

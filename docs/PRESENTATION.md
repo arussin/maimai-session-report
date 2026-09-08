@@ -11,7 +11,7 @@ deliberate rating-frame/demo-artwork differences.
 | Retained feature | Destination |
 |---|---|
 | Player, date, local time, duration; reconstructed rating and change | Scorecard namecard and session receipt |
-| Rating tier and next-tier progress | Original CSS rating display; HTML digits and accessible progress bar |
+| Rating tier and next-tier progress | All 12 original embedded tier frames (or an explicit local/CSS pack); HTML digits and accessible progress bar |
 | Old 35 / New 15 session contributions | Scorecard; full before/after table in Rating pools |
 | Reconstructed and Kama Naive before/after/delta; Naive gap and model assumption | Rating pools comparison and adjacent model explanation |
 | Both floors, occupancy, recorded PB count, current-version charts played | Rating pools before/after summary |

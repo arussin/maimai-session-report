@@ -122,6 +122,7 @@ def render_capture(instance: Instance, source: Path, *, fetch_artwork: bool = Fa
         jackets=jackets,
         b50_path=instance.prefix + "b50.webp" if available else None,
         b50_unavailable=instance.b50_mode != "disabled" and not available,
+        badge_pack=instance.app.badge_pack,
     )
     return {"meaningful": meaningful(source), "b50Available": available}
 

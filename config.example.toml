@@ -15,6 +15,9 @@ timezone = "UTC" # IANA name, such as Europe/London or Asia/Tokyo
 # Confirm these against current Kamaitachi data whenever the game version changes.
 current_version_display_names = ["maimaiでらっくす CURRENT VERSION"]
 output_dir = "output"
+# Original tier images, CSS-only fallback, or a local artwork manifest.
+# Third-party image ownership is separate from the software's MIT license.
+badge_pack = "builtin" # "plain" or "artwork/badges.toml"
 
 [support]
 # Optional. Leave the ID empty to keep the report fully sealed and make no

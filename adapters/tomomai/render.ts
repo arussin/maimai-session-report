@@ -1,4 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 arussin (this adapter).
+// Adapter to Tomomai / ともマイ by shedaniel and its contributors.
+// Upstream: https://github.com/shedaniel/tomomai
+// Revision: 7608b9c250f4a8778cdfd4768cdecb7628cd5889 (AGPLv3).
+// This local JSON-to-B50 wrapper imports the pinned upstream renderer below.
+// Downstream build patch, 2026-09-08: scripts/harden_tomomai.py restores
+// catalogue/image/image-cache TLS validation; other upstream source is unchanged.
+// See this directory's LICENSE and README.md, and ../../THIRD_PARTY_NOTICES.md.
+// No warranty; SEGA artwork is not relicensed by the project's MIT grant.
 import fs from "node:fs/promises";
 import path from "node:path";
 

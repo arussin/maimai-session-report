@@ -6,15 +6,20 @@ import base64
 import json
 from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from PIL import Image, ImageDraw
 
+from maimai_report.badges import export_badge_pack
 from maimai_report.fixtures import load_scenario
 from maimai_report.render import build_html, enrich_report, render_demo
 
 ROOT = Path(__file__).parent / "generated"
 ROOT.mkdir(exist_ok=True)
 render_demo(ROOT / "demo.html")
+with TemporaryDirectory() as directory:
+    pack = export_badge_pack(Path(directory) / "pack")
+    render_demo(ROOT / "custom-badges.html", badge_pack=pack)
 image = Image.new("RGB", (400, 240), "#e4f7f9")
 ImageDraw.Draw(image).text((30, 90), "SYNTHETIC B50 DOWNLOAD TEST", fill="#183c42")
 image.save(ROOT / "synthetic-b50.webp", format="WEBP", lossless=True)

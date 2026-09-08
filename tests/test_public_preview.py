@@ -17,8 +17,8 @@ class PublicPreviewTests(unittest.TestCase):
         self.assertNotRegex(sample, r"(?i)https?://")
         self.assertIn("data:image/png;base64,", sample)
 
-    def test_rating_display_contains_no_bundled_game_art(self) -> None:
-        css = Path("src/maimai_report/assets/rating-frames.css").read_text(encoding="utf-8")
+    def test_explicit_plain_display_contains_no_bundled_game_art(self) -> None:
+        css = Path("src/maimai_report/assets/rating-fallback.css").read_text(encoding="utf-8")
         self.assertNotRegex(css, r"(?i)url\s*\(|data:|https?://")
         self.assertIn(".namecard .rating-value", css)
         self.assertIn("forced-colors: active", css)

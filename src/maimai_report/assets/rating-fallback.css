@@ -1,0 +1,67 @@
+/* Original CSS artwork in the port's original 296:86 rating-frame geometry.
+   No game image or font is redistributed. Keep styles.css's digit placement. */
+.rating-plaque {
+  --frame: color-mix(in srgb, var(--tier) 65%, var(--tint));
+  --frame-light: var(--tint);
+  isolation: isolate;
+  border: 3px solid var(--frame);
+  border-radius: 18px 12px 18px 12px;
+  background:
+    linear-gradient(120deg, transparent 18%, #fff9 20%, transparent 23% 65%, #fff8 68%, transparent 71%),
+    repeating-linear-gradient(135deg, #ffffff20 0 8px, transparent 8px 18px),
+    linear-gradient(110deg, var(--frame), var(--frame-light) 48%, var(--frame));
+  box-shadow: inset 0 0 0 2px #ffffffb8, inset 0 -5px #00000014;
+  overflow: hidden;
+}
+.tier-gold .rating-plaque { --frame: #eeb619; --frame-light: #fff69b; }
+.tier-platinum .rating-plaque { --frame: #bfa55b; --frame-light: #fffce4; }
+.rating-plaque::before {
+  content: "DX\a RATING";
+  white-space: pre;
+  position: absolute;
+  inset: 19% auto auto 4.5%;
+  width: 32%;
+  color: #15404c;
+  font-family: "Arial Black", Arial, sans-serif;
+  font-size: 5.5cqi;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -.04em;
+  line-height: 1.03;
+  text-align: center;
+  text-shadow: 0 1px #fff8;
+}
+.rating-plaque::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 14% 3% 17% 39%;
+  border: 2px solid #79828c;
+  border-radius: 12px;
+  background: linear-gradient(#3c424b, #252b32);
+  box-shadow: inset 0 2px 4px #0008, 0 2px 0 #fff8;
+}
+.namecard .rating-value {
+  /* These are the original port's positions, size and font, not a redesign. */
+  left: 41.55%; right: 5%; top: 18.6%; bottom: 23.25%;
+  font-family: "Arial Black", "Arial", sans-serif;
+  font-size: 12.5cqi;
+  font-weight: 900;
+  color: #ffe352;
+}
+.rating-value > span + span { border-left: 1px solid #ffffff12; }
+.tier-rainbow .rating-plaque,
+.tier-rainbow-ex .rating-plaque {
+  --frame: #ba89da;
+  background:
+    linear-gradient(120deg, transparent 20%, #fff9 23%, transparent 26% 65%, #fff8 68%, transparent 71%),
+    linear-gradient(110deg, #fba8be, #ffe99c 25%, #a4ebd1 50%, #9ed8ff 72%, #ddaafa);
+}
+@media print {
+  .rating-plaque { print-color-adjust: exact; }
+}
+@media (forced-colors: active) {
+  .rating-plaque { border: 2px solid CanvasText; box-shadow: none; }
+  .rating-plaque::before, .namecard .rating-value { color: CanvasText; text-shadow: none; }
+  .rating-plaque::after { background: Canvas; border-color: CanvasText; box-shadow: none; }
+}

@@ -1,0 +1,18 @@
+RATING-FRAME ARTWORK NOTICE
+
+The twelve bundled rating-frame images are SEGA game-interface artwork sourced
+from shedaniel/tomomai, pinned to commit
+7608b9c250f4a8778cdfd4768cdecb7628cd5889:
+https://github.com/shedaniel/tomomai/tree/7608b9c250f4a8778cdfd4768cdecb7628cd5889/apps/render/public/res/rating
+
+The original PNG files were converted losslessly to the embedded WebP frames.
+rainbow-ex corresponds to kiwami.png. No player information is in these images.
+
+The project's MIT software license does not relicense this third-party artwork.
+Inclusion in a public source repository is not proof of a separate permission
+to redistribute game artwork. No endorsement by SEGA or Tomomai is implied.
+Retain these notices when sharing the artwork. Review the applicable rights
+before redistributing it, or use the plain badge option or your own artwork.
+
+For exact provenance and checksums, see docs/RATING_ASSETS.md and
+THIRD_PARTY_NOTICES.md in maimai Session Report.

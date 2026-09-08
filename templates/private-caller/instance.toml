@@ -11,6 +11,7 @@ display_name = "Your player name"
 timezone = "UTC"
 
 [report]
+badge_pack = "builtin" # "plain" or a caller-owned local artwork manifest
 # Exact as-of chart.data.displayVersion aliases. Required before an explicit sync.
 current_version_display_names = []
 output_dir = "output"

@@ -29,6 +29,7 @@ The loader validates all resolved values. Live operations perform stricter valid
 | `player.timezone` | string | `UTC` | IANA timezone used for display/session timing. |
 | `report.current_version_display_names` | string array | empty | Exact Kamaitachi `chart.data.displayVersion` values included in New 15. Required for live mode. |
 | `report.output_dir` | path | `output` | Directory for the six private JSON files written by `sync`. |
+| `report.badge_pack` | string | `builtin` | Original 12-tier embedded frames, `plain` for CSS-only, or a local TOML artwork manifest. Paths resolve from the working directory; image paths resolve from the manifest directory. See [badge packs](BADGES.md). |
 | `actions.artifact_retention_days` | integer | `7` | Requested Actions retention, 1–90 in the application; the bundled workflow deliberately limits it to 1–30. |
 | `publishing.enabled` | boolean | `false` | Intent flag only. It does not publish anything by itself. |
 | `publishing.provider` | string | `cloudflare` | Adapter identifier. |
@@ -84,6 +85,7 @@ report_path = "/"
 | `MAIMAI_REPORT_IMPORT_TYPE` | import type | `family/name` text |
 | `MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES` | current versions | JSON array of nonempty strings |
 | `MAIMAI_REPORT_OUTPUT_DIR` | private output directory | filesystem path |
+| `MAIMAI_REPORT_BADGE_PACK` | rating artwork pack | `builtin`, `plain`, or a local manifest path |
 | `MAIMAI_REPORT_ARTIFACT_RETENTION_DAYS` | artifact retention | integer text |
 | `MAIMAI_REPORT_PUBLISHING_ENABLED` | publish intent | `true` or `false` |
 
@@ -118,6 +120,7 @@ Configuration options are attached to each command that needs them and therefore
 --import-type FAMILY/NAME
 --current-version DISPLAY_NAME   (repeat for aliases)
 --output-dir PATH
+--badge-pack builtin|plain|PATH
 ```
 
 For example, this command overrides the file's username and New 15 names without modifying it:
@@ -128,13 +131,19 @@ maimai-report doctor --config config.toml --username fictional-player --current-
 
 Command-specific paths are separate:
 
-- `demo --output PATH [--scenario complete|empty|incomplete]`
+- `demo --output PATH [--scenario complete|empty|incomplete] [--badge-pack builtin|plain|PATH]`
+- `export-badges --output-dir PATH` (offline; refuses to overwrite an existing pack)
 - `render --report-input PATH --after-pbs PATH --output PATH`
 - `sync --output-dir PATH`
 - `sync-and-render --output PATH`
 - `serve --file PATH [--host 127.0.0.1] [--port 8000]`
 
-`demo` never reads live configuration. `serve` only reads the selected HTML. `render` reads local JSON plus non-secret display/classification configuration. Only `doctor --network`, `sync`, and `sync-and-render` can make network requests; `doctor --network` never starts an import.
+`demo` never reads live TOML configuration. Its badge selection uses the explicit
+option, then `MAIMAI_REPORT_BADGE_PACK`, then `builtin`; fixture identity and scores
+stay synthetic. `export-badges` is also offline. `serve` only reads the selected
+HTML. `render` reads local inputs; its optional `--prepare-jackets` flag explicitly
+permits public artwork downloads. Score API access is restricted to `doctor
+--network`, `sync`, and `sync-and-render`; doctor never starts an import.
 
 ## Validation rules
 

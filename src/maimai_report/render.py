@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .badges import badge_css
 from .io import atomic_write_text
 
 ASSET_PACKAGE = "maimai_report.assets"
@@ -405,6 +406,7 @@ def build_html(
     jackets: Mapping[str, str] | None = None,
     b50_path: str | None = None,
     b50_unavailable: bool = False,
+    badge_pack: Path | str | None = None,
 ) -> str:
     """Return one deterministic HTML document with a fail-closed runtime policy."""
 
@@ -428,7 +430,7 @@ def build_html(
     substitutions = {
         "__CONTENT_SECURITY_POLICY__": content_security_policy,
         "__INLINE_CSS__": "\n\n".join(
-            _asset_text(name) for name in ("styles.css", "rating-frames.css", "support.css")
+            (_asset_text("styles.css"), badge_css(badge_pack), _asset_text("support.css"))
         ),
         "__REPORT_JSON__": json_for_html(report_data),
         "__JACKET_JSON__": json_for_html(_jacket_data(jackets)),
@@ -458,13 +460,20 @@ def render_report(
     jackets: Mapping[str, str] | None = None,
     b50_path: str | None = None,
     b50_unavailable: bool = False,
+    badge_pack: Path | str | None = None,
 ) -> Path:
     """Write a report to ``output_path`` and return that path."""
 
     output_path = Path(output_path)
     atomic_write_text(
         output_path,
-        build_html(report, jackets=jackets, b50_path=b50_path, b50_unavailable=b50_unavailable),
+        build_html(
+            report,
+            jackets=jackets,
+            b50_path=b50_path,
+            b50_unavailable=b50_unavailable,
+            badge_pack=badge_pack,
+        ),
     )
     return output_path
 
@@ -484,6 +493,7 @@ def render_from_files(
     current_version_display_names: Sequence[str] | None = None,
     support: Mapping[str, str] | None = None,
     jackets: Mapping[str, str] | None = None,
+    badge_pack: Path | str | None = None,
 ) -> Path:
     """Read local JSON inputs, enrich them, and write a private report."""
 
@@ -496,10 +506,12 @@ def render_from_files(
         current_version_display_names=current_version_display_names,
         support=support,
     )
-    return render_report(enriched, Path(output_path), jackets=jackets)
+    return render_report(enriched, Path(output_path), jackets=jackets, badge_pack=badge_pack)
 
 
-def render_demo(output_path: Path, *, scenario: str = "complete") -> Path:
+def render_demo(
+    output_path: Path, *, scenario: str = "complete", badge_pack: Path | str | None = None
+) -> Path:
     """Render a bundled synthetic scenario without credentials or network access."""
 
     from .fixtures import load_scenario
@@ -507,7 +519,10 @@ def render_demo(output_path: Path, *, scenario: str = "complete") -> Path:
 
     report, after_payload = load_scenario(scenario)
     return render_report(
-        enrich_report(report, after_payload), Path(output_path), jackets=demo_jackets(after_payload)
+        enrich_report(report, after_payload),
+        Path(output_path),
+        jackets=demo_jackets(after_payload),
+        badge_pack=badge_pack,
     )
 
 

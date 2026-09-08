@@ -42,9 +42,10 @@ Public availability is not a transfer of artwork ownership. Song artwork and
 upstream game-interface graphics remain the property of their respective owners; the
 repository's software license does not relicense them. A future public
 redistribution of an artwork collection requires a separate rights review.
-The default standalone report and fictional preview bundle no third-party game
-images; their [rating display](RATING_ASSETS.md) is original CSS. This does not
-change the optional Tomomai renderer's own asset or licensing requirements.
+The standalone report and fictional preview include the original third-party
+[rating frames](RATING_ASSETS.md). Select `report.badge_pack = "plain"` to omit
+those images from a generated report. [Local rating artwork packs](BADGES.md)
+are independent of both song covers and the optional Tomomai B50 renderer.
 
 The cache is optional and rebuildable. It is not a score archive or historical
 database. Unmatched songs remain distinguishable by their full title, artist,

@@ -11,6 +11,7 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .badges import validate_badge_pack
 from .errors import ConfigError, MissingTokenError
 
 DEFAULT_CONFIG_PATH = Path("config.toml")
@@ -31,6 +32,7 @@ class AppConfig:
     import_type: str = "api/myt-maimaidx"
     current_version_display_names: tuple[str, ...] = ()
     output_dir: Path = Path("output")
+    badge_pack: str = "builtin"
     buy_me_a_coffee_id: str = ""
     support_label: str = "Buy me a maimai credit"
     support_description: str = "Support this maimai report"
@@ -55,6 +57,7 @@ class AppConfig:
 
         _validate_text("player display name", self.display_name, required=True, maximum=200)
         _validate_text("Kamaitachi username", self.username, required=for_network, maximum=128)
+        validate_badge_pack(self.badge_pack)
 
         if self.timezone != "UTC":
             try:
@@ -162,6 +165,7 @@ _TOML_LAYOUT: dict[str, dict[str, str]] = {
     "report": {
         "current_version_display_names": "current_version_display_names",
         "output_dir": "output_dir",
+        "badge_pack": "badge_pack",
     },
     "support": {
         "buy_me_a_coffee_id": "buy_me_a_coffee_id",
@@ -208,6 +212,7 @@ _ENVIRONMENT_FIELDS: tuple[tuple[str, str], ...] = (
     ("MAIMAI_REPORT_IMPORT_TYPE", "import_type"),
     ("MAIMAI_REPORT_CURRENT_VERSION_DISPLAY_NAMES", "current_version_display_names"),
     ("MAIMAI_REPORT_OUTPUT_DIR", "output_dir"),
+    ("MAIMAI_REPORT_BADGE_PACK", "badge_pack"),
     ("MAIMAI_REPORT_BUY_ME_A_COFFEE_ID", "buy_me_a_coffee_id"),
     ("MAIMAI_REPORT_SUPPORT_LABEL", "support_label"),
     ("MAIMAI_REPORT_SUPPORT_DESCRIPTION", "support_description"),

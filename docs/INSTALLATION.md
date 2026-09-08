@@ -119,6 +119,7 @@ its own backward-compatible defaults.
 | `player.timezone` | IANA string, `UTC` | Session/history display timezone. Preserve it when migrating. |
 | `report.current_version_display_names` | string array, empty | Exact as-of aliases; nonempty before sync. Retained renders keep their recorded aliases. |
 | `report.output_dir` | relative path, `output` | Private capture artifact directory; no absolute/traversal/source paths. |
+| `report.badge_pack` | string, `builtin` | Original embedded 12-tier frames; `plain` omits game frames; a local manifest selects owner artwork. Custom files must be present in the private caller checkout. See [badge packs](BADGES.md). |
 | `support.buy_me_a_coffee_id` | string, blank | Blank disables support; otherwise your BMC creator ID. |
 | `support.label` | string, `Buy me a maimai credit` | Footer trigger text. |
 | `support.description` | string, `Support this maimai report` | Checkout description. |

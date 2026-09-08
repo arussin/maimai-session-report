@@ -141,6 +141,7 @@ runs:
         NEXT_PUBLIC_R2_URL: https://cdn.tomomai.lol
       run: |
         set -euo pipefail
+        python "$INSTANCE_ACTION_PATH/../scripts/harden_tomomai.py" "$GITHUB_WORKSPACE/_tomomai"
         corepack enable
         corepack prepare pnpm@11.2.2 --activate
         pnpm --dir _tomomai install --frozen-lockfile --filter @tomomai/render...

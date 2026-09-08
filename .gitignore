@@ -61,3 +61,5 @@ npm-debug.log*
 /tests/browser/node_modules
 /tests/browser/synthetic-results/
 /tests/browser/test-results/
+# Owner-supplied local rating decorations (the bundled assets remain tracked).
+/artwork/

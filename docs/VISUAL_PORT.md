@@ -10,7 +10,7 @@ mobile navigation, and reduced-motion rules retain the reviewed original assets.
 
 | Element | Release behavior |
 | --- | --- |
-| Rating badge | Uses original CSS artwork instead of the original game-image frame. The compact right-hand digits, font, five slots, 296:86 proportions and tier metadata are preserved. It is **not pixel-identical** to the game artwork. |
+| Rating badge | The default `builtin` pack restores all 12 original embedded game frames, including the distinct 16000+ kiwami frame. Compact right-hand digits, font, five slots and 296:86 proportions are preserved. The earlier CSS replacement is now an explicit `plain` option, not the default. Local artwork packs are opt-in. |
 | Demo song covers | Original geometric tiles marked **DEMO**, attached only to fictional fixture songs. These are not authentic maimai jackets. Live/local jacket embedding remains unchanged; missing real art still shows the original `NO ART` placeholder. |
 | Demo scores | Entirely fictional. Before/after pools and deltas are computed through the real report model. Near-S examples deliberately exercise the existing target calculation; no recommendations are painted into the screenshot. |
 | Browser title / project name | Uses “maimai Session Report.” The report's existing maimai DX text wordmark remains unchanged. |
@@ -18,9 +18,9 @@ mobile navigation, and reduced-motion rules retain the reviewed original assets.
 
 The first cleanup replaced the badge with widely spaced, full-width digits. That
 was a material visual departure and has been corrected. No other report layout
-or interaction redesign is included. The CSS badge is an explicit remaining
-artwork difference, not a claim that redistribution of the original game images
-has been cleared. See [rating assets](RATING_ASSETS.md).
+or interaction redesign is included. The later original-artwork restoration does
+not claim that artwork redistribution rights have been independently cleared.
+See [rating assets](RATING_ASSETS.md) and [local artwork packs](BADGES.md).
 
 ## Actual browser previews
 
