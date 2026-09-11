@@ -45,6 +45,20 @@ See [ARTWORK.md](ARTWORK.md) and [RATING_ASSETS.md](RATING_ASSETS.md).
 
 ## Presentation regression tests
 
+The existing Scores column headings toggle ascending and descending order for
+Song, Chart, Achievement, Grade, Rating, PB gain and Fast / Slow. The Sort menu
+stays synchronized and supplies the same choices on narrow-screen cards. Missing
+values stay last, equal values retain source order, and repeated plays open their
+own retained details. PB gain sorting is available only for PB changes. Chart
+order uses difficulty, displayed level (including plus bands), retained constant,
+then STD/DX; it does not invent missing constants.
+
+The published original playercard frames remain in use, with print-color and
+high-contrast fallbacks. Supplied B50 image downloads remain unchanged. No analyzer
+or catalog package is needed for these report fixes. A focused local gate runs
+with `npx playwright test --config report-fixes.config.js` from `tests/browser`
+after generating the ordinary fictional fixtures.
+
 `tests/browser` uses pinned Playwright and axe-core with Chromium at 1280, 768,
 390 and 320 CSS pixels, plus WebKit at 390. Complete, empty and incomplete fixtures
 visit every view. A separate explicitly fictional presentation fixture exercises
@@ -75,6 +89,14 @@ npm test
 ```
 
 ## Analytical limitations
+
+Scorecard's Play next and Targets share the same compact chart-row component:
+identity, PB-to-S objective and conditional rating gain. The short gain note
+states that the New 15 floor is included. Chart titles still open retained score
+details; there is no extra View action or recommendation writeup control. The
+practice idea remains based on this session's observed level bands, with the
+sample scope stated alongside it. This presentation cleanup adds no detector,
+training claim or new recommendation ranking.
 
 - Difficulty-band averages aggregate retained plays across chart types and
   versions; the existing exploration quest recommends current-version charts

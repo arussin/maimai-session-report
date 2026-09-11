@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+import runpy
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -89,4 +90,5 @@ report["after"]["newPool"].append(
     }
 )
 save("presentation", report)
+runpy.run_path(str(Path(__file__).with_name("prepare-score-sort.py")), run_name="__main__")
 print("Generated four explicitly synthetic browser fixtures and one test-only download.")

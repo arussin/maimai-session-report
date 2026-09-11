@@ -271,19 +271,98 @@
 
   function questsHtml() {
     const all = quests();
-    const floor = all.find(q=>q.reward==="FLOOR");
     const candidates = all.filter(q=>q.reward.endsWith(" est."));
-    return `<div class="quest-grid">${all.filter(q=>q.reward!=="FLOOR").map(q=>`<article class="quest">${q.chart?jacketHtml(q.chart):`<span class="quest-icon" aria-hidden="true">${q.icon}</span>`}<div><h3 class="quest-title">${q.chart?`<button type="button" class="chart-link" data-detail-source="targets" data-detail-index="${(after.newPool||[]).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${safe(q.title)}</button>`:safe(q.title)}</h3>${q.chart?chartBadge(q.chart):""}<div class="quest-sub">${safe(q.sub)}</div></div><div class="quest-reward">${safe(q.reward)}</div>${q.chart?"":`<p class="quest-copy">${safe(q.copy)}</p>`}</article>`).join("")}</div>${candidates.length?`<p class="target-explanation">Reach the S threshold for a sharp rating-coefficient jump. Gains are estimates after the New 15 floor is considered.</p>`:""}${floor?`<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p><p>${safe(floor.copy)}</p></aside>`:""}`;
+    const practice = all.find(q=>!q.chart && q.reward!=="FLOOR");
+    const floor = all.find(q=>q.reward==="FLOOR");
+    return `${targetRowsHtml(candidates)}${practice ? `<aside class="practice-note"><h3>Practice idea</h3><p><strong>${safe(practice.title)}</strong><span>${safe(practice.sub)} · Based on this session’s level bands.</span></p></aside>` : ""}${floor ? `<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p></aside>` : ""}`;
   }
 
+  // Presentation-only sorting. Retain source indices so repeated plays of the
+  // same chart still open their own details; never reorder the retained inputs.
+  const scoreSorts = [
+    {value: "recent", key: "time", direction: "descending", label: "Latest first"},
+    {value: "oldest", key: "time", direction: "ascending", label: "Oldest first"},
+    ...[
+      ["song", "Song"], ["chart", "Chart"], ["achievement", "Achievement"],
+      ["grade", "Grade"], ["rating", "Chart rating"], ["gain", "PB gain"],
+      ["timing", "Fast / Slow"]
+    ].flatMap(([key, label]) => ["ascending", "descending"].map(direction => ({
+      value: direction === "descending" && ["achievement", "rating"].includes(key)
+        ? key : `${key}-${direction === "ascending" ? "asc" : "desc"}`,
+      key, direction, label: `${label} ${direction === "ascending" ? "↑" : "↓"}`
+    })))
+  ];
+  const scoreColumns = [
+    ["song", "Song"], ["chart", "Chart"], ["achievement", "Achievement"],
+    ["grade", "Grade"], ["rating", "Rating"], ["gain", "PB gain"], ["timing", "Fast / Slow"]
+  ];
+  const scoreNumber = value => (typeof value === "number" || typeof value === "string") &&
+    String(value).trim() !== "" && Number.isFinite(Number(value)) ? Number(value) : null;
+  const scoreText = value => typeof value === "string" && value.trim() ? value.trim() : null;
+  const scoreCollator = new Intl.Collator("en", {numeric: true, sensitivity: "base"});
+  const scoreDifficulties = ["diff-basic", "diff-advanced", "diff-expert", "diff-master", "diff-remaster"];
+  function scoreLevel(item) {
+    const constant = scoreNumber(item.levelNum);
+    const match = /^(\d+(?:\.\d+)?)(\+)?$/.exec(String(item.level ?? "").trim());
+    // A displayed plus level is a band, not an estimated constant. Keep 9+
+    // after every displayed 9 even when one chart has no retained constant.
+    return match ? [Number(match[1]), match[2] ? 1 : 0, constant]
+      : [constant == null ? null : Math.floor(constant), null, constant];
+  }
+  function scoreGain(item) {
+    const current = scoreNumber(item.rate);
+    const previous = item.changeType === "new" ? 0 : scoreNumber(item.previousRate);
+    return current != null && previous != null ? current - previous : null;
+  }
+  function scoreSortValues(item, key) {
+    switch (key) {
+      case "song": return [scoreText(item.title)];
+      case "chart": {
+        const difficulty = scoreDifficulties.indexOf(diffClass(item.difficulty));
+        return [difficulty < 0 ? null : difficulty, ...scoreLevel(item),
+          scoreText(item.difficulty) ? (/^DX\s/i.test(item.difficulty) ? 1 : 0) : null];
+      }
+      case "achievement": return [scoreNumber(item.percent)];
+      case "grade": return [gradeOrder.includes(item.grade) ? gradeOrder.length - gradeIndex(item.grade) : null];
+      case "rating": return [scoreNumber(item.rate)];
+      case "gain": return [scoreGain(item)];
+      case "timing": return [scoreNumber(item.fast), scoreNumber(item.slow)];
+      default: return [scoreNumber(item.timeAchieved)];
+    }
+  }
+  function compareScoreValues(left, right, direction) {
+    for (let index = 0; index < left.length; index++) {
+      const a = left[index], b = right[index];
+      // Missing values remain last even when the requested order is reversed.
+      if (a == null || b == null) {
+        if (a !== b) return a == null ? 1 : -1;
+        continue;
+      }
+      const order = typeof a === "string" ? scoreCollator.compare(a, b) : a - b;
+      if (order) return direction === "ascending" ? order : -order;
+    }
+    return 0;
+  }
+  function nextScoreSort(key, current) {
+    const direction = current.key === key
+      ? (current.direction === "ascending" ? "descending" : "ascending")
+      : (["song", "chart", "timing"].includes(key) ? "ascending" : "descending");
+    return scoreSorts.find(sort => sort.key === key && sort.direction === direction);
+  }
+  function scoreHeading(key, label) {
+    const next = nextScoreSort(key, scoreSorts[0]);
+    return `<th scope="col"${key === "gain" ? ' id="pb-gain-heading" hidden' : ""}><button type="button" class="score-sort-button" data-score-sort="${key}" aria-label="Sort by ${label}, ${next.direction}"><span>${label}</span><span class="score-sort-indicator" aria-hidden="true">↕</span></button></th>`;
+  }
   function sessionRows(scope = "plays", sort = "recent") {
     const source = scope === "pbs" ? changedPBs : sessionScores;
-    const list = [...source].sort((a,b)=>sort==="achievement" ? Number(b.percent)-Number(a.percent) || rate(b)-rate(a) : sort==="rating" ? rate(b)-rate(a) || Number(b.percent)-Number(a.percent) : (b.timeAchieved||0)-(a.timeAchieved||0));
-    if (!list.length) return `<tr class="empty-score-row"><td colspan="7">${scope==="pbs"?"No score changes detected.":"No session plays retained."}</td></tr>`;
-    return list.map(x=>`<tr data-search="${safe(`${x.title} ${x.artist} ${x.difficulty} ${x.grade} ${x.level}`.toLowerCase())}" data-difficulty="${diffClass(x.difficulty)}">
-      <td><button type="button" class="song-cell chart-link" data-detail-source="${scope}" data-detail-index="${source.indexOf(x)}" aria-label="Score details: ${safe(x.title)}, ${safe(x.difficulty)} ${safe(x.level)}">${jacketHtml(x)}<span><span class="song-name">${safe(x.title || "Untitled chart")}</span><span class="song-artist">${safe(x.artist || "Artist unavailable")}</span></span></button></td>
-      <td>${chartBadge(x)}</td><td data-label="Achievement" class="mono">${presentPct(x.percent)}${scope==="pbs"?`<small class="previous-score">${x.changeType==="new"?"First recorded PB":`from ${presentPct(x.previousPercent)}`}</small>`:""}</td><td data-label="Grade">${gradeHtml(x.grade)}</td>
-      <td data-label="Rating" class="mono">${presentNum(x.rate)}${scope==="pbs" && x.previousRate!=null?`<small class="previous-score">from ${num(x.previousRate)}</small>`:""}</td><td data-label="PB gain" ${scope==="plays"?"hidden":""} class="mono ${gain(x)<0?"negative":"positive"}">${signed(gain(x))}</td><td data-label="Fast / Slow" class="mono">${presentNum(x.fast)} / ${presentNum(x.slow)}</td>
+    const selected = scoreSorts.find(item => item.value === sort) || scoreSorts[0];
+    const list = source.map((item, index) => ({item, index, values: scoreSortValues(item, selected.key)}))
+      .sort((a,b) => compareScoreValues(a.values, b.values, selected.direction) || a.index - b.index);
+    if (!list.length) return `<tr class="empty-score-row"><td colspan="${scope === "pbs" ? 7 : 6}">${scope==="pbs"?"No score changes detected.":"No session plays retained."}</td></tr>`;
+    return list.map(({item: x, index})=>`<tr data-search="${safe(`${x.title} ${x.artist} ${x.difficulty} ${x.grade} ${x.level}`.toLowerCase())}" data-difficulty="${diffClass(x.difficulty)}">
+      <td><button type="button" class="song-cell chart-link" data-detail-source="${scope}" data-detail-index="${index}" aria-label="Score details: ${safe(x.title)}, ${safe(x.difficulty)} ${safe(x.level)}">${jacketHtml(x)}<span><span class="song-name">${safe(x.title || "Untitled chart")}</span><span class="song-artist">${safe(x.artist || "Artist unavailable")}</span></span></button></td>
+      <td>${chartBadge(x)}</td><td data-label="Achievement" class="mono">${presentPct(scoreNumber(x.percent))}${scope==="pbs"?`<small class="previous-score">${x.changeType==="new"?"First recorded PB":`from ${presentPct(scoreNumber(x.previousPercent))}`}</small>`:""}</td><td data-label="Grade">${gradeHtml(x.grade)}</td>
+      <td data-label="Rating" class="mono">${presentNum(scoreNumber(x.rate))}${scope==="pbs" && x.previousRate!=null?`<small class="previous-score">from ${presentNum(scoreNumber(x.previousRate))}</small>`:""}</td><td data-label="PB gain" ${scope==="plays"?"hidden":""} class="mono ${scoreGain(x)<0?"negative":"positive"}">${scoreGain(x) == null ? "—" : signed(scoreGain(x))}</td><td data-label="Fast / Slow" class="mono">${presentNum(scoreNumber(x.fast))} / ${presentNum(scoreNumber(x.slow))}</td>
     </tr>`).join("");
   }
 
@@ -315,15 +394,18 @@
   }
 
 
+  function targetRowsHtml(candidates) {
+    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">PB ${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length ? `<p class="target-explanation">Potential gain at S, after the New 15 floor.</p>` : ""}`;
+  }
+
   function overviewTargetsHtml() {
-    const candidates = quests().filter(q=>q.reward.endsWith(" est."));
-    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length?`<p class="target-explanation">Reach S for the next rating jump. Gains are estimates.</p>`:""}`;
+    return targetRowsHtml(quests().filter(q=>q.reward.endsWith(" est.")));
   }
 
   function overviewView() {
     return `<section id="overview-view" class="view active" data-view="overview" role="tabpanel" aria-labelledby="tab-overview">
       <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>Session highlights</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
-        <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Difficulty, sweet spots & coaching</small></span><span aria-hidden="true">→</span></button></section></div>
+        <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Targets & session level bands</small></span><span aria-hidden="true">→</span></button></section></div>
     </section>`;
   }
 
@@ -332,8 +414,8 @@
     const total = grades.reduce((sum,[,count])=>sum+count,0);
     return `<section id="session-view" class="view" data-view="session" data-score-scope="plays"><header class="view-heading"><h1>Session scores</h1><p class="session-record-counts">${sessionScores.length} plays · ${changedPBs.length} PB changes<br>${num(session.newPBCount)} first PBs · ${num(session.improvedPBCount)} existing PBs changed</p></header>
       <section class="grade-section"><div class="section-heading"><h2>Grade distribution</h2><span class="section-caption">Highest to lowest · ${total} ${sessionScores.length?"plays":"PB records"}</span></div><div class="grade-distribution">${grades.map(([grade,count])=>`<div class="grade-count">${gradeHtml(grade)}<strong>${count}<small>${count===1?"play":"plays"}</small></strong><span class="grade-count-bar" style="--fill:${total?count/total*100:0}%"></span></div>`).join("")||`<p class="mini-empty">No session grades available.</p>`}</div></section>
-      <section class="score-detail-section"><div class="score-controls"><label>Show<select id="score-scope"><option value="plays">All plays (${sessionScores.length})</option><option value="pbs">PB changes (${changedPBs.length})</option></select></label><label>Sort<select id="score-sort"><option value="recent">Latest first</option><option value="achievement">Achievement ↓</option><option value="rating">Chart rating ↓</option></select></label><label>Chart type<select id="score-difficulty"><option value="">All difficulties</option><option value="diff-basic">Basic</option><option value="diff-advanced">Advanced</option><option value="diff-expert">Expert</option><option value="diff-master">Master</option><option value="diff-remaster">Re:Master</option></select></label><label class="song-search">Search<input id="session-search" class="search-box" type="search" placeholder="Song or level…" /></label></div><p id="score-count" class="section-caption" role="status"></p>
-        <div class="session-table-wrap"><table class="session-table"><thead><tr><th>Song</th><th>Chart</th><th>Achievement</th><th>Grade</th><th>Rating</th><th id="pb-gain-heading" hidden>PB gain</th><th>F / S</th></tr></thead><tbody id="session-rows">${sessionRows()}</tbody></table></div><p class="section-subtitle">PB changes compares each chart with its previous best. Chart gains can be larger than the net gain after pool replacements.</p></section>
+      <section class="score-detail-section"><div class="score-controls"><label>Show<select id="score-scope"><option value="plays">All plays (${sessionScores.length})</option><option value="pbs">PB changes (${changedPBs.length})</option></select></label><label>Sort<select id="score-sort">${scoreSorts.map(sort => `<option value="${sort.value}"${sort.key === "gain" ? " hidden disabled" : ""}>${sort.label}</option>`).join("")}</select></label><label>Chart type<select id="score-difficulty"><option value="">All difficulties</option><option value="diff-basic">Basic</option><option value="diff-advanced">Advanced</option><option value="diff-expert">Expert</option><option value="diff-master">Master</option><option value="diff-remaster">Re:Master</option></select></label><label class="song-search">Search<input id="session-search" class="search-box" type="search" placeholder="Song or level…" /></label></div><p id="score-count" class="section-caption" role="status"></p>
+        <p id="score-sort-help" class="section-caption">Chart sorts by difficulty, level, then format. Fast / Slow sorts by fast, then slow. Missing values stay last.</p><div class="session-table-wrap"><table class="session-table" aria-label="Session scores" aria-describedby="score-sort-help"><thead><tr>${scoreColumns.map(([key, label]) => scoreHeading(key, label)).join("")}</tr></thead><tbody id="session-rows">${sessionRows()}</tbody></table></div><p class="section-subtitle">PB changes compares each chart with its previous best. Chart gains can be larger than the net gain after pool replacements.</p></section>
       <section class="detail-timing"><div class="section-heading"><h2>Session timing</h2></div>${timingHtml()}</section>
     </section>`;
   }
@@ -350,11 +432,9 @@
 
 
   function targetsView() {
-    const bands = difficultyBands();
-    return `<section id="targets-view" class="view" data-view="targets"><header class="view-heading"><h1>Targets & practice</h1><p>Rating opportunities, chart types and coaching for your next session.</p></header>
-      <div class="practice-layout"><section class="target-opportunities"><h2 class="section-title">Next targets</h2>${questsHtml()}</section><section class="practice-profile"><h2 class="section-title">Difficulty profile</h2><p class="section-subtitle">Level bands, with each chart type shown separately.</p>${bandsHtml()}<aside class="practice-guidance"><h3>Coach’s read</h3><p>${bands.best?"Keep stretching within this band while maintaining S/S+ consistency.":"A non-empty session will reveal your most efficient difficulty band."}</p><p>The band model uses all retained session chart types and versions. The current-version exploration quest is a recommendation, not a separate current-version sample.</p></aside></section></div></section>`;
+    return `<section id="targets-view" class="view" data-view="targets"><header class="view-heading"><h1>Targets & practice</h1><p>Pick a rating target or a practice goal.</p></header>
+      <div class="practice-layout"><section class="target-opportunities"><h2 class="section-title">Next targets</h2>${questsHtml()}</section><section class="practice-profile"><h2 class="section-title">Difficulty profile</h2><p class="section-subtitle">Retained plays across chart types and versions.</p>${bandsHtml()}</section></div></section>`;
   }
-
 
   function toolbarHtml() {
     return `<nav class="toolbar" aria-label="Report views"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a><div class="tabs" role="tablist" aria-label="Report sections">
@@ -436,11 +516,39 @@
     document.getElementById("score-count").textContent = `${rows.filter(x=>!x.hidden).length} of ${rows.length} ${document.getElementById("score-scope").value === "pbs"?"PB changes":"plays"}`;
   }
   function updateScores() {
-    document.getElementById("session-view").dataset.scoreScope = document.getElementById("score-scope").value;
-    document.getElementById("session-rows").innerHTML = sessionRows(document.getElementById("score-scope").value,document.getElementById("score-sort").value);
-    document.getElementById("pb-gain-heading").hidden = document.getElementById("score-scope").value !== "pbs";
+    const scope = document.getElementById("score-scope").value;
+    const select = document.getElementById("score-sort");
+    let current = scoreSorts.find(sort => sort.value === select.value) || scoreSorts[0];
+    if (scope !== "pbs" && current.key === "gain") current = scoreSorts[0];
+    select.value = current.value;
+    scoreSorts.forEach(sort => {
+      const option = select.querySelector(`option[value="${sort.value}"]`);
+      option.disabled = option.hidden = sort.key === "gain" && scope !== "pbs";
+    });
+    document.querySelectorAll("[data-score-sort]").forEach(button => {
+      const key = button.dataset.scoreSort;
+      const active = current.key === key;
+      if (active) button.closest("th").setAttribute("aria-sort", current.direction);
+      else button.closest("th").removeAttribute("aria-sort");
+      const next = nextScoreSort(key, current);
+      const label = scoreColumns.find(([column]) => column === key)[1];
+      button.setAttribute("aria-label", `Sort by ${label}, ${next.direction}`);
+      button.querySelector(".score-sort-indicator").textContent = active
+        ? (current.direction === "ascending" ? "↑" : "↓") : "↕";
+    });
+    document.getElementById("session-view").dataset.scoreScope = scope;
+    document.getElementById("session-rows").innerHTML = sessionRows(scope, current.value);
+    document.getElementById("pb-gain-heading").hidden = scope !== "pbs";
     filterScores();
   }
+  document.querySelectorAll("[data-score-sort]").forEach(button => {
+    button.addEventListener("click", () => {
+      const select = document.getElementById("score-sort");
+      const current = scoreSorts.find(sort => sort.value === select.value) || scoreSorts[0];
+      select.value = nextScoreSort(button.dataset.scoreSort, current).value;
+      updateScores();
+    });
+  });
   ["score-scope","score-sort"].forEach(id=>document.getElementById(id).addEventListener("change",updateScores));
   document.getElementById("session-search").addEventListener("input",filterScores);
   document.getElementById("score-difficulty").addEventListener("change",filterScores);
