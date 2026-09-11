@@ -1,6 +1,6 @@
 """Loopback-only, allowlisted synthetic fixture server for CI."""
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -15,6 +15,8 @@ ALLOWED = {
         "demo",
         "sealed-demo",
         "custom-badges",
+        "score-sort",
+        "score-sort-levels",
     )
 }
 ALLOWED["/synthetic-b50.webp"] = ("synthetic-b50.webp", "image/webp")
@@ -30,6 +32,7 @@ class Handler(BaseHTTPRequestHandler):
         data = (ROOT / file[0]).read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", file[1])
+        self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "private, no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -40,5 +43,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
+def make_server(port=4180):
+    return ThreadingHTTPServer(("127.0.0.1", port), Handler)
+
+
 if __name__ == "__main__":
-    HTTPServer(("127.0.0.1", 4180), Handler).serve_forever()
+    make_server().serve_forever()

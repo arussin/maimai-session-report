@@ -354,6 +354,14 @@ h3.section-title { font-size: 1.125rem; }
 .tier-progress>span { display: block; height: 100%; background: var(--tier); }
 .tier-next { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 6px 5px 0; font-size: .75rem; color: var(--muted); }
 .tier-next strong { font-weight: 600; color: var(--tier); }
+@media print {
+  .rating-plaque { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+@media (forced-colors: active) {
+  .namecard .rating-plaque { background: Canvas !important; border: 2px solid CanvasText; }
+  .namecard .rating-value { color: CanvasText; text-shadow: none; }
+  .rating-plaque::before { content: "DX RATING"; position: absolute; left: 4%; top: 25%; width: 32%; color: CanvasText; font-size: 5cqi; font-weight: 700; text-align: center; }
+}
 .session-date { margin-bottom: 14px; font-size: 1rem; font-weight: 600; }
 .session-date>span { display: block; margin-top: 4px; font-size: .875rem; color: var(--muted); font-weight: 400; }
 .session-receipt .session-facts { margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
@@ -399,6 +407,14 @@ select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px;
 .score-controls .search-box { width: 100%; font-size: .875rem; }
 .session-table { font-size: .875rem; }
 .session-table th, .session-table td { padding: 12px 10px; }
+.session-table th { padding: 0; }
+.score-sort-button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 12px 10px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.score-sort-button:hover { color: var(--aqua-deep); text-decoration: underline; text-underline-offset: 3px; }
+.score-sort-button:focus-visible { outline: 2px solid var(--aqua-deep); outline-offset: -3px; }
+.score-sort-indicator { flex: 0 0 auto; font-size: .75rem; opacity: .5; }
+.session-table th[aria-sort] { color: var(--aqua-deep); }
+.session-table th[aria-sort] .score-sort-indicator { opacity: 1; }
+#score-sort-help { margin: 8px 0 12px; }
 .session-table td:nth-child(n+3) { white-space: nowrap; }
 .session-table .song-cell { min-width: 240px; }
 .session-table .song-jacket { width: 44px; height: 44px; flex-basis: 44px; }
@@ -478,9 +494,25 @@ select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px;
   .score-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .score-controls label { min-width: 0; }
   .score-controls .song-search { grid-column: auto; }
+  .rating-explanation { display: block; }
+  .rating-explanation .session-interpretation { margin-bottom: 24px; }
+  .counted-pools .pool-grid { gap: 28px; }
+  .pool-item { grid-template-columns: 18px 44px minmax(0,1fr) auto; gap: 8px; }
+  .pool-item .song-jacket { width: 44px; height: 44px; }
+  .pool-title { font-size: .9375rem; }
+  .quest { grid-template-columns: 40px minmax(0,1fr); gap: 8px 12px; }
+  .quest .song-jacket { width: 40px; height: 40px; }
+  .quest-reward { grid-column: 2; text-align: left; }
+  .level-heading { display: block; }
+  .difficulty-sample { gap: 8px; }
+}
+/* Keep the original table headers aligned with their columns. On small card
+   layouts the existing Sort dropdown remains the single sorting control. */
+.score-detail-section { container-type: inline-size; }
+@container (max-width: 42rem) {
   .session-table-wrap { border: 0; overflow: visible; }
   .session-table { display: block; min-width: 0; width: 100%; }
-  .session-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .session-table thead { display: none; }
   .session-table tbody { display: block; }
   .session-table tr { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 10px; padding: 16px 0; border-top: 1px solid var(--line); }
   .session-table td { display: block; padding: 5px 0; border: 0; white-space: normal !important; }
@@ -496,17 +528,6 @@ select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px;
   .session-table .song-cell { min-width: 0; align-items: center; }
   .session-table .song-name { font-size: .9375rem; }
   .session-table .song-artist { font-size: .75rem; }
-  .rating-explanation { display: block; }
-  .rating-explanation .session-interpretation { margin-bottom: 24px; }
-  .counted-pools .pool-grid { gap: 28px; }
-  .pool-item { grid-template-columns: 18px 44px minmax(0,1fr) auto; gap: 8px; }
-  .pool-item .song-jacket { width: 44px; height: 44px; }
-  .pool-title { font-size: .9375rem; }
-  .quest { grid-template-columns: 40px minmax(0,1fr); gap: 8px 12px; }
-  .quest .song-jacket { width: 40px; height: 40px; }
-  .quest-reward { grid-column: 2; text-align: left; }
-  .level-heading { display: block; }
-  .difficulty-sample { gap: 8px; }
 }
 @media print {
   .score-controls, .analysis-link { display: none; }
@@ -514,6 +535,8 @@ select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px;
   .session-table tbody { display: table-row-group; }
   .session-table thead { display: table-header-group; position: static; width: auto; height: auto; clip-path: none; }
   .session-table tr { display: table-row; }
+  .session-table thead tr { display: table-row; }
+  .session-table th { display: table-cell; border-radius: 0; }
   .session-table td { display: table-cell; }
   .session-table td::before { display: none !important; }
 }
