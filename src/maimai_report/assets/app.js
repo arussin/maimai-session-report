@@ -271,9 +271,10 @@
 
   function questsHtml() {
     const all = quests();
-    const floor = all.find(q=>q.reward==="FLOOR");
     const candidates = all.filter(q=>q.reward.endsWith(" est."));
-    return `<div class="quest-grid">${all.filter(q=>q.reward!=="FLOOR").map(q=>`<article class="quest">${q.chart?jacketHtml(q.chart):`<span class="quest-icon" aria-hidden="true">${q.icon}</span>`}<div><h3 class="quest-title">${q.chart?`<button type="button" class="chart-link" data-detail-source="targets" data-detail-index="${(after.newPool||[]).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${safe(q.title)}</button>`:safe(q.title)}</h3>${q.chart?chartBadge(q.chart):""}<div class="quest-sub">${safe(q.sub)}</div></div><div class="quest-reward">${safe(q.reward)}</div>${q.chart?"":`<p class="quest-copy">${safe(q.copy)}</p>`}</article>`).join("")}</div>${candidates.length?`<p class="target-explanation">Reach the S threshold for a sharp rating-coefficient jump. Gains are estimates after the New 15 floor is considered.</p>`:""}${floor?`<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p><p>${safe(floor.copy)}</p></aside>`:""}`;
+    const practice = all.find(q=>!q.chart && q.reward!=="FLOOR");
+    const floor = all.find(q=>q.reward==="FLOOR");
+    return `${targetRowsHtml(candidates)}${practice ? `<aside class="practice-note"><h3>Practice idea</h3><p><strong>${safe(practice.title)}</strong><span>${safe(practice.sub)} · Based on this session’s level bands.</span></p></aside>` : ""}${floor ? `<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p></aside>` : ""}`;
   }
 
   // Presentation-only sorting. Retain source indices so repeated plays of the
@@ -393,15 +394,18 @@
   }
 
 
+  function targetRowsHtml(candidates) {
+    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">PB ${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length ? `<p class="target-explanation">Potential gain at S, after the New 15 floor.</p>` : ""}`;
+  }
+
   function overviewTargetsHtml() {
-    const candidates = quests().filter(q=>q.reward.endsWith(" est."));
-    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length?`<p class="target-explanation">Reach S for the next rating jump. Gains are estimates.</p>`:""}`;
+    return targetRowsHtml(quests().filter(q=>q.reward.endsWith(" est.")));
   }
 
   function overviewView() {
     return `<section id="overview-view" class="view active" data-view="overview" role="tabpanel" aria-labelledby="tab-overview">
       <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>Session highlights</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
-        <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Difficulty, sweet spots & coaching</small></span><span aria-hidden="true">→</span></button></section></div>
+        <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Targets & session level bands</small></span><span aria-hidden="true">→</span></button></section></div>
     </section>`;
   }
 
@@ -428,11 +432,9 @@
 
 
   function targetsView() {
-    const bands = difficultyBands();
-    return `<section id="targets-view" class="view" data-view="targets"><header class="view-heading"><h1>Targets & practice</h1><p>Rating opportunities, chart types and coaching for your next session.</p></header>
-      <div class="practice-layout"><section class="target-opportunities"><h2 class="section-title">Next targets</h2>${questsHtml()}</section><section class="practice-profile"><h2 class="section-title">Difficulty profile</h2><p class="section-subtitle">Level bands, with each chart type shown separately.</p>${bandsHtml()}<aside class="practice-guidance"><h3>Coach’s read</h3><p>${bands.best?"Keep stretching within this band while maintaining S/S+ consistency.":"A non-empty session will reveal your most efficient difficulty band."}</p><p>The band model uses all retained session chart types and versions. The current-version exploration quest is a recommendation, not a separate current-version sample.</p></aside></section></div></section>`;
+    return `<section id="targets-view" class="view" data-view="targets"><header class="view-heading"><h1>Targets & practice</h1><p>Pick a rating target or a practice goal.</p></header>
+      <div class="practice-layout"><section class="target-opportunities"><h2 class="section-title">Next targets</h2>${questsHtml()}</section><section class="practice-profile"><h2 class="section-title">Difficulty profile</h2><p class="section-subtitle">Retained plays across chart types and versions.</p>${bandsHtml()}</section></div></section>`;
   }
-
 
   function toolbarHtml() {
     return `<nav class="toolbar" aria-label="Report views"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a><div class="tabs" role="tablist" aria-label="Report sections">

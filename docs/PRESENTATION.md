@@ -90,6 +90,14 @@ npm test
 
 ## Analytical limitations
 
+Scorecard's Play next and Targets share the same compact chart-row component:
+identity, PB-to-S objective and conditional rating gain. The short gain note
+states that the New 15 floor is included. Chart titles still open retained score
+details; there is no extra View action or recommendation writeup control. The
+practice idea remains based on this session's observed level bands, with the
+sample scope stated alongside it. This presentation cleanup adds no detector,
+training claim or new recommendation ranking.
+
 - Difficulty-band averages aggregate retained plays across chart types and
   versions; the existing exploration quest recommends current-version charts
   from that sample. The UI explains this scope.
