@@ -1,10 +1,12 @@
 """Prepare optional cards without installing the shared intelligence package."""
 
+import runpy
 from pathlib import Path
 
 from maimai_report.fixtures import load_scenario
 from maimai_report.render import build_html
-from tests.test_browser_integration import fixture
+
+fixture = runpy.run_path(str(Path(__file__).parents[1] / "test_browser_integration.py"))["fixture"]
 
 root = Path(__file__).parent / "generated"
 root.mkdir(exist_ok=True)
