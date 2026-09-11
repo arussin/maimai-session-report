@@ -17,6 +17,7 @@ from maimai_report.render import build_html, enrich_report, render_demo
 
 ROOT = Path(__file__).parent / "generated"
 ROOT.mkdir(exist_ok=True)
+runpy.run_path(str(Path(__file__).with_name("prepare-browser-cards.py")), run_name="__main__")
 render_demo(ROOT / "demo.html")
 render_demo(ROOT / "sealed-demo.html", support=False)
 with TemporaryDirectory() as directory:
