@@ -401,6 +401,8 @@ def build_html(
     b50_path: str | None = None,
     b50_unavailable: bool = False,
     badge_pack: Path | str | None = None,
+    recommendation_bundle: Mapping[str, Any] | None = None,
+    browser_url: str | None = None,
 ) -> str:
     """Return one deterministic HTML document with a fail-closed runtime policy."""
 
@@ -412,6 +414,16 @@ def build_html(
         raise ValueError("A B50 download cannot also be unavailable")
 
     report_data = deepcopy(dict(report))
+    if "preparedRecommendations" in report_data:
+        raise ValueError("Pass prepared recommendations through recommendation_bundle")
+    if browser_url is not None and recommendation_bundle is None:
+        raise ValueError("A browser address requires an explicit recommendation bundle")
+    if recommendation_bundle is not None:
+        from .browser import prepared_view
+
+        report_data["preparedRecommendations"] = prepared_view(
+            recommendation_bundle, report_data, browser_url
+        )
     support = _support_enabled(report_data.get("support", True))
     report_data["support"] = support
     content_security_policy = (
@@ -430,6 +442,9 @@ def build_html(
         "__INLINE_JS__": _asset_text("app.js")
         + ("\n\n" + _asset_text("support.js") if support else ""),
     }
+    if recommendation_bundle is not None and report_data["preparedRecommendations"]["cards"]:
+        substitutions["__INLINE_CSS__"] += "\n\n" + _asset_text("browser-cards.css")
+        substitutions["__INLINE_JS__"] += "\n\n" + _asset_text("browser-cards.js")
     for token in TEMPLATE_TOKENS:
         count = template.count(token)
         if count != 1:
@@ -450,6 +465,8 @@ def render_report(
     b50_path: str | None = None,
     b50_unavailable: bool = False,
     badge_pack: Path | str | None = None,
+    recommendation_bundle: Mapping[str, Any] | None = None,
+    browser_url: str | None = None,
 ) -> Path:
     """Write a report to ``output_path`` and return that path."""
 
@@ -462,6 +479,8 @@ def render_report(
             b50_path=b50_path,
             b50_unavailable=b50_unavailable,
             badge_pack=badge_pack,
+            recommendation_bundle=recommendation_bundle,
+            browser_url=browser_url,
         ),
     )
     return output_path

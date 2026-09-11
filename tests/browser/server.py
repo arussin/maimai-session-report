@@ -17,6 +17,8 @@ ALLOWED = {
         "custom-badges",
         "score-sort",
         "score-sort-levels",
+        "browser-cards-links",
+        "browser-cards-offline",
     )
 }
 ALLOWED["/synthetic-b50.webp"] = ("synthetic-b50.webp", "image/webp")
