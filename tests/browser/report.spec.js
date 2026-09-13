@@ -1,3 +1,4 @@
+import {openExports} from './export-controls.js';
 import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile} from 'node:fs/promises';
@@ -171,6 +172,7 @@ test('keyboard navigation, reduced motion and 200 percent text reflow', async ({
 
 test('B50 button downloads the exact supplied image', async ({page})=> {
   await page.goto('/complete.html');
+  await openExports(page);
   const pending=page.waitForEvent('download'); await page.getByRole('link',{name:'Download B50'}).click();
   const download=await pending;
   expect(download.suggestedFilename()).toBe('maimai-b50.webp');

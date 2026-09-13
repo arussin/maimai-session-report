@@ -65,6 +65,21 @@ button, input, p, h1, h2, h3, strong, span { overflow-wrap: anywhere; }
 .tab:hover { color: var(--aqua-deep); }
 .action-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; color: var(--ink); background: white; border: 1px solid #c1d3d7; border-radius: 6px; font-size: var(--text-label); text-decoration: none; white-space: nowrap; }
 .action-button:hover { background: var(--paper-2); }
+.report-exports { flex: none; }
+.report-downloads { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.export-toggle { display: none; }
+
+/* Keep the header to one action on smaller screens; the same exports remain available. */
+@media (max-width: 1000px) {
+  .report-exports { position: relative; margin-left: auto; }
+  .export-toggle { display: inline-flex; gap: 8px; }
+  .export-toggle svg { flex: none; }
+  .export-toggle[aria-expanded="true"] { background: var(--paper-2); border-color: var(--aqua-deep); }
+  .report-exports .report-downloads { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: min(22rem, 248px); max-width: calc(100vw - 32px); padding: 8px; flex-direction: column; align-items: stretch; gap: 6px; background: white; border: 1px solid #c1d3d7; border-radius: 12px; box-shadow: 0 8px 28px #183b4326; }
+  .report-exports:not([data-expanded="true"]) .report-downloads { display: none; }
+  .report-exports .report-downloads .action-button { flex: 1; justify-content: flex-start; min-height: 44px; padding: 10px 12px; font-size: var(--text-label); text-align: left; white-space: normal; }
+  .report-exports .party-player-help { width: 44px; height: 44px; }
+}
 
 /* One result, then one line of session facts. */
 .session-header { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
@@ -1002,9 +1017,9 @@ body.support-dialog-open { overflow: hidden; }
 @media(forced-colors:active){.party-brand,.party-brand .party-suffix span{color:LinkText}}
 
 
-.report-brand-block{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8px 0}.report-brand-block .report-brand{min-height:32px}.report-brand-block .party-brand{font-size:19px;gap:6px;margin-left:9px;min-height:26px;line-height:1}.party-open-label{font:400 11px/1.4 system-ui;letter-spacing:0;color:#5d777d}.report-downloads{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}.report-downloads .action-button{font-family:inherit;font-weight:400}.report-downloads [hidden]{display:none!important}.party-download-group{display:inline-flex;align-items:center;gap:3px}.party-download-group:has(button[hidden]){display:none}.party-player-help{display:inline-flex;flex:none;align-items:center;justify-content:center;position:relative;width:30px;height:40px;color:#537881;font:600 12px/1 system-ui;text-decoration:none;border-radius:5px}.party-player-help:before{content:"";position:absolute;width:18px;height:18px;border:1px solid #abcacf;border-radius:50%}.party-player-help:hover{background:#f2fafb}.party-player-help:focus-visible{outline:3px solid #007887;outline-offset:2px}.party-transfer-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.party-transfer-status.party-transfer-error{position:static;width:auto;height:auto;clip-path:none;font-size:12px;color:#526b72;margin:8px 0}.party-chart-actions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}.party-chart-actions small{flex-basis:100%;color:#526b72}.party-action{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;border:1px solid #b6d4d7;border-radius:7px;background:#f5fbfa;color:#006b76;font:600 13px/1.4 system-ui;text-decoration:none;cursor:pointer}.party-action:focus-visible,#open-maimai-party:focus-visible{outline:3px solid #007887;outline-offset:3px}.practice-chart{display:flex;align-items:center;gap:12px;margin:12px 0}.practice-chart .song-jacket{flex:none;width:56px;height:56px}.practice-chart>div{min-width:0}.practice-chart .chart-identity{display:flex;margin-top:5px}.practice-chart p{margin-top:6px}.practice-note .practice-chart+p{margin-top:10px}
-@media(max-width:740px){.toolbar{gap:12px}.report-downloads{margin-left:auto}.report-downloads .action-button{font-size:12px;padding:8px 10px}.party-chart-actions a{width:100%;justify-content:center}}
-@media(max-width:420px){.report-downloads{gap:5px;max-width:190px}.report-downloads .action-button{min-height:36px;padding:7px 9px;font-size:11px}.report-brand-block .party-brand{font-size:18px}}
+.report-brand-block{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8px 0}.report-brand-block .report-brand{min-height:32px}.report-brand-block .party-brand{font-size:19px;gap:6px;margin-left:9px;min-height:26px;line-height:1}.party-open-label{font:400 11px/1.4 system-ui;letter-spacing:0;color:#5d777d}.report-downloads .action-button{font-family:inherit;font-weight:400}.report-downloads [hidden]{display:none!important}.party-download-group{display:inline-flex;align-items:center;gap:3px}.party-download-group:has(button[hidden]){display:none}.party-player-help{display:inline-flex;flex:none;align-items:center;justify-content:center;position:relative;width:30px;height:40px;color:#537881;font:600 12px/1 system-ui;text-decoration:none;border-radius:5px}.party-player-help:before{content:"";position:absolute;width:18px;height:18px;border:1px solid #abcacf;border-radius:50%}.party-player-help:hover{background:#f2fafb}.party-player-help:focus-visible{outline:3px solid #007887;outline-offset:2px}.party-transfer-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.party-transfer-status.party-transfer-error{position:static;width:auto;height:auto;clip-path:none;font-size:12px;color:#526b72;margin:8px 0}.party-chart-actions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}.party-chart-actions small{flex-basis:100%;color:#526b72}.party-action{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;border:1px solid #b6d4d7;border-radius:7px;background:#f5fbfa;color:#006b76;font:600 13px/1.4 system-ui;text-decoration:none;cursor:pointer}.party-action:focus-visible,#open-maimai-party:focus-visible{outline:3px solid #007887;outline-offset:3px}.practice-chart{display:flex;align-items:center;gap:12px;margin:12px 0}.practice-chart .song-jacket{flex:none;width:56px;height:56px}.practice-chart>div{min-width:0}.practice-chart .chart-identity{display:flex;margin-top:5px}.practice-chart p{margin-top:6px}.practice-note .practice-chart+p{margin-top:10px}
+@media(max-width:740px){.toolbar{gap:12px}.party-chart-actions a{width:100%;justify-content:center}}
+@media(max-width:420px){.report-brand-block .party-brand{font-size:18px}}
 @media print{#open-maimai-party,.party-download-group,.party-transfer-status,.party-chart-actions{display:none!important}}
 </style>
 </head>
@@ -1539,7 +1554,7 @@ window.maimaiParty=Object.freeze({actions,mount});queueMicrotask(mount);
       <button id="tab-session" class="tab" role="tab" aria-selected="false" aria-controls="session-view" tabindex="-1" data-target="session"><span>Scores</span></button>
       <button id="tab-pools" class="tab" role="tab" aria-selected="false" aria-controls="pools-view" tabindex="-1" data-target="pools"><span>Rating pools</span></button>
       <button id="tab-targets" class="tab" role="tab" aria-selected="false" aria-controls="targets-view" tabindex="-1" data-target="targets"><span>Targets</span></button>
-    </div><div class="report-downloads">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></nav>`;
+    </div><div class="report-exports"><button id="export-toggle" class="action-button export-toggle" type="button" aria-expanded="false" aria-controls="report-downloads"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/></svg><span>Export</span></button><div id="report-downloads" class="report-downloads" role="group" aria-label="Report exports">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></div></nav>`;
   }
 
 
@@ -1604,6 +1619,46 @@ window.maimaiParty=Object.freeze({actions,mount});queueMicrotask(mount);
   document.getElementById("session-search")?.setAttribute("aria-label", "Filter session scores");
   document.getElementById("pool-search")?.setAttribute("aria-label", "Filter rating pools");
   document.getElementById("print-report")?.addEventListener("click", () => window.print());
+
+  const exports = document.querySelector(".report-exports");
+  const exportToggle = document.getElementById("export-toggle");
+  const compactExports = window.matchMedia("(max-width: 1000px)");
+  let exportFocus = null;
+  function setExportsOpen(open, restoreFocus = false) {
+    exports.dataset.expanded = String(open);
+    exportToggle.setAttribute("aria-expanded", String(open));
+    if (restoreFocus) exportToggle.focus();
+  }
+  exportToggle.addEventListener("click", () => setExportsOpen(exportToggle.getAttribute("aria-expanded") !== "true"));
+  exportToggle.addEventListener("keydown", event => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setExportsOpen(true);
+      exports.querySelector(".report-downloads a, .report-downloads button:not([hidden])")?.focus();
+    }
+  });
+  document.addEventListener("focusin", event => {
+    exportFocus = exports.contains(event.target) ? event.target : null;
+  });
+  exports.addEventListener("keydown", event => {
+    if (event.key === "Escape" && exportToggle.getAttribute("aria-expanded") === "true") {
+      event.preventDefault();
+      setExportsOpen(false, true);
+    }
+  });
+  exports.addEventListener("focusout", event => {
+    if (!exports.contains(event.relatedTarget)) setExportsOpen(false);
+  });
+  document.addEventListener("click", event => {
+    if (!exports.contains(event.target)) setExportsOpen(false);
+    else if (compactExports.matches && event.target.closest(".report-downloads a, .report-downloads button")) setExportsOpen(false, true);
+  });
+  compactExports.addEventListener("change", event => {
+    // CSS can hide the focused control before the media-query event arrives.
+    const focused = exportFocus;
+    setExportsOpen(false, event.matches && !!focused);
+    if (!event.matches && focused === exportToggle) exports.querySelector(".report-downloads a, .report-downloads button:not([hidden])")?.focus();
+  });
 
   function filterScores() {
     const query = document.getElementById("session-search").value.trim().toLowerCase();
