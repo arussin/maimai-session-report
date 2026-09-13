@@ -105,6 +105,36 @@ class ReleaseTests(unittest.TestCase):
         deployment.recheck(self.instance, destination)
         self.assertEqual(self.access.call_count, 2)
 
+    def test_streamed_release_verifies_deployed_reference_and_both_archives(self):
+        destination = self.path / "streamed"
+        deployment.prepare_release(self.instance, destination, ROOT)
+        self.modules.pop("report.html")
+        self.modules["report-ref.json"] = (destination / "staged/report-ref.json").read_bytes()
+        self.objects.reset_mock()
+        deployment.verify_release(self.instance, destination)
+        self.objects.assert_called_once_with(self.instance, self.html, WEBP)
+        self.assertTrue((destination / "deployed.json").is_file())
+
+    def test_streamed_release_rejects_changed_reference_or_unverified_archive(self):
+        for failure in ("reference", "archive"):
+            with self.subTest(failure=failure):
+                destination = self.path / failure
+                self.modules["report.html"] = self.html
+                deployment.prepare_release(self.instance, destination, ROOT)
+                self.modules.pop("report.html")
+                reference = (destination / "staged/report-ref.json").read_bytes()
+                self.modules["report-ref.json"] = reference
+                if failure == "reference":
+                    changed = json.loads(reference)
+                    changed["sha256"] = "a" * 64
+                    self.modules["report-ref.json"] = json.dumps(changed).encode()
+                else:
+                    self.objects.side_effect = ArchiveError("Synthetic archive mismatch")
+                with self.assertRaises(ArchiveError):
+                    deployment.verify_release(self.instance, destination)
+                self.assertFalse((destination / "deployed.json").exists())
+                self.assertTrue((destination / "observed-after-deploy.json").is_file())
+
     def test_release_rejects_live_module_settings_or_staged_changes(self):
         for change in ("module", "settings", "staged"):
             with self.subTest(change=change):

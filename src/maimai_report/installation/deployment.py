@@ -487,7 +487,7 @@ def verify_staged(instance: Instance, source: Path) -> dict:
 
 def verify_release(instance: Instance, destination: Path) -> None:
     staged = destination / "staged"
-    manifest = json.loads((staged / "staged.json").read_bytes())
+    manifest = verify_staged(instance, staged)
     check(manifest["identity"] == instance.identity(), "Release belongs to another installation")
     api = WorkerAPI(instance)
     modules = parse_modules(*api.state("content/v2"))
@@ -506,7 +506,22 @@ def verify_release(instance: Instance, destination: Path) -> None:
     verify_domains(api)
     verify_access(instance)
     for name, key in (("report.html", "reportSha256"), ("b50.webp", "b50Sha256")):
-        content = module_named(modules, name, optional=manifest[key] is None)
+        content = module_named(
+            modules, name, optional=name == "report.html" or manifest[key] is None
+        )
+        if name == "report.html" and content is None:
+            reference = staged / "report-ref.json"
+            check(
+                reference.is_file()
+                and module_named(modules, "report-ref.json") == reference.read_bytes(),
+                "Deployed report reference differs from validated retained bytes",
+            )
+            verify_report_objects(
+                instance,
+                (staged / "report.html").read_bytes(),
+                (staged / "b50.webp").read_bytes() if manifest["b50Sha256"] else None,
+            )
+            continue
         check(
             (sha256(content) if content is not None else None) == manifest[key],
             "Deployed report/B50 differs from validated retained bytes",
