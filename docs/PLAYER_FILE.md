@@ -14,7 +14,7 @@ Nothing transfers just from opening a report. If you choose **Not now**, you can
 
 ## Using a player file
 
-1. Choose **Download player file** in your report. It saves a file named `player.maimai.json.gz`; leave it compressed.
+1. Choose **Download player file** in your report. On smaller screens, open **Export** first. It saves a file named `player.maimai.json.gz`; leave it compressed.
 2. Open [maimai.party](https://maimai.party), then open the gear menu.
 3. Choose **Import player data** and select that file.
 4. Check the profile, then choose **Import data**.
