@@ -41,7 +41,9 @@ History inputs accept a player file, a completed raw capture directory containin
 
 Existing player files are validated, checked against the source player, merged under an exclusive adjacent lock and atomically replaced. Repeated source plays/captures do not multiply. Older imports do not downgrade current results. If a process is forcibly killed while holding the lock, verify that it is no longer running before removing the adjacent `.lock` and retrying. The previous player file remains usable.
 
-The export preserves the full available PB collection, original play/source/session identities, capture associations and all retained PB observations. A PB-only report does not invent plays. Missing baselines or a partial archive remain explicitly incomplete. Capture-only observations are labeled separately from real plays.
+The export preserves the full available PB collection, original play/source/session identities, capture associations and all retained PB observations. A dated Kamaitachi PB with exactly one `Best Percent` source reference also preserves that historical play, using its original score ID and achieved date. Repeated snapshots reuse that ID; these older plays are not assigned to the session that saved the PB. PBs combining multiple scores, or missing a source ID or usable date, remain saved observations only. This follows [Tachi's PB composition](https://github.com/zkldi/Tachi/blob/main/typescript/server/src/lib/score-import/framework/pb/create-pb-doc.ts). Missing baselines or a partial archive remain explicitly incomplete.
+
+To recover this source-backed history from an older export, regenerate it using the retained raw captures (`--party-history` locally, or `player-backfill` for a hosted installation). Existing player files do not contain the original PB source references. Importing the regenerated file merges the recovered plays with your current profile.
 
 ## Personal mode in maimai.party
 
