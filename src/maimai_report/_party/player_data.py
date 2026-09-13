@@ -349,7 +349,12 @@ def encode(data):
     raw = canonical(validate(data))
     if len(raw) > MAX_DECODED:
         raise ValueError("Player history exceeds 128 MiB; no history was omitted")
-    packed = gzip.compress(raw, mtime=0)
+    # GzipFile writes a platform-neutral header on every supported Python;
+    # gzip.compress(mtime=0) used the host OS byte on Python 3.11/3.12.
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode="wb", filename="", mtime=0) as stream:
+        stream.write(raw)
+    packed = output.getvalue()
     if len(packed) > MAX_COMPRESSED:
         raise ValueError("Player file exceeds 32 MiB; no history was omitted")
     return packed
