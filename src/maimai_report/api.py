@@ -154,6 +154,14 @@ class KamaitachiClient:
             raise ImportError("Kamaitachi did not queue the MYT sync as expected.")
         return import_id
 
+    def get_sessions(self, username: str, game: str) -> dict[str, Any]:
+        """Read the latest 100 session summaries, without starting an import."""
+        return self.request_json(_user_game_path(username, game, "sessions/recent"))[1]
+
+    def get_session(self, session_id: str) -> dict[str, Any]:
+        encoded = urllib.parse.quote(session_id, safe="")
+        return self.request_json(f"/sessions/{encoded}")[1]
+
     def wait_for_import(self, import_id: str) -> None:
         encoded_id = urllib.parse.quote(import_id, safe="")
         path = f"/imports/{encoded_id}/stream"

@@ -11,6 +11,7 @@ allowed = {
     "preflight",
     "verify-fresh",
     "sync",
+    "capture",
     "render",
     "archive",
     "backup",
@@ -34,6 +35,15 @@ if source_run and not re.fullmatch(r"[1-9][0-9]{0,19}", source_run):
 if operation == "sync":
     if source_run or os.environ.get("GITHUB_RUN_ATTEMPT", "1") != "1":
         raise SystemExit("A sync retry cannot start another import; resume from retained inputs")
+session_id = os.environ.get("INSTANCE_SESSION_ID", "")
+baseline_run = os.environ.get("INSTANCE_BASELINE_RUN", "")
+if operation == "capture":
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", session_id) or source_run:
+        raise SystemExit("Choose a Kamaitachi session ID, latest, or pb-snapshot for capture")
+elif session_id or baseline_run:
+    raise SystemExit("Session selection and baseline apply only to Kamaitachi capture")
+if baseline_run and not re.fullmatch(r"[1-9][0-9]{0,19}", baseline_run):
+    raise SystemExit("Select a numeric baseline workflow run ID")
 if operation in {"setup", "verify-fresh", "release", "publish", "bootstrap", "rollback"}:
     if os.environ.get("INSTANCE_APPLY") != "true":
         raise SystemExit("This operation requires explicit apply intent")

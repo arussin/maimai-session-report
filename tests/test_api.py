@@ -63,6 +63,21 @@ class RecordingOpener:
 
 
 class APITests(unittest.TestCase):
+    def test_session_endpoints_are_public_reads_and_encode_identifiers(self) -> None:
+        opener = RecordingOpener(
+            FakeResponse(payload={"success": True, "body": []}),
+            FakeResponse(payload={"success": True, "body": {}}),
+        )
+        client = KamaitachiClient("synthetic-submission-token", opener=opener)
+        client.get_sessions("user/name", "maimaidx")
+        client.get_session("session/name")
+        paths = ["/users/user%2Fname/games/maimaidx/sessions/recent", "/sessions/session%2Fname"]
+        for (request, _), path in zip(opener.calls, paths, strict=True):
+            self.assertTrue(request.full_url.endswith(path))
+            self.assertEqual(request.method, "GET")
+            self.assertIsNone(request.get_header("Authorization"))
+            self.assertIsNone(request.get_header("X-user-intent"))
+
     def test_public_fetch_encodes_path_and_sends_no_bearer_token(self) -> None:
         opener = RecordingOpener(FakeResponse(payload={"success": True, "body": {}}))
         client = KamaitachiClient("synthetic-token", opener=opener)

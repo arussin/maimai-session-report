@@ -1,8 +1,14 @@
 name: Maintain a private maimai installation
 description: Shared configuration, rendering, hosted history and retained release operations
 inputs:
+  session-id:
+    description: Existing Kamaitachi session ID, latest, or pb-snapshot; capture only
+    default: ''
+  baseline-run:
+    description: Earlier capture run containing baseline.json; optional, capture only
+    default: ''
   operation:
-    description: validate, plan, setup, preflight, verify-fresh, sync, render, archive, backup, rebuild, health, release, publish, bootstrap or rollback
+    description: validate, plan, setup, preflight, verify-fresh, sync, capture, render, archive, backup, rebuild, health, release, publish, bootstrap or rollback
     required: true
   config:
     description: The caller's single private configuration file
@@ -60,6 +66,8 @@ runs:
         INSTANCE_APPLY: ${{ inputs.apply }}
         INSTANCE_PROMOTE: ${{ inputs.promote }}
         INSTANCE_RECOVERY: ${{ inputs.recovery }}
+        INSTANCE_SESSION_ID: ${{ inputs.session-id }}
+        INSTANCE_BASELINE_RUN: ${{ inputs.baseline-run }}
       run: python3 "$INSTANCE_ACTION_PATH/check-inputs.py"
 
     - name: Set up supported Python
@@ -89,6 +97,30 @@ runs:
         run-id: ${{ inputs.source-run }}
         github-token: ${{ github.token }}
 
+    - name: Read the selected earlier baseline
+      if: ${{ inputs.operation == 'capture' && inputs.baseline-run != '' }}
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: maimai-session-${{ inputs.baseline-run }}
+        path: .maimai/baseline-source
+        run-id: ${{ inputs.baseline-run }}
+        github-token: ${{ github.token }}
+
+    - name: Generate from existing Kamaitachi scores
+      if: ${{ inputs.operation == 'capture' }}
+      shell: bash
+      env:
+        INSTANCE_CONFIG: ${{ inputs.config }}
+        INSTANCE_CAPTURE: ${{ steps.config.outputs.capture-path }}
+        INSTANCE_SESSION_ID: ${{ inputs.session-id }}
+        INSTANCE_BASELINE_RUN: ${{ inputs.baseline-run }}
+      run: |
+        set -euo pipefail
+        extra=()
+        if [[ -n "$INSTANCE_BASELINE_RUN" ]]; then extra+=(--baseline .maimai/baseline-source/baseline.json); fi
+        python -m maimai_report instance capture --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE" \
+          --session-id "$INSTANCE_SESSION_ID" "${extra[@]}"
+
     - name: Capture one explicit sync
       if: ${{ inputs.operation == 'sync' }}
       shell: bash
@@ -109,7 +141,7 @@ runs:
 
     - name: Decide whether the optional B50 renderer is needed
       id: b50
-      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'capture' || inputs.operation == 'render' }}
       shell: bash
       env:
         INSTANCE_CONFIG: ${{ inputs.config }}
@@ -154,7 +186,7 @@ runs:
           "$GITHUB_WORKSPACE/$INSTANCE_CAPTURE/maimai-b50.webp"
 
     - name: Render retained inputs and record their renderer provenance
-      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'capture' || inputs.operation == 'render' }}
       shell: bash
       env:
         INSTANCE_CONFIG: ${{ inputs.config }}
@@ -165,14 +197,14 @@ runs:
       run: |
         set -euo pipefail
         extra=()
-        if [ "$INSTANCE_OPERATION" = sync ]; then extra+=(--fetch-artwork); fi
+        if [[ "$INSTANCE_OPERATION" = sync || "$INSTANCE_OPERATION" = capture ]]; then extra+=(--fetch-artwork); fi
         python -m maimai_report instance render --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE" "${extra[@]}"
         python -m maimai_report instance receipt --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE" \
           --renderer-commit "$INSTANCE_CORE_REVISION" --source-id "github-run-$INSTANCE_SOURCE_RUN"
 
     - name: Validate the rendered capture and publication classification
       id: inspect
-      if: ${{ inputs.operation == 'sync' || inputs.operation == 'render' }}
+      if: ${{ inputs.operation == 'sync' || inputs.operation == 'capture' || inputs.operation == 'render' }}
       shell: bash
       env:
         INSTANCE_CONFIG: ${{ inputs.config }}
@@ -180,7 +212,7 @@ runs:
       run: python -m maimai_report instance inspect --config "$INSTANCE_CONFIG" --source "$INSTANCE_CAPTURE"
 
     - name: Retain private inputs even if a later build step fails
-      if: ${{ always() && (inputs.operation == 'sync' || inputs.operation == 'render') && steps.config.outcome == 'success' }}
+      if: ${{ always() && (inputs.operation == 'sync' || inputs.operation == 'capture' || inputs.operation == 'render') && steps.config.outcome == 'success' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: maimai-session-${{ github.run_id }}
@@ -189,7 +221,7 @@ runs:
         if-no-files-found: warn
 
     - name: Run the selected history or retained-release operation
-      if: ${{ !contains(fromJSON('["validate","sync","render"]'), inputs.operation) }}
+      if: ${{ !contains(fromJSON('["validate","sync","capture","render"]'), inputs.operation) }}
       shell: bash
       env:
         CLOUDFLARE_API_TOKEN: ${{ inputs.cloudflare-token }}
@@ -210,7 +242,7 @@ runs:
       run: python "$INSTANCE_ACTION_PATH/run-operation.py"
 
     - name: Retain private setup and release evidence
-      if: ${{ always() && !contains(fromJSON('["validate","sync","render"]'), inputs.operation) && steps.config.outcome == 'success' }}
+      if: ${{ always() && !contains(fromJSON('["validate","sync","capture","render"]'), inputs.operation) && steps.config.outcome == 'success' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: ${{ contains(fromJSON('["release","publish","bootstrap","rollback"]'), inputs.operation) && format('maimai-release-{0}', github.run_id) || format('maimai-operation-{0}-{1}', github.run_id, inputs.operation) }}

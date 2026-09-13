@@ -50,6 +50,7 @@ def compact_record(
     chart_data = chart.get("data") if isinstance(chart.get("data"), dict) else {}
 
     return {
+        "scoreID": record.get("scoreID"),
         "chartID": record.get("chartID"),
         "songID": record.get("songID"),
         "title": song.get("title"),
@@ -172,11 +173,15 @@ def build_report_input(
             previous is None
             or rate_value(previous) != rate_value(pb)
             or percent_value(previous) != percent_value(pb)
+            or previous.get("scoreData", {}).get("lamp") != pb.get("scoreData", {}).get("lamp")
         ):
             compact = compact_record(pb, after_chart_map, after_song_map)
             compact["changeType"] = "new" if previous is None else "improved"
             compact["previousPercent"] = None if previous is None else percent_value(previous)
             compact["previousRate"] = None if previous is None else rate_value(previous)
+            compact["previousLamp"] = (
+                None if previous is None else previous.get("scoreData", {}).get("lamp")
+            )
             changed.append(compact)
 
     before_score_times = [

@@ -91,7 +91,7 @@ class Instance:
     artwork_enabled: bool = True
 
     def validate(self, operation: str = "validate") -> None:
-        self.app.validate(for_network=operation == "sync")
+        self.app.validate(for_network=operation in {"sync", "capture"})
         if not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*", str(self.app.output_dir)):
             raise ConfigError("report.output_dir must be a relative capture directory")
         if str(self.app.output_dir).split("/")[0] in {

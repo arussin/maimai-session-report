@@ -42,6 +42,7 @@ def parser() -> argparse.ArgumentParser:
             "preflight",
             "verify-fresh",
             "sync",
+            "capture",
             "b50-ready",
             "render",
             "inspect",
@@ -65,6 +66,10 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--source", type=Path, default=Path("output"))
     result.add_argument("--core", type=Path, default=Path(os.environ.get("MAIMAI_CORE_ROOT", ".")))
     result.add_argument("--source-id", default="retained-review")
+    result.add_argument(
+        "--session-id", default="", help="Kamaitachi session ID, latest, or pb-snapshot"
+    )
+    result.add_argument("--baseline", type=Path, help="Saved pre-session baseline.json")
     result.add_argument("--renderer-commit", default="")
     result.add_argument(
         "--apply",
@@ -121,6 +126,13 @@ def run(args: argparse.Namespace) -> dict:
     if args.operation == "sync":
         operations.sync(instance, args.source)
         return {"captureSaved": True, "meaningful": operations.meaningful(args.source)}
+    if args.operation == "capture":
+        operations.capture(instance, args.source, args.session_id, args.baseline)
+        return {
+            "captureSaved": True,
+            "scoreImportStarted": False,
+            "meaningful": operations.meaningful(args.source),
+        }
     if args.operation == "b50-ready":
         ready = operations.b50_ready(instance, args.source)
         outputs({"ready": ready and not (args.source / "maimai-b50.webp").is_file()})

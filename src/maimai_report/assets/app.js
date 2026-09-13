@@ -27,6 +27,18 @@
   const session = data.session || {};
   const sessionScores = Array.isArray(session.scores) ? session.scores : [];
   const changedPBs = Array.isArray(session.changedPBs) ? session.changedPBs : [];
+  const externalCapture = data.capture?.source === "kamaitachi";
+  const pbSnapshot = data.capture?.kind === "pb-snapshot" || (!sessionScores.length && changedPBs.length > 0);
+  const comparisonAvailable = data.comparison?.available !== false;
+  const changeLabel = externalCapture ? "since baseline" : pbSnapshot ? "since previous snapshot" : "this session";
+  const changeNum = value => comparisonAvailable && value != null ? signed(value) : "—";
+  const comparisonNote = !comparisonAvailable
+    ? "PB changes and rating gain unavailable: no earlier baseline was supplied."
+    : externalCapture ? "PB changes and rating gains compare account snapshots since the saved baseline; they may include other sessions or backfills."
+    : pbSnapshot ? "PB snapshot changes are available. Individual plays and session duration are unavailable." : "";
+  const captureNote = externalCapture
+    ? `${pbSnapshot ? "PB snapshot" : "Selected Kamaitachi session"}. Rating pools and targets use current PBs at report capture. ${comparisonNote}`
+    : comparisonNote;
   const hasSession = changedPBs.length > 0 || sessionScores.length > 0 || Number(delta.reconstructedRating || 0) !== 0;
 
   function timeRange() {
@@ -42,6 +54,7 @@
   }
 
   function durationText() {
+    if (pbSnapshot) return "Play duration unavailable";
     const times = sessionScores.map((x) => x.timeAchieved).filter(Number.isFinite);
     const start = Number(session.startTimeAchieved || (times.length ? Math.min(...times) : 0));
     const end = Number(session.endTimeAchieved || (times.length ? Math.max(...times) : 0));
@@ -97,6 +110,10 @@
   }
 
   function story() {
+    if (externalCapture || pbSnapshot) return {
+      title: pbSnapshot ? "Current PB snapshot" : "Selected Kamaitachi session",
+      copy: captureNote,
+    };
     const emptyBefore = Math.max(0, 15 - Number(before.newSlotsFilled || 0));
     const emptyAfter = Math.max(0, 15 - Number(after.newSlotsFilled || 0));
     const newGain = Number(delta.new15Rating || 0);
@@ -105,7 +122,7 @@
 
     if (!hasSession) return {
       title: "Your account was already fully synced.",
-      copy: "No new MYT scores landed in this import. Run another explicit sync after your next play session.",
+      copy: "No new scores were captured. Run another explicit sync after your next play session.",
     };
     if (emptyBefore > 0 && emptyAfter === 0) return {
       title: `You filled ${emptyBefore} New 15 slot${emptyBefore === 1 ? "" : "s"} — then started attacking the floor.`,
@@ -126,19 +143,22 @@
   }
 
   function difficultyBands() {
-    const source = sessionScores.length ? sessionScores : changedPBs;
+    const source = sessionScores;
     const groups = new Map();
     for (const item of source) {
       const levelNum = Number(item.levelNum || parseFloat(item.level) || 0);
       const base = Math.floor(levelNum);
       const label = `${base} / ${base}+`;
-      if (!groups.has(label)) groups.set(label, { label, base, items: [], rate: 0, percent: 0, fast: 0, slow: 0 });
+      if (!groups.has(label)) groups.set(label, { label, base, items: [], rate: 0, percent: 0, fast: 0, slow: 0, timingCount: 0 });
       const g = groups.get(label);
       g.items.push(item);
       g.rate += rate(item);
       g.percent += Number(item.percent || 0);
-      g.fast += Number(item.fast || 0);
-      g.slow += Number(item.slow || 0);
+      if (hasTiming(item)) {
+        g.fast += item.fast;
+        g.slow += item.slow;
+        g.timingCount++;
+      }
     }
     const values = [...groups.values()].map((g) => ({
       ...g,
@@ -150,21 +170,22 @@
     return { values, best };
   }
 
+  const hasTiming = item => Number.isInteger(item.fast) && item.fast >= 0 && Number.isInteger(item.slow) && item.slow >= 0;
   function timingStats() {
-    const source = sessionScores.length ? sessionScores : changedPBs;
-    const fast = source.reduce((sum, x) => sum + Number(x.fast || 0), 0);
-    const slow = source.reduce((sum, x) => sum + Number(x.slow || 0), 0);
+    const source = sessionScores.filter(hasTiming);
+    const fast = source.reduce((sum, x) => sum + x.fast, 0);
+    const slow = source.reduce((sum, x) => sum + x.slow, 0);
     const total = fast + slow;
     const fastPct = total ? fast / total * 100 : 50;
     const diff = slow - fast;
     let label = "balanced";
     if (diff > Math.max(15, total * .12)) label = "slow-leaning";
     if (diff < -Math.max(15, total * .12)) label = "fast-leaning";
-    return { fast, slow, total, fastPct, label };
+    return { fast, slow, total, fastPct, label, recorded: source.length, partial: source.length < sessionScores.length };
   }
 
   function gradeCounts() {
-    const source = sessionScores.length ? sessionScores : changedPBs;
+    const source = sessionScores;
     const counts = {};
     for (const item of source) counts[item.grade || "—"] = (counts[item.grade || "—"] || 0) + 1;
     return Object.entries(counts).sort((a,b) => gradeIndex(a[0]) - gradeIndex(b[0]) || a[0].localeCompare(b[0]));
@@ -227,15 +248,15 @@
     const previous = ratingTier(before.reconstructedRating);
     const progress = tier.next ? clamp((Number(after.reconstructedRating || 0)-tier.floor)/(tier.next[0]-tier.floor)*100,0,100) : 100;
     const ratingDigits = String(Math.trunc(Number(after.reconstructedRating || 0))).padStart(5, " ");
-    return `<header class="session-header">
+    return `<header class="session-header">${captureNote ? `<p class="capture-context">${safe(captureNote)}</p>` : ""}
       <div class="scorecard-result">
         <div class="namecard tier-${tier.key}">
         <div class="namecard-identity"><h1>${safe(player.displayName || player.username)}</h1><strong class="namecard-tier">${tier.name}</strong></div>
         <div class="rating-plaque" role="img" aria-label="Reconstructed rating ${num(after.reconstructedRating)}"><strong class="rating-value" aria-hidden="true">${[...ratingDigits].map(digit=>`<span>${digit===" "?"":safe(digit)}</span>`).join("")}</strong></div>
-        <div class="namecard-label"><span>Reconstructed rating</span><span class="session-change ${d<0?"negative":d===0?"flat":""}">${signed(d)}<span>this session</span></span></div>
+        <div class="namecard-label"><span>Reconstructed rating</span><span class="session-change ${d<0?"negative":d===0?"flat":""}">${changeNum(delta.reconstructedRating)}<span>${comparisonAvailable ? changeLabel : "Gain unavailable"}</span></span></div>
         <div class="tier-progress" role="progressbar" aria-label="Progress through ${tier.name} rating tier" aria-valuenow="${Math.round(progress)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${progress}%"></span></div><p class="tier-next">${previous.name!==tier.name && d>0 ? `<strong>${previous.name} → ${tier.name}</strong>` : `<strong>${num(tier.floor)}${tier.next?`–${num(tier.next[0]-1)}`:"+"}</strong>`}${tier.next?`<span>${num(tier.next[0]-Number(after.reconstructedRating||0))} to ${tier.next[1]}</span>`:""}</p></div>
-        <div class="session-receipt"><p class="session-date">${safe(dateParts[0])}${dateParts[1] ? `<span>${safe(dateParts[1])}</span>` : ""}</p><p class="session-facts"><span><strong>${num(session.scoreCount ?? sessionScores.length)}</strong> plays</span><span><strong>${num(session.newPBCount ?? delta.pbCount)}</strong> new PBs</span><span>${safe(durationText().replace(/ session$/,""))}</span></p>
-          <div class="contribution-heading"><h2>Rating gained</h2><button type="button" class="text-action" data-open-view="pools">Breakdown</button></div><div class="contributions"><div class="contribution old"><span>Old 35</span><strong class="${Number(delta.old35Rating)<0?"negative":""}">${signed(delta.old35Rating)}</strong></div><div class="contribution new"><span>New 15</span><strong class="${Number(delta.new15Rating)<0?"negative":""}">${signed(delta.new15Rating)}</strong></div></div>
+        <div class="session-receipt"><p class="session-date">${safe(dateParts[0])}${dateParts[1] ? `<span>${safe(dateParts[1])}</span>` : ""}</p><p class="session-facts"><span><strong>${pbSnapshot ? "—" : num(session.scoreCount ?? sessionScores.length)}</strong> ${pbSnapshot ? "plays unavailable" : "plays"}</span><span><strong>${comparisonAvailable ? num(session.newPBCount ?? delta.pbCount) : "—"}</strong> new PBs${externalCapture && comparisonAvailable ? " since baseline" : ""}</span><span>${safe(durationText().replace(/ session$/,""))}</span></p>
+          <div class="contribution-heading"><h2>${comparisonAvailable ? `Rating gained ${externalCapture ? "since baseline" : ""}` : "Rating gain unavailable"}</h2><button type="button" class="text-action" data-open-view="pools">Breakdown</button></div><div class="contributions"><div class="contribution old"><span>Old 35</span><strong class="${Number(delta.old35Rating)<0?"negative":""}">${changeNum(delta.old35Rating)}</strong></div><div class="contribution new"><span>New 15</span><strong class="${Number(delta.new15Rating)<0?"negative":""}">${changeNum(delta.new15Rating)}</strong></div></div>
         </div>
       </div>
     </header>`;
@@ -253,18 +274,19 @@
         const group = types.get(key); group.count++; group.totalRate+=rate(x); group.totalPercent+=Number(x.percent||0);
       }
       const rows = [...types.values()].sort((a,b)=>order.indexOf(diffClass(a.difficulty))-order.indexOf(diffClass(b.difficulty)) || Number(a.levelNum)-Number(b.levelNum) || String(a.difficulty).localeCompare(String(b.difficulty)));
-      return `<section class="level-group"><div class="level-heading"><h3>Level ${safe(g.label)}</h3><span>${g.count} ${g.count===1?"play":"plays"} · ${g.avgRate.toFixed(1)} avg RT</span></div><p class="level-totals">All chart types: ${g.avgPercent.toFixed(2)}% average · ${g.fast} fast / ${g.slow} slow</p>${rows.map(x=>`<div class="difficulty-sample">${chartBadge(x)}<span>${x.count} ${x.count===1?"play":"plays"}</span><strong>${(x.totalPercent/x.count).toFixed(2)}%<small>${(x.totalRate/x.count).toFixed(1)} avg RT</small></strong></div>`).join("")}</section>`;
+      return `<section class="level-group"><div class="level-heading"><h3>Level ${safe(g.label)}</h3><span>${g.count} ${g.count===1?"play":"plays"} · ${g.avgRate.toFixed(1)} avg RT</span></div><p class="level-totals">All chart types: ${g.avgPercent.toFixed(2)}% average · ${g.timingCount ? `${g.fast} fast / ${g.slow} slow (${g.timingCount}/${g.count} plays)` : "Timing unavailable"}</p>${rows.map(x=>`<div class="difficulty-sample">${chartBadge(x)}<span>${x.count} ${x.count===1?"play":"plays"}</span><strong>${(x.totalPercent/x.count).toFixed(2)}%<small>${(x.totalRate/x.count).toFixed(1)} avg RT</small></strong></div>`).join("")}</section>`;
     }).join("")}</div>${best?`<p class="section-subtitle">Across chart types, level ${safe(best.label)} had the highest average return: ${best.avgRate.toFixed(1)} rating per chart.</p>`:""}`;
   }
 
   function timingHtml() {
     const t = timingStats();
+    if (!t.recorded) return `<div class="timing-summary"><p class="timing-balance">Timing unavailable</p><p class="section-subtitle">No plays with both fast and slow counts were retained. Missing counts do not mean zero.</p></div>`;
     const max = Math.max(t.fast,t.slow,1);
-    return `<div class="timing-summary"><p class="timing-balance">${safe(t.label.charAt(0).toUpperCase()+t.label.slice(1))}</p>
+    return `<div class="timing-summary"><p class="timing-balance">${t.partial ? "Partial timing data" : safe(t.label.charAt(0).toUpperCase()+t.label.slice(1))}</p><p class="section-subtitle">Timing recorded for ${t.recorded} of ${sessionScores.length} plays.</p>
       <div class="timing-bars">
         <div class="timing-line"><span>Fast</span><div class="timing-track"><div class="timing-fill fast" style="width:${t.fast/max*100}%"></div></div><strong>${num(t.fast)}</strong></div>
         <div class="timing-line"><span>Slow</span><div class="timing-track"><div class="timing-fill slow" style="width:${t.slow/max*100}%"></div></div><strong>${num(t.slow)}</strong></div>
-      </div><p class="section-subtitle">${t.label === "balanced" ? "Your timing distribution was broadly balanced across the session. No strong one-sided timing bias appeared in this sample." : `The session leaned ${t.label.replace("-leaning","")}. Watch whether this repeats on harder charts before changing offset.`}</p>
+      </div><p class="section-subtitle">${t.partial ? "Totals cover only plays with both counts. There is not enough coverage for a whole-session timing conclusion." : t.label === "balanced" ? "Your timing distribution was broadly balanced across the session. No strong one-sided timing bias appeared in this sample." : `The session leaned ${t.label.replace("-leaning","")}. Watch whether this repeats on harder charts before changing offset.`}</p>
     </div>`;
   }
 
@@ -376,6 +398,7 @@
 
 
   function overviewScoresHtml() {
+    if (!comparisonAvailable) return `<p class="mini-empty">PB changes unavailable without a baseline. ${pbSnapshot ? "Individual plays were not captured." : "Individual plays are available in Scores."}</p>`;
     const moments = [...changedPBs].sort((a,b)=>gain(b)-gain(a)||rate(b)-rate(a)).slice(0,4);
     if (!moments.length) return `<p class="mini-empty">No new PBs this time.</p>`;
     return `<div class="score-list">${moments.map(x=>`<button type="button" class="score-row" data-detail-source="pbs" data-detail-index="${changedPBs.indexOf(x)}" aria-label="View ${safe(x.title)} score details">
@@ -386,10 +409,10 @@
   function poolSummaryHtml() {
     const rows = [{key:"old35Rating",name:"Old 35",kind:"old",pool:"old35",limit:35},{key:"new15Rating",name:"New 15",kind:"new",pool:"new15",limit:15},{key:"reconstructedRating",name:"Total",kind:"total"},{key:"naiveRating",name:"Kama Naive",kind:"naive"}];
     const gap = Math.abs(Number(after.naiveRating||0)-Number(after.reconstructedRating||0));
-    return `<div class="comparison-wrap" role="region" aria-label="Rating before and after" tabindex="0"><table class="comparison-table"><thead><tr><th scope="col">Rating</th><th scope="col">Before</th><th scope="col">Now</th><th scope="col">Change</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.kind}"><th scope="row">${r.name}</th>${[before,after].map(snapshot=>`<td>${num(snapshot[r.key])}${r.pool?`<small class="pool-occupancy">${r.pool==="new15"?snapshot.newSlotsFilled??(snapshot.new15||[]).length:(snapshot[r.pool]||[]).length}/${r.limit} counted</small>`:""}</td>`).join("")}<td class="${Number(delta[r.key])<0?"negative":""}">${signed(delta[r.key])}</td></tr>`).join("")}</tbody></table></div>
-    <div class="pool-floors"><p><strong>Old 35 floor</strong><span>${num(before.old35Floor)} → ${num(after.old35Floor)}</span></p><p><strong>New 15 floor</strong><span>${num(before.new15Floor)} → ${num(after.new15Floor)}${Number(after.newSlotsFilled||0)<15?" · Open slot":""}</span></p></div>
+    return `<div class="comparison-wrap" role="region" aria-label="Rating before and after" tabindex="0"><table class="comparison-table"><thead><tr><th scope="col">Rating</th><th scope="col">Before</th><th scope="col">Now</th><th scope="col">Change</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.kind}"><th scope="row">${r.name}</th>${[before,after].map(snapshot=>`<td>${presentNum(snapshot[r.key])}${r.pool && (snapshot !== before || comparisonAvailable)?`<small class="pool-occupancy">${r.pool==="new15"?snapshot.newSlotsFilled??(snapshot.new15||[]).length:(snapshot[r.pool]||[]).length}/${r.limit} counted</small>`:""}</td>`).join("")}<td class="${Number(delta[r.key])<0?"negative":""}">${changeNum(delta[r.key])}</td></tr>`).join("")}</tbody></table></div>
+    <div class="pool-floors"><p><strong>Old 35 floor</strong><span>${presentNum(before.old35Floor)} → ${num(after.old35Floor)}</span></p><p><strong>New 15 floor</strong><span>${presentNum(before.new15Floor)} → ${num(after.new15Floor)}${Number(after.newSlotsFilled||0)<15?" · Open slot":""}</span></p></div>
     <p class="pool-advice">Use these floors to judge whether a new chart is likely to count before spending a credit grinding it.</p>
-    <dl class="account-coverage"><div><dt>Recorded PBs</dt><dd>${num(before.pbCount)} → ${num(after.pbCount)}</dd></div><div><dt>Current-version charts played</dt><dd>${num(before.newPoolPlayed)} → ${num(after.newPoolPlayed)}</dd></div></dl>
+    <dl class="account-coverage"><div><dt>Recorded PBs</dt><dd>${presentNum(before.pbCount)} → ${num(after.pbCount)}</dd></div><div><dt>Current-version charts played</dt><dd>${presentNum(before.newPoolPlayed)} → ${num(after.newPoolPlayed)}</dd></div></dl>
     <div class="model-note"><h3>Rating model · ${num(gap)} point Naive gap</h3><p>${gap<=20?"Your NaiveRating now closely mirrors the reconstructed B35/N15 total.":"Your unrestricted Best 50 still differs materially from the version-split rating model."}</p><p>Reconstructed rating counts Old 35 and New 15 separately. Kama Naive uses an unrestricted Best 50. ${safe(data.ratingVersionAssumption || "Configured-version Old 35 + New 15")}.</p></div>`;
   }
 
@@ -404,7 +427,7 @@
 
   function overviewView() {
     return `<section id="overview-view" class="view active" data-view="overview" role="tabpanel" aria-labelledby="tab-overview">
-      <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>Session highlights</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
+      <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>${externalCapture || pbSnapshot ? "PB snapshot changes" : "Session highlights"}</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
         <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Targets & session level bands</small></span><span aria-hidden="true">→</span></button></section></div>
     </section>`;
   }
@@ -412,19 +435,19 @@
   function sessionView() {
     const grades = gradeCounts();
     const total = grades.reduce((sum,[,count])=>sum+count,0);
-    return `<section id="session-view" class="view" data-view="session" data-score-scope="plays"><header class="view-heading"><h1>Session scores</h1><p class="session-record-counts">${sessionScores.length} plays · ${changedPBs.length} PB changes<br>${num(session.newPBCount)} first PBs · ${num(session.improvedPBCount)} existing PBs changed</p></header>
+    return `<section id="session-view" class="view" data-view="session" data-score-scope="plays"><header class="view-heading"><h1>${pbSnapshot ? "PB snapshot" : "Session scores"}</h1><p class="session-record-counts">${pbSnapshot ? "Individual plays unavailable" : `${sessionScores.length} plays`} · ${comparisonAvailable ? `${changedPBs.length} PB changes ${externalCapture ? "since baseline" : ""}<br>${num(session.newPBCount)} first PBs · ${num(session.improvedPBCount)} existing PBs changed` : "PB changes unavailable"}</p></header>
       <section class="grade-section"><div class="section-heading"><h2>Grade distribution</h2><span class="section-caption">Highest to lowest · ${total} ${sessionScores.length?"plays":"PB records"}</span></div><div class="grade-distribution">${grades.map(([grade,count])=>`<div class="grade-count">${gradeHtml(grade)}<strong>${count}<small>${count===1?"play":"plays"}</small></strong><span class="grade-count-bar" style="--fill:${total?count/total*100:0}%"></span></div>`).join("")||`<p class="mini-empty">No session grades available.</p>`}</div></section>
-      <section class="score-detail-section"><div class="score-controls"><label>Show<select id="score-scope"><option value="plays">All plays (${sessionScores.length})</option><option value="pbs">PB changes (${changedPBs.length})</option></select></label><label>Sort<select id="score-sort">${scoreSorts.map(sort => `<option value="${sort.value}"${sort.key === "gain" ? " hidden disabled" : ""}>${sort.label}</option>`).join("")}</select></label><label>Chart type<select id="score-difficulty"><option value="">All difficulties</option><option value="diff-basic">Basic</option><option value="diff-advanced">Advanced</option><option value="diff-expert">Expert</option><option value="diff-master">Master</option><option value="diff-remaster">Re:Master</option></select></label><label class="song-search">Search<input id="session-search" class="search-box" type="search" placeholder="Song or level…" /></label></div><p id="score-count" class="section-caption" role="status"></p>
-        <p id="score-sort-help" class="section-caption">Chart sorts by difficulty, level, then format. Fast / Slow sorts by fast, then slow. Missing values stay last.</p><div class="session-table-wrap"><table class="session-table" aria-label="Session scores" aria-describedby="score-sort-help"><thead><tr>${scoreColumns.map(([key, label]) => scoreHeading(key, label)).join("")}</tr></thead><tbody id="session-rows">${sessionRows()}</tbody></table></div><p class="section-subtitle">PB changes compares each chart with its previous best. Chart gains can be larger than the net gain after pool replacements.</p></section>
+      <section class="score-detail-section"><div class="score-controls"><label>Show<select id="score-scope"><option value="plays">All plays (${sessionScores.length})</option><option value="pbs"${!comparisonAvailable ? " disabled" : ""}>${comparisonAvailable ? `PB changes (${changedPBs.length})${externalCapture ? " since baseline" : ""}` : "PB changes unavailable"}</option></select></label><label>Sort<select id="score-sort">${scoreSorts.map(sort => `<option value="${sort.value}"${sort.key === "gain" ? " hidden disabled" : ""}>${sort.label}</option>`).join("")}</select></label><label>Chart type<select id="score-difficulty"><option value="">All difficulties</option><option value="diff-basic">Basic</option><option value="diff-advanced">Advanced</option><option value="diff-expert">Expert</option><option value="diff-master">Master</option><option value="diff-remaster">Re:Master</option></select></label><label class="song-search">Search<input id="session-search" class="search-box" type="search" placeholder="Song or level…" /></label></div><p id="score-count" class="section-caption" role="status"></p>
+        <p id="score-sort-help" class="section-caption">Chart sorts by difficulty, level, then format. Fast / Slow sorts by fast, then slow. Missing values stay last.</p><div class="session-table-wrap"><table class="session-table" aria-label="Session scores" aria-describedby="score-sort-help"><thead><tr>${scoreColumns.map(([key, label]) => scoreHeading(key, label)).join("")}</tr></thead><tbody id="session-rows">${sessionRows()}</tbody></table></div><p class="section-subtitle">${comparisonNote ? safe(comparisonNote) : "PB changes compares each chart with its previous best. Chart gains can be larger than the net gain after pool replacements."}</p></section>
       <section class="detail-timing"><div class="section-heading"><h2>Session timing</h2></div>${timingHtml()}</section>
     </section>`;
   }
 
   function poolsView() {
     const interpretation = story();
-    return `<section id="pools-view" class="view" data-view="pools"><header class="view-heading"><h1>Rating breakdown</h1><p>Before and after, followed by every counted score.</p></header>
+    return `<section id="pools-view" class="view" data-view="pools"><header class="view-heading"><h1>Rating breakdown</h1><p>${externalCapture ? "Current PBs at capture, followed by every counted score." : "Before and after, followed by every counted score."}</p></header>
       <section class="rating-explanation"><div class="session-interpretation"><h2>${safe(interpretation.title)}</h2><p>${safe(interpretation.copy)}</p><p>New 15 version: ${safe((data.currentNewDisplayVersions || []).join(", ") || "Not specified")}</p></div><div>${poolSummaryHtml()}</div></section>
-      <section class="counted-pools"><div class="section-heading"><h2>Counted scores</h2></div><div class="pool-controls"><label>Snapshot<select id="pool-snapshot"><option value="after">After session</option><option value="before">Before session</option></select></label><label>Search<input id="pool-search" class="search-box" type="search" placeholder="Song, grade or level…" aria-label="Filter rating pools" /></label></div><p id="pool-count" class="section-caption" role="status"></p><div class="pool-grid">
+      <section class="counted-pools"><div class="section-heading"><h2>Counted scores</h2></div><div class="pool-controls"><label>Snapshot<select id="pool-snapshot"><option value="after">${externalCapture ? "Current PBs at capture" : "After session"}</option><option value="before"${!comparisonAvailable ? " disabled" : ""}>${externalCapture ? "Saved baseline" : "Before session"}</option></select></label><label>Search<input id="pool-search" class="search-box" type="search" placeholder="Song, grade or level…" aria-label="Filter rating pools" /></label></div><p id="pool-count" class="section-caption" role="status"></p><div class="pool-grid">
         <section aria-labelledby="old-pool-title"><header class="section-header"><div><h3 id="old-pool-title" class="section-title">Old 35</h3><p id="old-pool-summary" class="section-subtitle"></p></div></header><div id="old-pool" class="pool-list"></div></section>
         <section aria-labelledby="new-pool-title"><header class="section-header"><div><h3 id="new-pool-title" class="section-title">New 15</h3><p id="new-pool-summary" class="section-subtitle"></p></div></header><div id="new-pool" class="pool-list"></div></section>
       </div><p id="pool-empty" class="mini-empty" hidden>No counted charts match this search.</p></section></section>`;
@@ -559,7 +582,7 @@
     rows.forEach(row=>{row.hidden=!!(query && !query.split(/\s+/).every(token=>row.dataset.search.includes(token)));});
     const shown = rows.filter(row=>!row.hidden).length;
     const snapshot = document.getElementById("pool-snapshot").value;
-    document.getElementById("pool-count").textContent = `${shown} of ${rows.length} counted charts · ${snapshot==="before"?"Before":"After"} session · Highest rating first`;
+    document.getElementById("pool-count").textContent = `${shown} of ${rows.length} counted charts · ${snapshotLabel(snapshot)} · Highest rating first`;
     document.getElementById("pool-empty").hidden = !rows.length || shown !== 0;
   }
   function updatePools() {
@@ -591,17 +614,18 @@
     if (!Number.isFinite(value)) return "Time not retained";
     return new Intl.DateTimeFormat("en-US", {timeZone:player.timezone||"UTC",dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
   }
+  function snapshotLabel(snapshot) { return externalCapture ? (snapshot === "before" ? "Saved baseline" : "Current PBs at capture") : `${snapshot === "before" ? "Before" : "After"} session`; }
   function openChartDetails(button) {
     const source = button.dataset.detailSource;
     const item = detailSources[source]?.[Number(button.dataset.detailIndex)];
     if (!item) return;
-    const context = ({plays:"Session play",pbs:"Personal-best change",targets:"Target chart","before-old":"Old 35 · Before session","before-new":"New 15 · Before session","after-old":"Old 35 · After session","after-new":"New 15 · After session"})[source];
+    const context = ({plays:"Session play",pbs:externalCapture ? "Personal-best change since baseline" : "Personal-best change",targets:"Target chart","before-old":`Old 35 · ${snapshotLabel("before")}`,"before-new":`New 15 · ${snapshotLabel("before")}`,"after-old":`Old 35 · ${snapshotLabel("after")}`,"after-new":`New 15 · ${snapshotLabel("after")}`})[source];
     const target = source === "targets" ? quests().find(q=>q.chart?.chartID===item.chartID && q.reward.endsWith(" est.")) : null;
     const field = (label,value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
     chartDialog.innerHTML = `<header class="chart-dialog-header"><span>${context}</span><button type="button" class="detail-close" aria-label="Close score details">×</button></header><div class="chart-dialog-body">
       <div class="detail-song">${jacketHtml(item)}<div><h2 id="chart-detail-title">${safe(item.title || "Untitled chart")}</h2><p>${safe(item.artist || "Artist unavailable")}</p>${chartBadge(item)}</div></div>
       <div class="detail-result"><div><span>Achievement</span><strong>${presentPct(item.percent)}</strong>${gradeHtml(item.grade)}</div><div><span>Chart rating</span><strong>${presentNum(item.rate)}<small>RT</small></strong></div></div>
-      ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements.</p></section>`:""}
+      ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr><tr><th scope="row">Lamp</th><td>${safe(item.previousLamp || "—")}</td><td>${safe(item.lamp || "—")}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> ${externalCapture ? "This compares account PBs since the saved baseline, including any other sessions or backfills." : "This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements."}</p></section>`:""}
       ${target?`<section class="detail-section target-detail"><h3>Next rating opportunity</h3><p>${safe(target.sub)} · ${safe(target.reward)}</p><p class="detail-note">${safe(target.copy)} This estimate considers the New 15 floor.</p></section>`:""}
       <section class="detail-section"><h3>Recorded score details</h3><dl class="detail-facts">${field("Lamp",safe(item.lamp || "—"))}${field("Chart constant",presentNum(item.levelNum))}${field("Fast",presentNum(item.fast))}${field("Slow",presentNum(item.slow))}</dl></section>
       <section class="detail-section"><h3>Judgements</h3><dl class="judgement-grid">${[["Critical perfect","pcrit"],["Perfect","perfect"],["Great","great"],["Good","good"],["Miss","miss"]].map(([label,key])=>field(label,presentNum(item[key]))).join("")}</dl></section>

@@ -20,7 +20,12 @@ RAW_NAMES = (
     "before-recent-scores.json",
     "after-recent-scores.json",
 )
-OPTIONAL_NAMES = ("maimai-report.html", "maimai-b50.webp")
+OPTIONAL_NAMES = (
+    "maimai-report.html",
+    "maimai-b50.webp",
+    "baseline.json",
+    "kamaitachi-session.json",
+)
 MAX_FILE_BYTES = 20 * 1024 * 1024
 SCOPE_PATTERN = r"[a-zA-Z0-9_.:-]{1,160}"
 DIGEST_PATTERN = r"[0-9a-f]{64}"
@@ -224,7 +229,7 @@ def prepare_capture(
         html = rendered_html.read_bytes()
         presented = report_data(html)
         # Enrichment may add display data, but cannot alter retained analysis.
-        for section in ("before", "after", "delta", "session"):
+        for section in ("before", "after", "delta", "session", "capture", "comparison"):
             original = report.get(section, {})
             if any(presented.get(section, {}).get(k) != v for k, v in original.items()):
                 raise ArchiveError("Historical rendering changed the retained analysis")
@@ -257,7 +262,12 @@ def prepare_capture(
         "capturedAtMs": captured_at,
         "startMs": min(times) if times else None,
         "endMs": max(times) if times else None,
-        "sortMs": max(times) if times else captured_at,
+        # Existing-session reads pair historical plays with PBs at capture time.
+        "sortMs": (
+            captured_at
+            if report.get("capture", {}).get("source") == "kamaitachi" or not times
+            else max(times)
+        ),
         "cutoffMs": integer(session.get("cutoffTimeAchieved"), optional=True),
         "timezone": timezone,
         "versions": versions,
@@ -413,7 +423,11 @@ def validate_capture_contents(bundle: CaptureBundle) -> None:
     if (manifest["startMs"], manifest["endMs"], manifest["sortMs"], manifest["cutoffMs"]) != (
         min(times) if times else None,
         max(times) if times else None,
-        max(times) if times else manifest["capturedAtMs"],
+        (
+            manifest["capturedAtMs"]
+            if report.get("capture", {}).get("source") == "kamaitachi" or not times
+            else max(times)
+        ),
         session.get("cutoffTimeAchieved"),
     ):
         raise ArchiveError("Manifest changed the original capture interval")
@@ -442,8 +456,10 @@ def validate_capture_contents(bundle: CaptureBundle) -> None:
     if manifest.get("report"):
         html = bundle.objects[manifest["report"]["key"]]
         presented = report_data(html)
-        for section in ("before", "after", "delta", "session"):
-            if any(presented.get(section, {}).get(k) != v for k, v in report[section].items()):
+        for section in ("before", "after", "delta", "session", "capture", "comparison"):
+            if any(
+                presented.get(section, {}).get(k) != v for k, v in report.get(section, {}).items()
+            ):
                 raise ArchiveError("Archived presentation changed the retained analysis")
         if presented.get("currentNewDisplayVersions") != manifest["versions"]:
             raise ArchiveError("Archived presentation changed the as-of versions")

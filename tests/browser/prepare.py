@@ -91,4 +91,5 @@ report["after"]["newPool"].append(
 )
 save("presentation", report)
 runpy.run_path(str(Path(__file__).with_name("prepare-score-sort.py")), run_name="__main__")
-print("Generated four explicitly synthetic browser fixtures and one test-only download.")
+runpy.run_path(str(Path(__file__).with_name("prepare-kamaitachi.py")))["generate"](save)
+print("Generated explicitly synthetic browser fixtures and a test-only download.")

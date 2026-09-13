@@ -17,11 +17,11 @@ from maimai_report.render import enrich_report, render_demo
 class PresentationPortTests(unittest.TestCase):
     def test_reviewed_layout_interactions_and_support_assets_match(self):
         # Git blob IDs of the reviewed presentation (UTF-8 / LF).
-        # Scores, compact Targets and playercard accessibility are updated;
+        # Scores, Targets, playercard accessibility and capture coverage are updated;
         # the support assets retain their original published hashes.
         expected = {
-            "styles.css": "ddc221455a1bc10e0f4d7bd0ff7b64dc17773852",
-            "app.js": "9b01678993dcf01526a5e0d4e96a4fbfda617ec8",
+            "styles.css": "70a0716bab0b22b9e53793f50570d4e48b87ad15",
+            "app.js": "36e46aaca58f852919765b07a003b200bc00168f",
             "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
             "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }

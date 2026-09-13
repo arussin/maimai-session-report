@@ -6,6 +6,7 @@ import platform
 import sys
 import tempfile
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -13,6 +14,7 @@ from . import __version__
 from .api import KamaitachiClient, validate_score_payload
 from .artwork import prepare_jackets
 from .badges import export_badge_pack
+from .capture import capture_existing, list_sessions, save_baseline, write_capture
 from .config import AppConfig, get_api_token, load_config
 from .errors import MaimaiReportError
 from .io import ensure_output_directory, write_json
@@ -135,6 +137,31 @@ def build_parser() -> argparse.ArgumentParser:
     _add_config_options(combined)
     combined.add_argument("--output", type=Path, required=True)
     _add_artwork_options(combined)
+
+    sessions = commands.add_parser("sessions", help="List existing Kamaitachi sessions; read only")
+    _add_config_options(sessions)
+    baseline = commands.add_parser("snapshot", help="Save a PB baseline before playing; read only")
+    _add_config_options(baseline)
+    baseline.add_argument("--output", type=Path, required=True)
+    existing = commands.add_parser(
+        "from-kamaitachi", help="Generate from an existing Kamaitachi session; never imports"
+    )
+    _add_config_options(existing)
+    selection = existing.add_mutually_exclusive_group(required=True)
+    selection.add_argument(
+        "--session-id", help="Exact ID from the sessions command or Kamaitachi session URL"
+    )
+    selection.add_argument(
+        "--latest", action="store_true", help="Explicitly select the most recent session"
+    )
+    selection.add_argument(
+        "--pb-snapshot",
+        action="store_true",
+        help="Report current PBs without claiming a play session",
+    )
+    existing.add_argument("--baseline", type=Path, help="Previously saved baseline.json; optional")
+    existing.add_argument("--output", type=Path, required=True)
+    _add_artwork_options(existing)
 
     instance = commands.add_parser(
         "instance", help="Configure and maintain a private hosted installation"
@@ -329,6 +356,70 @@ def _sync_command(args: argparse.Namespace, environ: Mapping[str, str], *, rende
 
 def run(args: argparse.Namespace, *, environ: Mapping[str, str] | None = None) -> int:
     env = os.environ if environ is None else environ
+    if args.command in {"sessions", "snapshot", "from-kamaitachi"}:
+        config = _load_cli_config(args, env)
+        if args.command == "sessions":
+            sessions = list_sessions(config)
+            print("Recent Kamaitachi sessions (up to 100). Use a session ID with from-kamaitachi:")
+            for item in sessions:
+                # Session names are user-supplied; do not emit terminal control characters.
+                name = " ".join(str(item.get("name", "Session")).split())
+                name = "".join(c for c in name if c.isprintable())
+                when = datetime.fromtimestamp(item["timeEnded"] / 1000, UTC).isoformat()
+                print(f"{item['sessionID']}  {when}  {name}")
+            if not sessions:
+                print("No sessions found. Import recent plays first, or use --pb-snapshot.")
+            return EXIT_OK
+        if args.command == "snapshot":
+            output = save_baseline(config, args.output)
+            print(f"Saved private PB baseline: {output.resolve()}")
+            return EXIT_OK
+        if config.output_dir.exists() and any(config.output_dir.iterdir()):
+            raise MaimaiReportError("Choose an empty --output-dir for this capture.")
+        if args.output.exists():
+            raise MaimaiReportError("Choose a new HTML output filename.")
+        # Refuse destinations that would replace the baseline or retained evidence.
+        reserved = {
+            config.output_dir / name
+            for name in (
+                "baseline.json",
+                "metadata.json",
+                "report-input.json",
+                "before-pbs.json",
+                "after-pbs.json",
+                "before-recent-scores.json",
+                "after-recent-scores.json",
+                "kamaitachi-session.json",
+            )
+        }
+        if args.output.resolve() in {p.resolve() for p in reserved}:
+            raise MaimaiReportError("HTML output must not replace capture JSON.")
+        capture = capture_existing(
+            config,
+            session_id=args.session_id,
+            latest=args.latest,
+            pb_snapshot=args.pb_snapshot,
+            baseline_path=args.baseline,
+        )
+        write_capture(capture, config.output_dir)
+        result = capture[0]
+        report = enrich_report(
+            result.report_input,
+            result.after_pbs,
+            player=_player(config),
+            current_version_display_names=config.current_version_display_names,
+            support=config.support_enabled,
+        )
+        output = render_report(
+            report,
+            args.output,
+            jackets=_artwork(args, config, report),
+            badge_pack=config.badge_pack,
+        )
+        print(f"Rendered private Kamaitachi report: {output.resolve()}")
+        baseline_output = (config.output_dir / "baseline.json").resolve()
+        print(f"Saved a baseline for future comparisons: {baseline_output}")
+        return EXIT_OK
     if args.command == "doctor":
         return _doctor(args, env)
     if args.command == "demo":
