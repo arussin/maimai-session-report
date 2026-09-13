@@ -12,7 +12,7 @@ from uuid import UUID
 from ..config import _ENVIRONMENT_FIELDS, AppConfig, _coerce_value, config_values
 from ..errors import ConfigError
 
-APP_TABLES = {"kamaitachi", "player", "report", "support", "actions", "publishing"}
+APP_TABLES = {"kamaitachi", "player", "report", "support", "actions", "publishing", "party"}
 CLOUD_FIELDS = {"account_id", "zone_id", "worker_name", "origin", "prefix"}
 HISTORY_FIELDS = {
     "enabled",
@@ -158,6 +158,7 @@ class Instance:
         hosted = operation in {
             "plan",
             "setup",
+            "player-backfill",
             "preflight",
             "verify-fresh",
             "archive",

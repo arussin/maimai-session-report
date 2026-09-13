@@ -11,7 +11,7 @@ test('hosted reader uses real D1/R2 bindings and immutable Python publications',
   const directory=await mkdtemp(path.join(tmpdir(),'maimai-synthetic-history-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
   const root=fileURLToPath(new URL('../../../',import.meta.url));
-  execFileSync('python',['-m','tests.history_fixture',directory],{cwd:root,env:{...process.env,PYTHONPATH:`${root}/src:${root}`}});
+  execFileSync(process.env.PYTHON || 'python',['-m','tests.history_fixture',directory],{cwd:root,env:{...process.env,PYTHONPATH:[path.join(root,"src"),root].join(path.delimiter)}});
   const {mf,db,bucket}=await fixture(directory);
   t.after(()=>mf.dispose());
   const get=path=>mf.dispatchFetch(`https://synthetic.test${path}`);

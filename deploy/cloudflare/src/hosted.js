@@ -1,5 +1,7 @@
 import {privateHeadersFor} from "./security.js";
 import { handleHistory, withHistoryNavigation } from './history-reader.js';
+import {handlePlayerData} from './player-data.js';
+import {streamReport} from './report-stream.js';
 
 // The generated entry supplies retained bytes and validated installation settings.
 export function createHostedWorker(report, b50, support, installation) {
@@ -20,6 +22,8 @@ export function createHostedWorker(report, b50, support, installation) {
       }
       const archived = await handleHistory(request, env, headers, support);
       if (archived) return archived;
+      const player = await handlePlayerData(request, env, headers);
+      if (player) return player;
     }
     if (url.pathname === prefix.slice(0, -1)) {
       return new Response(null, {status:308, headers:headers({Location:installation.origin + prefix})});
@@ -31,6 +35,10 @@ export function createHostedWorker(report, b50, support, installation) {
       })});
     }
     if (![prefix, prefix + 'index.html'].includes(url.pathname)) return text('Not found', 404, request.method);
+    if (typeof report === 'object') {
+      try { return await streamReport(request, env, report, {prefix}); }
+      catch { return text('The retained report is temporarily unavailable.', 503, request.method); }
+    }
     const html = installation.historyEnabled ? withHistoryNavigation(report, {prefix}) : report;
     return new Response(request.method === 'HEAD' ? null : html, {status:200, headers:headers({'Content-Type':'text/html; charset=utf-8'})});
   }};

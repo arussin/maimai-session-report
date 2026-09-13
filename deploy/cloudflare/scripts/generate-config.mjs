@@ -100,7 +100,16 @@ function validateReportPath(value) {
   }
 }
 
-function validateReportExternalUrls(reportHtml) {
+async function validateReportExternalUrls(reportHtml) {
+  if (reportHtml.includes('<script id="party-data" type="application/json">')) {
+    const assets = path.resolve(ADAPTER_ROOT, '../../src/maimai_report/assets');
+    const brand = JSON.stringify(await readFile(path.join(assets,'party-site-brand.html'),'utf8'))
+      .replaceAll('&','\\u0026').replaceAll('<','\\u003c').replaceAll('>','\\u003e')
+      .replaceAll('\u2028','\\u2028').replaceAll('\u2029','\\u2029');
+    const controller = (await readFile(path.join(assets,'party-report.js'),'utf8')).replace('__PARTY_WORDMARK__',brand);
+    if (reportHtml.split(controller).length !== 2) fail('the report must use the fixed-origin player handoff controller');
+    reportHtml = reportHtml.replace(controller,'');
+  }
   const externalUrls = [...reportHtml.matchAll(/https?:\/\/[^\s"'<>;]+/giu)].map(
     (match) => match[0],
   );
@@ -184,7 +193,7 @@ async function main() {
   if (!/^\s*<!doctype html(?:\s|>)/iu.test(reportHtml)) {
     fail("the report must be a complete HTML document beginning with <!doctype html>");
   }
-  validateReportExternalUrls(reportHtml);
+  await validateReportExternalUrls(reportHtml);
 
   await mkdir(path.dirname(GENERATED_REPORT_MODULE), { recursive: true });
   const safelyEncodedReport = JSON.stringify(reportHtml)

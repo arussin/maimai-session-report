@@ -16,6 +16,7 @@ actions-downloads/
 *.html
 # The sole reviewed source template is package code, not generated player data.
 !src/maimai_report/assets/template.html
+!src/maimai_report/assets/party-site-brand.html
 # Deliberate public preview, verified byte-for-byte against bundled fictional fixtures.
 !docs/sample-report.html
 *.generated.json
@@ -27,6 +28,9 @@ baseline.json
 *.baseline.json
 kamaitachi-session.json
 api-response*.json
+*.maimai.json.gz
+*.maimai.json.gz.lock
+.maimai-party-catalog.json
 
 # Python
 __pycache__/

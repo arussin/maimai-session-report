@@ -8,6 +8,11 @@ close to the next rating gain. Four interactive views cover your scorecard,
 scores, rating pools and practice targets, with search, score details and a
 mobile layout.
 
+New reports can open maimai.party with your achievements after consent. Export
+one reusable player file to retain history across local runs, and use exact song
+details/similarity links throughout the report. See the
+[maimai.party integration and hosted upgrade guide](docs/MAIMAI_PARTY.md).
+
 Start with the fictional offline demo below. For your own scores, choose an
 existing MYT sync or [generate from an already imported Kamaitachi session](docs/KAMAITACHI.md).
 Official-network players can use the maimai DX NET recent-score importer, then

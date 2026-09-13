@@ -33,7 +33,7 @@ class SupportRendererTests(unittest.TestCase):
         report, pbs = load_scenario()
         html = build_html(enrich_report(report, pbs, support=False))
         self.assertIs(embedded_report(html)["support"], False)
-        self.assertNotRegex(html, r"https?://")
+        self.assertNotRegex(html.replace("https://maimai.party", ""), r"https?://")
         self.assertIn("frame-src 'none'", html)
         self.assertNotIn("initializeSupportCheckout", html)
         self.assertFalse(support_enabled_in_html(html))

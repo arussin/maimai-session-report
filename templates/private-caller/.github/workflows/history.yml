@@ -5,7 +5,7 @@ on:
       operation:
         description: Verify-fresh uses temporary synthetic data in empty resources only
         type: choice
-        options: [plan, setup, preflight, verify-fresh, archive, backup, rebuild, health]
+        options: [plan, setup, preflight, verify-fresh, archive, backup, rebuild, player-backfill, health]
         default: plan
       source_run:
         description: Original retained workflow run for archive

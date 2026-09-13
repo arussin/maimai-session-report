@@ -27,7 +27,7 @@ def create(destination: Path):
         instance = instance_file(config, owner=owner, template=template)
         source = destination / owner / "capture"
         capture(source, instance)
-        render_capture(instance, source)
+        render_capture(instance, source, offline=True)
         stage(
             instance,
             destination / owner / "staged",

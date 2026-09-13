@@ -50,6 +50,7 @@ def parser() -> argparse.ArgumentParser:
             "archive",
             "backup",
             "rebuild",
+            "player-backfill",
             "health",
             "stage",
             "prepare-release",
@@ -84,6 +85,11 @@ def parser() -> argparse.ArgumentParser:
         "--fetch-artwork", action="store_true", help="Allow build-time public artwork reads"
     )
     result.add_argument("--storage-only", action="store_true")
+    result.add_argument(
+        "--offline-party",
+        action="store_true",
+        help="Render only with locally prepared player and catalog inputs",
+    )
     result.add_argument("--workflows", type=Path, help="Check the four installed workflow pins")
     return result
 
@@ -105,7 +111,15 @@ def run(args: argparse.Namespace) -> dict:
             }
         )
         return {"configurationValid": True, "scoreImportStarted": False, "networkAccessed": False}
-    if args.operation in {"plan", "setup", "archive", "backup", "rebuild", "health"}:
+    if args.operation in {
+        "plan",
+        "setup",
+        "archive",
+        "backup",
+        "rebuild",
+        "health",
+        "player-backfill",
+    }:
         return operations.storage(
             instance,
             args.operation,
@@ -138,7 +152,9 @@ def run(args: argparse.Namespace) -> dict:
         outputs({"ready": ready and not (args.source / "maimai-b50.webp").is_file()})
         return {"b50Ready": ready}
     if args.operation == "render":
-        return operations.render_capture(instance, args.source, fetch_artwork=args.fetch_artwork)
+        return operations.render_capture(
+            instance, args.source, fetch_artwork=args.fetch_artwork, offline=args.offline_party
+        )
     if args.operation == "receipt":
         deployment.check(
             re.fullmatch(r"[0-9a-f]{40}", args.renderer_commit), "Record the exact renderer commit"

@@ -27,6 +27,13 @@ OPTIONAL_NAMES = (
     "kamaitachi-session.json",
 )
 MAX_FILE_BYTES = 20 * 1024 * 1024
+MAX_REPORT_BYTES = 64 * 1024 * 1024
+
+
+def file_limit(name):
+    return MAX_REPORT_BYTES if name == "maimai-report.html" else MAX_FILE_BYTES
+
+
 SCOPE_PATTERN = r"[a-zA-Z0-9_.:-]{1,160}"
 DIGEST_PATTERN = r"[0-9a-f]{64}"
 
@@ -155,7 +162,7 @@ def prepare_capture(
         if path.is_symlink():
             raise ArchiveError("Capture inputs may not be symlinks")
         if path.is_file():
-            if path.stat().st_size > MAX_FILE_BYTES:
+            if path.stat().st_size > file_limit(name):
                 raise ArchiveError("Capture file is too large")
             files[name] = path.read_bytes()
     if any(name not in files for name in RAW_NAMES[:2]):
@@ -213,7 +220,7 @@ def prepare_capture(
     references: dict[str, dict] = {}
 
     def add(name: str, raw: bytes) -> dict:
-        if not raw or len(raw) > MAX_FILE_BYTES:
+        if not raw or len(raw) > file_limit(name):
             raise ArchiveError("Archive object is empty or too large")
         digest = sha256(raw)
         key = f"objects/sha256/{digest}"
@@ -351,14 +358,14 @@ def validate_manifest(manifest: dict) -> None:
     files = manifest.get("files")
     if not isinstance(files, dict) or not all(name in files for name in RAW_NAMES[:2]):
         raise ArchiveError("Missing capture input references")
-    for entry in files.values():
+    for name, entry in files.items():
         if not isinstance(entry, dict) or not re.fullmatch(
             DIGEST_PATTERN, str(entry.get("sha256"))
         ):
             raise ArchiveError("Invalid object digest")
         if entry.get("key") != f"objects/sha256/{entry['sha256']}":
             raise ArchiveError("Unsafe object path in capture manifest")
-        if not 0 < integer(entry.get("bytes")) <= MAX_FILE_BYTES:
+        if not 0 < integer(entry.get("bytes")) <= file_limit(name):
             raise ArchiveError("Invalid object size")
     for key in ("report", "b50"):
         if manifest.get(key) is not None and manifest[key] not in files.values():
@@ -374,7 +381,7 @@ def read_bundle(directory: Path) -> CaptureBundle:
     manifest = load_json((directory / "manifest.json").read_bytes())
     validate_manifest(manifest)
     objects = {}
-    for entry in manifest["files"].values():
+    for name, entry in manifest["files"].items():
         key = entry.get("key", "")
         if key != f"objects/sha256/{entry.get('sha256')}" or not re.fullmatch(
             r"objects/sha256/[0-9a-f]{64}", key
@@ -383,7 +390,7 @@ def read_bundle(directory: Path) -> CaptureBundle:
         path = directory / key
         if path.is_symlink() or path.resolve().is_relative_to(directory.resolve()) is False:
             raise ArchiveError("Unsafe local archive path")
-        if path.stat().st_size > MAX_FILE_BYTES:
+        if path.stat().st_size > file_limit(name):
             raise ArchiveError("Oversized archive object")
         raw = path.read_bytes()
         if len(raw) != entry["bytes"] or sha256(raw) != entry["sha256"]:

@@ -162,6 +162,36 @@ def build_parser() -> argparse.ArgumentParser:
     existing.add_argument("--baseline", type=Path, help="Previously saved baseline.json; optional")
     existing.add_argument("--output", type=Path, required=True)
     _add_artwork_options(existing)
+    for command in (render, combined, existing):
+        command.add_argument(
+            "--export-party-data",
+            nargs="?",
+            const=True,
+            type=Path,
+            help="Create or update one reusable maimai.party player file",
+        )
+        command.add_argument(
+            "--party-history",
+            action="append",
+            default=[],
+            type=Path,
+            help="Seed retained history from a player file, capture folder, or portable archive",
+        )
+        command.add_argument(
+            "--no-party-data",
+            dest="party_enabled",
+            action="store_false",
+            default=None,
+            help="Omit personal handoff data; keep public song links",
+        )
+        command.add_argument(
+            "--party-catalog-cache", type=Path, help="Verified public catalog cache"
+        )
+        command.add_argument(
+            "--offline-party",
+            action="store_true",
+            help="Use cached public chart information without refreshing",
+        )
 
     instance = commands.add_parser(
         "instance", help="Configure and maintain a private hosted installation"
@@ -284,11 +314,48 @@ def _render_command(args: argparse.Namespace, environ: Mapping[str, str]) -> int
         current_version_display_names=(config.current_version_display_names or None),
         support=config.support_enabled,
     )
+    _prepare_party(args, config, report, args.report_input.parent)
     output = render_report(
         report, args.output, jackets=_artwork(args, config, report), badge_pack=config.badge_pack
     )
     print(f"Rendered private report: {output.resolve()}")
     return EXIT_OK
+
+
+def _prepare_party(args, config, report, source):
+    from .party import prepare
+    from .party_catalog import load
+
+    requested = getattr(args, "export_party_data", None)
+    destination = (
+        (config.party_data_file or args.output.parent / "player.maimai.json.gz")
+        if requested is True
+        else requested or config.party_data_file
+    )
+    if destination:
+        protected = {args.output.resolve()}
+        for name in ("report_input", "after_pbs", "baseline"):
+            value = getattr(args, name, None)
+            if value:
+                protected.add(value.resolve())
+        protected.update(p.resolve() for p in Path(source).glob("*.json"))
+        if Path(destination).resolve() in protected:
+            raise MaimaiReportError("Player export must not replace report or capture inputs")
+    prepare(
+        report, source=source, history=getattr(args, "party_history", []), player_file=destination
+    )
+    report["_partyEnabled"] = (
+        config.party_enabled if getattr(args, "party_enabled", None) is None else args.party_enabled
+    )
+    catalog, warning = load(
+        getattr(args, "party_catalog_cache", None) or config.party_catalog_cache,
+        refresh=args.command != "render" and not getattr(args, "offline_party", False),
+    )
+    report["_partyCatalog"] = catalog
+    if warning:
+        print("maimai.party: " + warning, file=sys.stderr)
+    if destination:
+        print("Saved reusable player file: " + str(Path(destination).resolve()))
 
 
 def _artwork(args: argparse.Namespace, config: AppConfig, report: dict) -> dict | None:
@@ -344,6 +411,7 @@ def _sync_command(args: argparse.Namespace, environ: Mapping[str, str], *, rende
             current_version_display_names=config.current_version_display_names,
             support=config.support_enabled,
         )
+        _prepare_party(args, config, report, config.output_dir)
         output = render_report(
             report,
             args.output,
@@ -410,6 +478,7 @@ def run(args: argparse.Namespace, *, environ: Mapping[str, str] | None = None) -
             current_version_display_names=config.current_version_display_names,
             support=config.support_enabled,
         )
+        _prepare_party(args, config, report, config.output_dir)
         output = render_report(
             report,
             args.output,

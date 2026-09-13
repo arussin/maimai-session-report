@@ -41,6 +41,9 @@ jobs:
           session-id: ${{ inputs.session-id }}
           baseline-run: ${{ inputs.baseline-run }}
           kamaitachi-token: ${{ inputs.source != 'kamaitachi' && secrets.KAMAITACHI_API_TOKEN || '' }}
+          history-token: ${{ secrets.CLOUDFLARE_HISTORY_API_TOKEN }}
+          r2-access-key-id: ${{ secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY }}
   archive:
     needs: capture
     if: ${{ always() && needs.capture.result != 'skipped' }}
@@ -62,7 +65,7 @@ jobs:
           r2-access-key-id: ${{ secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID }}
           r2-secret-access-key: ${{ secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY }}
   publish:
-    needs: capture
+    needs: [capture, archive]
     if: ${{ needs.capture.outputs.publishing == 'true' && needs.capture.outputs.meaningful == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -80,3 +83,6 @@ jobs:
           source-run: ${{ github.run_id }}
           apply: 'true'
           cloudflare-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          history-token: ${{ secrets.CLOUDFLARE_HISTORY_API_TOKEN }}
+          r2-access-key-id: ${{ secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY }}

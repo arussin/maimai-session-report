@@ -49,7 +49,7 @@ class InstallationTests(unittest.TestCase):
                 source = self.path / f"capture-{enabled}"
                 capture(source, instance)
                 with patch("urllib.request.build_opener") as network:
-                    operations.render_capture(instance, source)
+                    operations.render_capture(instance, source, offline=True)
                 self.assertIs(
                     report_data((source / "maimai-report.html").read_bytes())["support"],
                     enabled,
@@ -118,7 +118,7 @@ class InstallationTests(unittest.TestCase):
                 original = capture(source, self.instance, scenario, b50=scenario != "incomplete")
                 raw = {p.name: p.read_bytes() for p in source.iterdir()}
                 with patch("urllib.request.build_opener") as network:
-                    result = operations.render_capture(self.instance, source)
+                    result = operations.render_capture(self.instance, source, offline=True)
                     bundle = operations.validate_capture(self.instance, source, "a" * 40)
                 network.assert_not_called()
                 operations.retained_report_matches(source)
@@ -139,13 +139,15 @@ class InstallationTests(unittest.TestCase):
         source = self.path / "incomplete"
         capture(source, self.instance, "incomplete", b50=False)
         with self.assertRaisesRegex(ArchiveError, "35 old and 15 new"):
-            operations.render_capture(replace(self.instance, b50_mode="required"), source)
+            operations.render_capture(
+                replace(self.instance, b50_mode="required"), source, offline=True
+            )
         self.assertTrue((source / "report-input.json").is_file())
 
     def test_publish_rejects_wrong_owner_and_stale_rendered_session(self):
         source = self.path / "capture"
         capture(source, self.instance)
-        operations.render_capture(self.instance, source)
+        operations.render_capture(self.instance, source, offline=True)
         other = instance_file(self.path / "other.toml", owner="beta")
         with self.assertRaisesRegex(ArchiveError, "different player"):
             operations.validate_capture(other, source, "a" * 40)
@@ -160,7 +162,7 @@ class InstallationTests(unittest.TestCase):
             instance = instance_file(self.path / f"{owner}.toml", owner=owner)
             source = self.path / owner
             capture(source, instance)
-            operations.render_capture(instance, source)
+            operations.render_capture(instance, source, offline=True)
             html = (source / "maimai-report.html").read_bytes()
             with patch("urllib.request.build_opener") as network:
                 stage = self.path / f"{owner}-stage"

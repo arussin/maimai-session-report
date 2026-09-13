@@ -41,6 +41,9 @@ class AppConfig:
     cloudflare_custom_domain: str = ""
     cloudflare_route_pattern: str = ""
     report_path: str = "/"
+    party_enabled: bool = True
+    party_data_file: Path | None = None
+    party_catalog_cache: Path = Path(".maimai-party-catalog.json")
 
     def validate(self, *, for_network: bool = False, for_publish: bool = False) -> None:
         """Validate values for local, network, or publishing use.
@@ -89,6 +92,8 @@ class AppConfig:
 
         if not isinstance(self.support_enabled, bool):
             raise ConfigError("support.enabled must be true or false.")
+        if type(self.party_enabled) is not bool:
+            raise ConfigError("party.enabled must be true or false.")
 
         if self.output_dir.exists() and not self.output_dir.is_dir():
             raise ConfigError(f"Configured output directory is a file: {self.output_dir}")
@@ -138,6 +143,11 @@ class AppConfig:
 
 
 _TOML_LAYOUT: dict[str, dict[str, str]] = {
+    "party": {
+        "enabled": "party_enabled",
+        "data_file": "party_data_file",
+        "catalog_cache": "party_catalog_cache",
+    },
     "kamaitachi": {
         "username": "username",
         "game": "game",
@@ -199,9 +209,9 @@ _ENVIRONMENT_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 _FIELD_NAMES = {field.name for field in fields(AppConfig)}
-_BOOLEAN_FIELDS = {"publishing_enabled", "support_enabled"}
+_BOOLEAN_FIELDS = {"publishing_enabled", "support_enabled", "party_enabled"}
 _INTEGER_FIELDS = {"artifact_retention_days"}
-_PATH_FIELDS = {"output_dir"}
+_PATH_FIELDS = {"output_dir", "party_data_file", "party_catalog_cache"}
 _VERSION_FIELDS = {"current_version_display_names"}
 _SECRET_KEY_NAMES = {
     "token",

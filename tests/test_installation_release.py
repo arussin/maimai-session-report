@@ -38,7 +38,7 @@ class ReleaseTests(unittest.TestCase):
         )
         self.source = self.path / "capture"
         capture(self.source, self.instance)
-        operations.render_capture(self.instance, self.source)
+        operations.render_capture(self.instance, self.source, offline=True)
         self.html = (self.source / "maimai-report.html").read_bytes()
         self.modules = {
             "report.html": self.html,
@@ -69,6 +69,7 @@ class ReleaseTests(unittest.TestCase):
         self.copies = patch(
             "maimai_report.installation.deployment.verify_retained_copies", return_value="a" * 64
         ).start()
+        self.objects = patch("maimai_report.installation.deployment.verify_report_objects").start()
 
     def state(self, endpoint):
         if endpoint == "content/v2":
@@ -159,6 +160,9 @@ class ReleaseTests(unittest.TestCase):
         self.assertIsNotNone(result["b50Sha256"])
         self.assertEqual((destination / "staged/report.html").read_bytes(), self.html)
         self.copies.assert_not_called()
+        self.objects.assert_called_once_with(
+            replace(self.instance, b50_mode="required"), self.html, WEBP
+        )
 
     def test_bootstrap_rejects_an_existing_worker_before_storage_changes(self):
         self.api.routes.return_value = []
@@ -203,7 +207,7 @@ class AccessTests(unittest.TestCase):
                 with patch("urllib.request.build_opener", return_value=opener):
                     if accepted:
                         deployment.verify_access(instance)
-                        self.assertEqual(len(requests), 8)
+                        self.assertEqual(len(requests), 10)
                     else:
                         with self.assertRaises(ArchiveError):
                             deployment.verify_access(instance)

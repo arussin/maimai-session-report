@@ -40,6 +40,6 @@ jobs:
           renderer-commit: ${{ inputs.renderer_commit }}
           apply: ${{ inputs.apply }}
           cloudflare-token: ${{ (inputs.operation != 'render') && secrets.CLOUDFLARE_API_TOKEN || '' }}
-          history-token: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.CLOUDFLARE_HISTORY_API_TOKEN || '' }}
-          r2-access-key-id: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID || '' }}
-          r2-secret-access-key: ${{ (inputs.operation == 'release' || inputs.operation == 'bootstrap') && secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY || '' }}
+          history-token: ${{ inputs.operation != 'rollback' && secrets.CLOUDFLARE_HISTORY_API_TOKEN || '' }}
+          r2-access-key-id: ${{ inputs.operation != 'rollback' && secrets.MAIMAI_HISTORY_R2_ACCESS_KEY_ID || '' }}
+          r2-secret-access-key: ${{ inputs.operation != 'rollback' && secrets.MAIMAI_HISTORY_R2_SECRET_ACCESS_KEY || '' }}

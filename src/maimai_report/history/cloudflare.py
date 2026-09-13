@@ -9,7 +9,15 @@ import urllib.request
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-from .bundle import MAX_FILE_BYTES, ArchiveError, canonical, load_json
+from .bundle import (
+    MAX_FILE_BYTES,
+    MAX_REPORT_BYTES,
+    ArchiveError,
+    canonical,
+    load_json,
+    report_data,
+    sha256,
+)
 
 
 class NoRedirects(urllib.request.HTTPRedirectHandler):
@@ -116,8 +124,8 @@ class R2:
         try:
             result = self.client.get_object(Bucket=self.bucket, Key=key)
             with result["Body"] as body:
-                raw = body.read(MAX_FILE_BYTES + 1)
-            if len(raw) > MAX_FILE_BYTES:
+                raw = body.read(MAX_REPORT_BYTES + 1)
+            if len(raw) > MAX_REPORT_BYTES:
                 raise ArchiveError("R2 object exceeds the archive size bound")
             return raw
         except ClientError as exc:
@@ -135,6 +143,14 @@ class R2:
         current = self.get(key)
         if current is not None:
             return current
+        if len(raw) > MAX_REPORT_BYTES:
+            raise ArchiveError("R2 object exceeds 64 MiB; no history was omitted")
+        metadata = {"sha256": sha256(raw)}
+        if raw.lstrip().lower().startswith(b"<!doctype html"):
+            data = report_data(raw)
+            metadata["report-flags"] = canonical(
+                {"support": data.get("support") is True, "party": data.get("partyIntegration", {})}
+            ).decode()
         try:
             self.client.put_object(
                 Bucket=self.bucket,
@@ -143,6 +159,7 @@ class R2:
                 IfNoneMatch="*",
                 ContentType="application/octet-stream",
                 CacheControl="private, no-store",
+                Metadata=metadata,
             )
         except ClientError as exc:
             if exc.response.get("Error", {}).get("Code") not in (

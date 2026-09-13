@@ -32,7 +32,7 @@ class PublicPreviewTests(unittest.TestCase):
                 encoding="utf-8"
             )
         validate_generated_html(generated)
-        self.assertNotRegex(generated, r"(?i)https?://")
+        self.assertNotRegex(generated.replace("https://maimai.party", ""), r"(?i)https?://")
         self.assertIn('"support":false', generated)
         self.assertNotIn("buymeacoffee", generated)
 

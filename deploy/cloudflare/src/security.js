@@ -1,6 +1,7 @@
 const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
 
 export function developerSupportEnabled(html) {
+  if (html && typeof html === 'object') return html.flags?.support === true;
   // Read only the renderer's data block; incidental page text grants no permissions.
   const blocks = [...html.matchAll(
     /<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/gu,
@@ -14,12 +15,19 @@ export function developerSupportEnabled(html) {
   }
 }
 
+export function partyIntegration(html) {
+  if (html && typeof html === 'object') return html.flags?.party || {};
+  const blocks = [...html.matchAll(/<script id="report-data" type="application\/json">([\s\S]*?)<\/script>/gu)];
+  try { return blocks.length === 1 ? JSON.parse(blocks[0][1]).partyIntegration || {} : {}; }
+  catch { return {}; }
+}
+
 export function contentSecurityPolicyFor(html) {
   const supportEnabled = developerSupportEnabled(html);
   return [
     "default-src 'none'",
     "base-uri 'none'",
-    "connect-src 'none'",
+    `connect-src ${partyIntegration(html).hosted === true ? "'self'" : "'none'"}`,
     "font-src 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",
@@ -65,7 +73,7 @@ export function privateHeadersFor(reportHtml, extra = {}) {
   "CDN-Cache-Control": "no-store",
   "Cloudflare-CDN-Cache-Control": "no-store",
   "Content-Security-Policy": contentSecurityPolicyFor(reportHtml),
-  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Opener-Policy": partyIntegration(reportHtml).enabled === true ? "same-origin-allow-popups" : "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   Expires: "0",
   "Permissions-Policy": permissionsPolicyFor(reportHtml),
