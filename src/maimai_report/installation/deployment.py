@@ -292,6 +292,7 @@ def stage(
         "prefix": instance.prefix,
         "scope": instance.scope,
         "historyEnabled": instance.history_enabled,
+        "presentationRevisions": dict(instance.presentation_revisions),
     }
     streamed = instance.history_enabled and not bootstrap
     if streamed:
@@ -348,6 +349,7 @@ def stage(
         "scoreImportStarted": False,
         "workerDeployed": False,
         "bootstrap": bootstrap,
+        "presentationRevisions": dict(instance.presentation_revisions),
     }
     (destination / "staged.json").write_bytes(canonical(manifest))
     return manifest
@@ -447,6 +449,10 @@ def recheck(instance: Instance, destination: Path) -> None:
 def verify_staged(instance: Instance, source: Path) -> dict:
     manifest = json.loads((source / "staged.json").read_bytes())
     check(manifest["identity"] == instance.identity(), "Staged identity differs from installation")
+    check(
+        manifest.get("presentationRevisions", {}) == dict(instance.presentation_revisions),
+        "Staged history selections differ from installation",
+    )
     check(
         all(Path(name).name == name for name in manifest["files"]),
         "Staged manifest contains an invalid path",

@@ -23,6 +23,7 @@ HISTORY_FIELDS = {
     "database_id",
     "recovery_database_name",
     "recovery_database_id",
+    "presentation_revisions",
 }
 SECRET_KEYS = {
     "token",
@@ -89,9 +90,29 @@ class Instance:
     history_enabled: bool = True
     b50_mode: str = "optional"
     artwork_enabled: bool = True
+    presentation_revisions: tuple[tuple[str, str], ...] = ()
 
     def validate(self, operation: str = "validate") -> None:
         self.app.validate(for_network=operation in {"sync", "capture"})
+        revisions = self.presentation_revisions
+        if (
+            not isinstance(revisions, tuple)
+            or len(revisions) > 256
+            or any(
+                not isinstance(pair, tuple)
+                or len(pair) != 2
+                or any(
+                    not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+                    for value in pair
+                )
+                for pair in revisions
+            )
+            or len(dict(revisions)) != len(revisions)
+            or (revisions and not self.history_enabled)
+        ):
+            raise ConfigError(
+                "Invalid history.presentation_revisions; use up to 256 unique SHA-256 pairs"
+            )
         if not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*", str(self.app.output_dir)):
             raise ConfigError("report.output_dir must be a relative capture directory")
         if str(self.app.output_dir).split("/")[0] in {
@@ -258,7 +279,14 @@ def load_instance(
     b50 = _table(document, "b50", {"mode"})
     artwork = _table(document, "artwork", {"enabled"})
     values = {key: _text(cloud, key) for key in CLOUD_FIELDS}
-    values.update({key: _text(history, key) for key in HISTORY_FIELDS - {"enabled"}})
+    values.update(
+        {key: _text(history, key) for key in HISTORY_FIELDS - {"enabled", "presentation_revisions"}}
+    )
+    revisions = history.get("presentation_revisions", {})
+    if not isinstance(revisions, dict):
+        raise ConfigError(
+            "history.presentation_revisions must be a table of capture/manifest SHA-256 pairs"
+        )
     instance = Instance(
         app=replace(
             app,
@@ -271,6 +299,7 @@ def load_instance(
         history_enabled=_bool(history, "enabled", True),
         b50_mode=_text(b50, "mode", "optional"),
         artwork_enabled=_bool(artwork, "enabled", True),
+        presentation_revisions=tuple(sorted(revisions.items())),
     )
     instance.validate(operation)
     for name, field in _ENVIRONMENT_FIELDS:

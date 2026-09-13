@@ -15,7 +15,7 @@ export async function fixture(directory, origin = 'https://synthetic.test') {
   const worker = source.replaceAll('export ','') + `\n${headersSource}\nexport default {async fetch(request,env){if(new URL(request.url).searchParams.get('fixture')==='empty')env={...env,HISTORY_SCOPE:'synthetic:empty'};const response=await handleHistory(request,env,headers,${JSON.stringify(config.support || {})});if(response)return response; const pathname=new URL(request.url).pathname;if(pathname==='/maimai/'||pathname==='/maimai/index.html')return new Response(withHistoryNavigation(${JSON.stringify(latest)}),{headers:headers({'Content-Type':'text/html;charset=utf-8'})});return new Response('Not found',{status:404,headers:headers({'Content-Type':'text/plain'})})}};`;
   const mf = new Miniflare(convertV4MiniflareOptions({
     cf:false,modulesRoot:directory,
-    modules:[{type:'ESModule',path:path.join(directory,'fixture-worker.js'),contents:worker.replace("import {streamReport} from './report-stream.js';",'')+'\n'+stream.replace(/^import .*;$/gm,'').replaceAll('export ','')+'\n'+security.replaceAll('export ','')}], compatibilityDate:'2026-08-31',
+    modules:[{type:'ESModule',path:path.join(directory,'fixture-worker.js'),contents:worker.replace("const {streamReport} = await import('./report-stream.js');",'')+'\n'+stream.replace(/^import .*;$/gm,'').replaceAll('export ','')+'\n'+security.replaceAll('export ','')}], compatibilityDate:'2026-08-31',
     d1Databases:{HISTORY_DB:'synthetic-history'}, r2Buckets:['HISTORY_OBJECTS'],
     bindings:{HISTORY_SCOPE:'synthetic:maimaidx',HISTORY_ORIGIN:origin,HISTORY_PREFIX:'/maimai/'},
   }));
