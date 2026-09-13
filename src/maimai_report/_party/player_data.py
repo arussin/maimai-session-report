@@ -261,6 +261,29 @@ def current(data):
 
 def offer(data):
     pbs, snap = current(data)
+    # Display metadata is derived from retained records, never an invented account
+    # rating or a count of PB captures masquerading as sessions.
+    rating = None
+    if (
+        snap
+        and snap["complete"]
+        and snap["versions"]
+        and all(r["rate"] is not None and r["displayVersion"] for r in pbs.values())
+    ):
+        rating = sum(
+            sum(
+                sorted(
+                    (
+                        r["rate"]
+                        for r in pbs.values()
+                        if (r["displayVersion"] in snap["versions"]) == is_new
+                    ),
+                    reverse=True,
+                )[:slots]
+            )
+            for is_new, slots in ((False, 35), (True, 15))
+        )
+    sessions = {c["sessionID"] for c in data["captures"].values() if c["sessionID"]}
     return {
         "format": FORMAT,
         "schemaVersion": VERSION,
@@ -273,6 +296,7 @@ def offer(data):
         "snapshotIDs": sorted(data["snapshots"]),
         "captureIDs": sorted(data["captures"]),
         "historyCoverage": "retained-only",
+        "profile": {"rating": rating, "sessionCount": len(sessions)},
     }
 
 

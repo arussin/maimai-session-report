@@ -30,6 +30,11 @@ except ImportError:
 
 
 class CatalogueTests(unittest.TestCase):
+    def test_unplayed_practice_chart_is_included_in_artwork_request(self):
+        chart = {"songID": "practice-song", "title": "Practice chart", "artist": "Artist"}
+        report = {"partyRecommendations": {"rating": [], "practice": {"chart": chart}}}
+        self.assertEqual(report_songs(report), {"practice-song": ("Practice chart", "Artist")})
+
     def test_exact_normalized_title_and_artist_with_unique_filename(self) -> None:
         songs = {"a": ("Ａ  Song", "Composer"), "b": ("A Song", "Another Artist")}
         catalogue = [{"title": "a song", "artist": "composer", "image_url": "abc.png"}]

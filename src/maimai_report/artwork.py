@@ -71,7 +71,7 @@ def match_catalogue(
 
 
 def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
-    """Only artwork for records actually retained by the report is needed."""
+    """Prepare artwork for displayed results and the selected practice chart."""
     records = []
     for snapshot in ("before", "after"):
         model = report.get(snapshot) or {}
@@ -80,6 +80,15 @@ def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
     session = report.get("session") or {}
     for name in ("scores", "changedPBs"):
         records.extend(session.get(name) or [])
+    prepared = report.get("partyRecommendations")
+    if prepared is None and report.get("_partyData") and report.get("_partyCatalog"):
+        from .party_recommendations import prepare
+
+        prepared = prepare(report["_partyData"], report["_partyCatalog"], session.get("scores", []))
+    if prepared:
+        records.extend(q["chart"] for q in prepared.get("rating", []))
+        if prepared.get("practice"):
+            records.append(prepared["practice"]["chart"])
     candidates: dict[str, set[tuple[str, str]]] = {}
     for item in records:
         if not isinstance(item, Mapping):

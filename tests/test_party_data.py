@@ -31,6 +31,26 @@ def dataset(*, when=None, player=None):
 
 
 class PlayerDataTests(unittest.TestCase):
+    def test_profile_uses_recorded_pool_rating_and_distinct_source_sessions(self):
+        report, payload = load_scenario("complete")
+        report["capture"] = {"kind": "session", "sessionID": "retained-session"}
+        first = from_documents(report, payload)
+        report["generatedAt"] = "2026-09-13T18:00:00Z"
+        combined = core.merge(first, from_documents(report, payload))
+        summary = core.offer(combined)["profile"]
+        self.assertEqual(summary["rating"], report["after"]["reconstructedRating"])
+        self.assertEqual(summary["sessionCount"], 1)
+        self.assertEqual(len(combined["captures"]), 2)
+
+    def test_partial_or_unknown_ratings_do_not_get_a_profile_rating(self):
+        report, payload = load_scenario("complete")
+        partial = from_documents(report)
+        self.assertIsNone(core.offer(partial)["profile"]["rating"])
+        self.assertEqual(core.offer(partial)["profile"]["sessionCount"], 0)
+        payload["body"]["pbs"][0]["calculatedData"]["rate"] = None
+        unknown = from_documents(report, payload)
+        self.assertIsNone(core.offer(unknown)["profile"]["rating"])
+
     def test_practice_uses_harder_other_family_and_never_repeats_exceeded_target(self):
         groups = ("cadence", "rhythm", "coordination", "holds", "slides", "spatial")
         rows = []

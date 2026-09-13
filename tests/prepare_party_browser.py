@@ -103,6 +103,14 @@ report["_partyData"] = old
 report["_partyCatalog"] = integration
 report["session"]["scores"][0] = row
 (out / "local.html").write_text(build_html(report), encoding="utf-8")
+legacy = build_html(report)
+start = legacy.index('<script id="party-data" type="application/json">')
+start = legacy.index(">", start) + 1
+end = legacy.index("</script>", start)
+settings = json.loads(legacy[start:end])
+settings["offer"].pop("profile", None)
+legacy = legacy[:start] + json.dumps(settings) + legacy[end:]
+(out / "legacy.html").write_text(legacy, encoding="utf-8")
 (out / "hosted.html").write_text(
     build_html(report, party_latest_path="/private/party/latest.json"), encoding="utf-8"
 )

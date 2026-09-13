@@ -4,10 +4,10 @@
   "canonical_text": "UTF-8 with LF line endings",
   "license": "MIT",
   "files": {
-    "player_data.py": "c9f1bbff9ec95073a8cb31e18222231bc0cef5a6b9537cabacc1446d18018072",
+    "player_data.py": "551cca2dcf685481eb49ffe2395e40bb3d9d3eb0454290d3ab2d49f6b5ab4a21",
     "public_matching.py": "8e155b5b6ca80a4b065088da8ed74b56fce94e350ac8dafc3bce3c2317c7edd6",
     "site-brand.html": "b1e6c7cacd2eec73fc58e3a1709aaa1857fc5812dd5ca11c231c3d775e518c9c",
     "site-brand.css": "5b21effd4831ca6a5e3c988b91d29b6dd99c06cf8000e1de55aa8b16455b77c8"
   },
-  "upstream_revision": "7c912490fe80558125e7fcbdcff450f215ba960f"
+  "upstream_revision": "78c1918f96b800d7b91907871a5848c1d90b4c7f"
 }

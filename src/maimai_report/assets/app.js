@@ -303,7 +303,7 @@
   function questsHtml() {
     const all=quests(),candidates=all.filter(q=>q.reward.endsWith(" est.")),practice=all.find(q=>q.kind==="practice"||(!q.chart&&q.reward!=="FLOOR")),floor=all.find(q=>q.reward==="FLOOR");
     const idx=practice?.chart?(preparedTargets||after.newPool||[]).findIndex(x=>x.chartID===practice.chart.chartID):-1;
-    return targetRowsHtml(candidates)+(practice?'<aside class="practice-note"><h3>Practice idea</h3><p>'+(idx>=0?'<button class="text-action" type="button" data-detail-source="targets" data-detail-index="'+idx+'">'+safe(practice.title)+'</button>':'<strong>'+safe(practice.title)+'</strong>')+'<span>'+safe(practice.sub)+'</span></p><p>'+safe(practice.copy||"")+'</p></aside>':"")+(floor?'<aside class="pool-threshold-note"><h3>'+safe(floor.heading||('New 15 floor · '+presentNum(after.new15Floor)))+'</h3><p>'+safe(floor.title)+'</p></aside>':"");
+    return targetRowsHtml(candidates)+(practice?'<aside class="practice-note"><h3>Practice idea</h3><div class="practice-chart">'+(practice.chart?jacketHtml(practice.chart):'')+'<div>'+(idx>=0?'<button class="text-action" type="button" data-detail-source="targets" data-detail-index="'+idx+'">'+safe(practice.title)+'</button>':'<strong>'+safe(practice.title)+'</strong>')+(practice.chart?chartBadge(practice.chart):'')+'<p>'+safe(practice.sub)+'</p></div></div><p>'+safe(practice.copy||"")+'</p></aside>':"")+(floor?'<aside class="pool-threshold-note"><h3>'+safe(floor.heading||('New 15 floor · '+presentNum(after.new15Floor)))+'</h3><p>'+safe(floor.title)+'</p></aside>':"");
   }
 
   // Presentation-only sorting. Retain source indices so repeated plays of the
@@ -467,12 +467,12 @@
   }
 
   function toolbarHtml() {
-    return `<nav class="toolbar" aria-label="Report views"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a><div class="tabs" role="tablist" aria-label="Report sections">
+    return `<nav class="toolbar" aria-label="Report views"><div class="report-brand-block"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a></div><div class="tabs" role="tablist" aria-label="Report sections">
       <button id="tab-overview" class="tab active" role="tab" aria-selected="true" aria-controls="overview-view" data-target="overview"><span>Scorecard</span></button>
       <button id="tab-session" class="tab" role="tab" aria-selected="false" aria-controls="session-view" tabindex="-1" data-target="session"><span>Scores</span></button>
       <button id="tab-pools" class="tab" role="tab" aria-selected="false" aria-controls="pools-view" tabindex="-1" data-target="pools"><span>Rating pools</span></button>
       <button id="tab-targets" class="tab" role="tab" aria-selected="false" aria-controls="targets-view" tabindex="-1" data-target="targets"><span>Targets</span></button>
-    </div>${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</nav>`;
+    </div><div class="report-downloads">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></nav>`;
   }
 
 
