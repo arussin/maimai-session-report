@@ -26,6 +26,7 @@
   const delta = data.delta || {};
   const session = data.session || {};
   const sessionScores = Array.isArray(session.scores) ? session.scores : [];
+  const preparedTargets = data.partyRecommendations?.version===1 ? [...data.partyRecommendations.rating.map(q=>q.chart), ...(data.partyRecommendations.practice ? [data.partyRecommendations.practice.chart] : [])] : null;
   const changedPBs = Array.isArray(session.changedPBs) ? session.changedPBs : [];
   const externalCapture = data.capture?.source === "kamaitachi";
   const pbSnapshot = data.capture?.kind === "pb-snapshot" || (!sessionScores.length && changedPBs.length > 0);
@@ -197,6 +198,14 @@
   }
 
   function quests() {
+    const prepared=data.partyRecommendations;
+    if(prepared?.version===1){
+      const out=prepared.rating.map((q,i)=>({chart:q.chart,icon:"♪",color:palette[i],title:q.chart.title,sub:presentPct(q.chart.percent)+" → "+q.targetPercent+"%",targetGrade:q.targetGrade,reward:"+"+q.gain+" est.",copy:"Reach "+q.targetGrade+" for an estimated +"+q.gain+" in "+q.pool+". Each estimate is considered separately."}));
+      out.push({heading:"Pool floors",title:"Old 35: "+presentNum(prepared.floors.old)+" · New 15: "+presentNum(prepared.floors.new),reward:"FLOOR",copy:"Recorded boundaries from the PB collection used for these targets."});
+      if(prepared.practice){const p=prepared.practice,groups={cadence:"input speed",rhythm:"rhythm",coordination:"simultaneous inputs",holds:"holds",slides:"slides",spatial:"layout"};out.push({kind:"practice",chart:p.chart,title:p.chart.title,sub:"Similar to "+p.anchor.title+" · +"+(p.step/10).toFixed(1)+" chart constant",reward:"PRACTICE",copy:"Similar "+p.match.closest_groups.map(g=>groups[g]||g).join(" and ")+". "+(p.gain!=null?"If you reach "+p.targetPercent+"%, estimated +"+p.gain+" rating":"Practice toward "+p.targetPercent+"%")+". Structural similarity does not predict your score."});}
+      else {const bands=difficultyBands();if(bands.best)out.push({kind:"practice",title:"Explore current-version "+bands.best.label,sub:"Aim for 97–99%",reward:"PRACTICE",copy:"Your best-performing difficulty band in the retained session sample. A specific similar chart is not supported by the available catalog."});}
+      return out.slice(0,4);
+    }
     const floor = Number(after.new15Floor || 0);
     const pool = Array.isArray(after.newPool) ? after.newPool : (Array.isArray(after.new15) ? after.new15 : []);
     const candidates = pool
@@ -292,11 +301,9 @@
 
 
   function questsHtml() {
-    const all = quests();
-    const candidates = all.filter(q=>q.reward.endsWith(" est."));
-    const practice = all.find(q=>!q.chart && q.reward!=="FLOOR");
-    const floor = all.find(q=>q.reward==="FLOOR");
-    return `${targetRowsHtml(candidates)}${practice ? `<aside class="practice-note"><h3>Practice idea</h3><p><strong>${safe(practice.title)}</strong><span>${safe(practice.sub)} · Based on this session’s level bands.</span></p></aside>` : ""}${floor ? `<aside class="pool-threshold-note"><h3>New 15 floor · ${num(after.new15Floor)}</h3><p>${safe(floor.title)}</p></aside>` : ""}`;
+    const all=quests(),candidates=all.filter(q=>q.reward.endsWith(" est.")),practice=all.find(q=>q.kind==="practice"||(!q.chart&&q.reward!=="FLOOR")),floor=all.find(q=>q.reward==="FLOOR");
+    const idx=practice?.chart?(preparedTargets||after.newPool||[]).findIndex(x=>x.chartID===practice.chart.chartID):-1;
+    return targetRowsHtml(candidates)+(practice?'<aside class="practice-note"><h3>Practice idea</h3><div class="practice-chart">'+(practice.chart?jacketHtml(practice.chart):'')+'<div>'+(idx>=0?'<button class="text-action" type="button" data-detail-source="targets" data-detail-index="'+idx+'">'+safe(practice.title)+'</button>':'<strong>'+safe(practice.title)+'</strong>')+(practice.chart?chartBadge(practice.chart):'')+'<p>'+safe(practice.sub)+'</p></div></div><p>'+safe(practice.copy||"")+'</p></aside>':"")+(floor?'<aside class="pool-threshold-note"><h3>'+safe(floor.heading||('New 15 floor · '+presentNum(after.new15Floor)))+'</h3><p>'+safe(floor.title)+'</p></aside>':"");
   }
 
   // Presentation-only sorting. Retain source indices so repeated plays of the
@@ -418,7 +425,7 @@
 
 
   function targetRowsHtml(candidates) {
-    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">PB ${safe(q.sub)} ${gradeHtml("S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">No positive-gain S-threshold targets in this snapshot.</p>`}</div>${candidates.length ? `<p class="target-explanation">Potential gain at S, after the New 15 floor.</p>` : ""}`;
+    return `<div class="target-list">${candidates.map(q=>`<button type="button" class="target-row" data-detail-source="targets" data-detail-index="${(preparedTargets || after.newPool || []).findIndex(x=>x.chartID===q.chart.chartID)}" aria-label="Target details: ${safe(q.title)}">${jacketHtml(q.chart)}<span><strong>${safe(q.title)}</strong>${chartBadge(q.chart)}<span class="target-progress">PB ${safe(q.sub)} ${gradeHtml(q.targetGrade||"S")}</span></span><span class="target-estimate">${safe(q.reward)}</span></button>`).join("") || `<p class="mini-empty">${data.partyRecommendations?.ratingCompatible===false?"Rating estimates are unavailable for this capture’s scores and version settings.":"No positive-gain grade targets within 2.5% in this snapshot."}</p>`}</div>${candidates.length ? `<p class="target-explanation">Conditional gain at the displayed grade, after the applicable rating-pool floor. Each target is considered separately.</p>` : ""}`;
   }
 
   function overviewTargetsHtml() {
@@ -460,12 +467,12 @@
   }
 
   function toolbarHtml() {
-    return `<nav class="toolbar" aria-label="Report views"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a><div class="tabs" role="tablist" aria-label="Report sections">
+    return `<nav class="toolbar" aria-label="Report views"><div class="report-brand-block"><a class="report-brand" href="#overview-view" data-open-view="overview" aria-label="maimai report overview"><span class="brand-word">mai<span>mai</span><b>DX</b></span></a></div><div class="tabs" role="tablist" aria-label="Report sections">
       <button id="tab-overview" class="tab active" role="tab" aria-selected="true" aria-controls="overview-view" data-target="overview"><span>Scorecard</span></button>
       <button id="tab-session" class="tab" role="tab" aria-selected="false" aria-controls="session-view" tabindex="-1" data-target="session"><span>Scores</span></button>
       <button id="tab-pools" class="tab" role="tab" aria-selected="false" aria-controls="pools-view" tabindex="-1" data-target="pools"><span>Rating pools</span></button>
       <button id="tab-targets" class="tab" role="tab" aria-selected="false" aria-controls="targets-view" tabindex="-1" data-target="targets"><span>Targets</span></button>
-    </div>${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</nav>`;
+    </div><div class="report-downloads">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></nav>`;
   }
 
 
@@ -600,7 +607,7 @@
 
   // Detail records are references to retained inputs; no score is recalculated here.
   const detailSources = {
-    plays: sessionScores, pbs: changedPBs, targets: after.newPool || [],
+    plays: sessionScores, pbs: changedPBs, targets: preparedTargets || after.newPool || [],
     "before-old": before.old35 || [], "before-new": before.new15 || [],
     "after-old": after.old35 || [], "after-new": after.new15 || []
   };
@@ -626,11 +633,12 @@
       <div class="detail-song">${jacketHtml(item)}<div><h2 id="chart-detail-title">${safe(item.title || "Untitled chart")}</h2><p>${safe(item.artist || "Artist unavailable")}</p>${chartBadge(item)}</div></div>
       <div class="detail-result"><div><span>Achievement</span><strong>${presentPct(item.percent)}</strong>${gradeHtml(item.grade)}</div><div><span>Chart rating</span><strong>${presentNum(item.rate)}<small>RT</small></strong></div></div>
       ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr><tr><th scope="row">Lamp</th><td>${safe(item.previousLamp || "—")}</td><td>${safe(item.lamp || "—")}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> ${externalCapture ? "This compares account PBs since the saved baseline, including any other sessions or backfills." : "This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements."}</p></section>`:""}
-      ${target?`<section class="detail-section target-detail"><h3>Next rating opportunity</h3><p>${safe(target.sub)} · ${safe(target.reward)}</p><p class="detail-note">${safe(target.copy)} This estimate considers the New 15 floor.</p></section>`:""}
+      ${target?`<section class="detail-section target-detail"><h3>Next rating opportunity</h3><p>${safe(target.sub)} · ${safe(target.reward)}</p><p class="detail-note">${safe(target.copy)} This estimate considers the applicable rating-pool floor.</p></section>`:""}
       <section class="detail-section"><h3>Recorded score details</h3><dl class="detail-facts">${field("Lamp",safe(item.lamp || "—"))}${field("Chart constant",presentNum(item.levelNum))}${field("Fast",presentNum(item.fast))}${field("Slow",presentNum(item.slow))}</dl></section>
       <section class="detail-section"><h3>Judgements</h3><dl class="judgement-grid">${[["Critical perfect","pcrit"],["Perfect","perfect"],["Great","great"],["Good","good"],["Miss","miss"]].map(([label,key])=>field(label,presentNum(item[key]))).join("")}</dl></section>
       <p class="detail-note">${safe(recordedTime(item.timeAchieved))} · ${safe(player.timezone || "UTC")}<br>${safe(item.displayVersion || "Version not retained")}</p><p class="detail-note">A dash means that field was not retained.</p>
     </div>`;
+    if(window.maimaiParty)chartDialog.querySelector(".chart-dialog-body").append(window.maimaiParty.actions(item));
     detailOpener = button;
     chartDialog.showModal();
     document.body.classList.add("chart-dialog-open");
@@ -654,11 +662,12 @@
   chartDialog.addEventListener("keydown", event=>{
     if (event.key !== "Tab") return;
     const controls = [...chartDialog.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.getClientRects().length);
-    const first = controls[0], last = controls[controls.length-1];
-    if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
-      event.preventDefault();
-      (event.shiftKey ? last : first)?.focus();
-    }
+    if (!controls.length) return;
+    // Include public chart links even where the browser's native Tab order
+    // skips links, and keep every step inside the modal.
+    const index = controls.indexOf(document.activeElement);
+    event.preventDefault();
+    controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length].focus();
   });
 
 })();

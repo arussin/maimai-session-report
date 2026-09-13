@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import urllib.error
 import urllib.request
@@ -13,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from ..history.bundle import ArchiveError, canonical, report_data, sha256
+from ..history.bundle import ArchiveError, canonical, load_json, report_data, sha256
 from ..history.cloudflare import D1, R2, Cloudflare, NoRedirects, required
 from ..history.setup import bindings, verify_private_bucket
 from ..history.support import history_support
@@ -178,6 +179,8 @@ def verify_access(instance: Instance) -> None:
             prefix + "history/",
             prefix + "history/c/" + "0" * 64 + "/",
             prefix + "history/c/" + "0" * 64 + "/b50.webp",
+            prefix + "party/latest.json",
+            prefix + "party/data/" + "0" * 64 + ".gz",
         ]
     for path in paths:
         request = urllib.request.Request(instance.origin + path, method="GET")  # noqa: S310 -- validated exact HTTPS origin, no credentials
@@ -236,6 +239,20 @@ def verify_retained_copies(instance: Instance, html: bytes, b50: bytes | None) -
     return latest["id"]
 
 
+def verify_report_objects(instance, html, b50):
+    """A streamed report must exist in both archives before a Worker can reference it."""
+    api = Cloudflare(instance.account_id, required(os.environ, "CLOUDFLARE_HISTORY_API_TOKEN"))
+    for bucket in (instance.bucket, instance.backup_bucket):
+        verify_private_bucket(api, bucket)
+        objects = R2(instance.account_id, bucket)
+        for raw in (html, b50):
+            if raw is not None:
+                check(
+                    objects.get("objects/sha256/" + sha256(raw)) == raw,
+                    "Archive and back up the exact rendered report before publication",
+                )
+
+
 def stage(
     instance: Instance,
     destination: Path,
@@ -247,7 +264,7 @@ def stage(
     bootstrap: bool = False,
 ) -> dict:
     instance.validate("stage")
-    report_data(html)  # Retained HTML must expose the documented report payload.
+    data = report_data(html)  # Retained HTML must expose the documented report payload.
     if instance.b50_mode == "required" and not bootstrap:
         check(b50 is not None, "This installation requires a retained B50")
     if b50 is not None:
@@ -264,6 +281,8 @@ def stage(
         ("hosted.js", "hosted.js"),
         ("history.js", "history-reader.js"),
         ("security.js", "security.js"),
+        ("player-data.js", "player-data.js"),
+        ("report-stream.js", "report-stream.js"),
     ):
         shutil.copyfile(core / "deploy/cloudflare/src" / source, destination / target)
     support = history_support(html)
@@ -274,8 +293,24 @@ def stage(
         "scope": instance.scope,
         "historyEnabled": instance.history_enabled,
     }
+    streamed = instance.history_enabled and not bootstrap
+    if streamed:
+        ref = {
+            "sha256": sha256(html),
+            "key": "objects/sha256/" + sha256(html),
+            "bytes": len(html),
+            "flags": {
+                "support": data.get("support") is True,
+                "party": data.get("partyIntegration", {}),
+            },
+        }
+        (destination / "report-ref.json").write_bytes(canonical(ref))
     (destination / "worker.js").write_text(
-        "import report from './report.html';\n"
+        (
+            "import reportRef from './report-ref.json';\nconst report = JSON.parse(reportRef);\n"
+            if streamed
+            else "import report from './report.html';\n"
+        )
         + ("import b50 from './b50.webp';\n" if b50 is not None else "const b50 = null;\n")
         + "import support from './support.js';\nimport {createHostedWorker} from './hosted.js';\n"
         + "export default createHostedWorker(report, b50, support, "
@@ -296,7 +331,7 @@ def stage(
         "observability": {"enabled": False},
         "routes": [instance.route],
         "rules": [
-            {"type": "Text", "globs": ["**/*.html"], "fallthrough": True},
+            {"type": "Text", "globs": ["**/*.html", "**/report-ref.json"], "fallthrough": True},
             {"type": "Data", "globs": ["**/*.webp"], "fallthrough": True},
         ],
     }
@@ -330,15 +365,31 @@ def prepare_release(
     verify_access(instance)
     raw, content_type = api.state("content/v2")
     modules = parse_modules(raw, content_type)
-    html = module_named(modules, "report.html")
+    html = module_named(modules, "report.html", optional=True)
+    streamed = html is None
+    if html is None:
+        reference = module_named(modules, "report-ref.json")
+        ref = load_json(reference)
+        check(
+            re.fullmatch(r"[a-f0-9]{64}", ref.get("sha256", ""))
+            and ref.get("key") == "objects/sha256/" + ref["sha256"],
+            "Invalid hosted report reference",
+        )
+        html = R2(instance.account_id, instance.bucket).get(ref["key"])
+        check(
+            html is not None and len(html) == ref.get("bytes") and sha256(html) == ref["sha256"],
+            "Hosted report object failed verification",
+        )
     b50 = module_named(
         modules, "b50.webp", optional=source is not None or instance.b50_mode != "required"
     )
     latest = (
         verify_retained_copies(instance, html, b50)
-        if instance.history_enabled and source is None
+        if instance.history_enabled and source is None and not streamed
         else None
     )
+    if instance.history_enabled and streamed:
+        verify_report_objects(instance, html, b50)
     check(
         not destination.exists() or not any(destination.iterdir()), "Use an empty release directory"
     )
@@ -364,6 +415,8 @@ def prepare_release(
         html = (source / "maimai-report.html").read_bytes()
         b50_file = source / "maimai-b50.webp"
         b50 = b50_file.read_bytes() if b50_file.is_file() else None
+        if instance.history_enabled:
+            verify_report_objects(instance, html, b50)
     return stage(instance, destination / "staged", core, html, b50, settings=settings)
 
 

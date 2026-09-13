@@ -29,6 +29,7 @@ TEMPLATE_TOKENS = (
     "__REPORT_JSON__",
     "__JACKET_JSON__",
     "__DOWNLOAD_JSON__",
+    "__PARTY_JSON__",
     "__INLINE_JS__",
 )
 EXTERNAL_URL = re.compile(r"https?://", re.IGNORECASE)
@@ -273,10 +274,16 @@ def validate_generated_html(html: str) -> None:
         raise ValueError("Generated report data must be an object")
     enabled = _support_enabled(report.get("support"))
     policy = BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if enabled else SEALED_CONTENT_SECURITY_POLICY
+    if report.get("partyIntegration", {}).get("hosted") is True:
+        policy = policy.replace("connect-src 'none'", "connect-src 'self'")
     marker = f'<meta http-equiv="Content-Security-Policy" content="{policy}" />'
     if html.count(marker) != 1:
         raise ValueError("Generated report must contain its expected content security policy")
     inspected = html.replace(marker, "", 1)
+    controller = _party_controller()
+    if "partyIntegration" in report and inspected.count(controller) != 1:
+        raise ValueError("Generated report must contain its fixed-origin party controller")
+    inspected = inspected.replace(controller, "", 1)
     if enabled:
         controller = _asset_text("support.js")
         if inspected.count(controller) != 1:
@@ -358,11 +365,20 @@ def enrich_report(
     result["schemaVersion"] = 1
     result["player"] = _player_data(result.get("player"), player)
     result.setdefault("ratingVersionAssumption", "Configured current-version B35/N15")
+    from .party import from_documents
+
+    result["_partyData"] = from_documents(result, after_payload)
     return result
 
 
 def _asset_text(name: str) -> str:
     return resources.files(ASSET_PACKAGE).joinpath(name).read_text(encoding="utf-8")
+
+
+def _party_controller() -> str:
+    return _asset_text("party-report.js").replace(
+        "__PARTY_WORDMARK__", json_for_html(_asset_text("party-site-brand.html"))
+    )
 
 
 def _jacket_data(jackets: Mapping[str, str] | None) -> dict[str, str]:
@@ -401,6 +417,8 @@ def build_html(
     b50_path: str | None = None,
     b50_unavailable: bool = False,
     badge_pack: Path | str | None = None,
+    party_enabled: bool | None = None,
+    party_latest_path: str | None = None,
 ) -> str:
     """Return one deterministic HTML document with a fail-closed runtime policy."""
 
@@ -412,22 +430,84 @@ def build_html(
         raise ValueError("A B50 download cannot also be unavailable")
 
     report_data = deepcopy(dict(report))
+    from ._party import player_data as player_core
+    from .party import from_documents
+    from .party_recommendations import prepare as prepare_recommendations
+
+    dataset = report_data.pop("_partyData", None) or from_documents(report_data)
+    catalog = report_data.pop("_partyCatalog", None)
+    prepared_enabled = report_data.pop("_partyEnabled", True)
+    enabled = prepared_enabled if party_enabled is None else party_enabled
+    if type(enabled) is not bool:
+        raise ValueError("Personal handoff must be explicitly enabled or disabled")
+    prepared_latest_path = report_data.pop("_partyLatestPath", None)
+    party_latest_path = party_latest_path or prepared_latest_path
+    if party_latest_path is not None and not re.fullmatch(
+        r"/[A-Za-z0-9_-]+/party/latest\.json", party_latest_path
+    ):
+        raise ValueError("Player data endpoints must stay beneath the protected installation path")
+    report_data["partyRecommendations"] = prepare_recommendations(
+        dataset, catalog, report_data.get("session", {}).get("scores", [])
+    )
+    report_data["partyIntegration"] = {
+        "enabled": enabled,
+        "hosted": bool(enabled and party_latest_path),
+    }
+    chart_ids = set()
+
+    def collect(value):
+        if isinstance(value, dict):
+            if isinstance(value.get("chartID"), str):
+                chart_ids.add(value["chartID"])
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(report_data)
+    mapping = (catalog or {}).get("provider_mapping", {}).get("charts", {})
+    party_settings = {
+        "enabled": enabled,
+        "latestPath": party_latest_path if enabled else None,
+        "offer": player_core.offer(dataset) if enabled else None,
+        "payload": base64.b64encode(player_core.encode(dataset)).decode() if enabled else None,
+        "catalogVersion": (catalog or {}).get("catalog_version"),
+        "mapping": {
+            cid: {"chart_id": mapping[cid]["chart_id"], "source_hash": mapping[cid]["source_hash"]}
+            for cid in chart_ids
+            if cid in mapping
+        },
+    }
     support = _support_enabled(report_data.get("support", True))
     report_data["support"] = support
     content_security_policy = (
         BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if support else SEALED_CONTENT_SECURITY_POLICY
     )
+    if enabled and party_latest_path:
+        content_security_policy = content_security_policy.replace(
+            "connect-src 'none'", "connect-src 'self'"
+        )
 
     template = _asset_text("template.html")
     substitutions = {
         "__CONTENT_SECURITY_POLICY__": content_security_policy,
         "__INLINE_CSS__": "\n\n".join(
-            (_asset_text("styles.css"), badge_css(badge_pack), _asset_text("support.css"))
+            (
+                _asset_text("styles.css"),
+                badge_css(badge_pack),
+                _asset_text("support.css"),
+                _asset_text("party-site-brand.css"),
+                _asset_text("party-report.css"),
+            )
         ),
         "__REPORT_JSON__": json_for_html(report_data),
         "__JACKET_JSON__": json_for_html(_jacket_data(jackets)),
         "__DOWNLOAD_JSON__": json_for_html({"href": b50_path, "unavailable": b50_unavailable}),
-        "__INLINE_JS__": _asset_text("app.js")
+        "__PARTY_JSON__": json_for_html(party_settings),
+        "__INLINE_JS__": _party_controller()
+        + "\n\n"
+        + _asset_text("app.js")
         + ("\n\n" + _asset_text("support.js") if support else ""),
     }
     for token in TEMPLATE_TOKENS:
@@ -450,6 +530,8 @@ def render_report(
     b50_path: str | None = None,
     b50_unavailable: bool = False,
     badge_pack: Path | str | None = None,
+    party_enabled: bool | None = None,
+    party_latest_path: str | None = None,
 ) -> Path:
     """Write a report to ``output_path`` and return that path."""
 
@@ -462,6 +544,8 @@ def render_report(
             b50_path=b50_path,
             b50_unavailable=b50_unavailable,
             badge_pack=badge_pack,
+            party_enabled=party_enabled,
+            party_latest_path=party_latest_path,
         ),
     )
     return output_path

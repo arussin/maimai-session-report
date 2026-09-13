@@ -27,6 +27,13 @@ enabled = true
 [actions]
 artifact_retention_days = 7
 
+[party]
+# Include the consent-based personal handoff in new reports.
+enabled = true
+# Optional cumulative export, merged and replaced after validation on each run.
+# data_file = "output/player.maimai.json.gz"
+catalog_cache = "output/maimai-party-catalog.json"
+
 [publishing]
 # Publishing is never implied by syncing or rendering. Keep this false unless you
 # deliberately configure and manually run the separate publish workflow.

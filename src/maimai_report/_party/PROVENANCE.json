@@ -1,0 +1,13 @@
+{
+  "upstream": "https://github.com/arussin/maimai-chart-browser",
+  "api_version": 1,
+  "canonical_text": "UTF-8 with LF line endings",
+  "license": "MIT",
+  "files": {
+    "player_data.py": "4251b37e30fa7a3a0e8771d803065cd807b6f5890b44ef9c360384d4bb0c530d",
+    "public_matching.py": "8e155b5b6ca80a4b065088da8ed74b56fce94e350ac8dafc3bce3c2317c7edd6",
+    "site-brand.html": "b1e6c7cacd2eec73fc58e3a1709aaa1857fc5812dd5ca11c231c3d775e518c9c",
+    "site-brand.css": "5b21effd4831ca6a5e3c988b91d29b6dd99c06cf8000e1de55aa8b16455b77c8"
+  },
+  "upstream_revision": "74e101829c9e650fa670584a406750dea687be55"
+}

@@ -33,7 +33,10 @@ class Database(Protocol):
 
 
 def migration_sql() -> str:
-    return Path(__file__).with_name("0001_history.sql").read_text(encoding="utf-8")
+    return "\n".join(
+        Path(__file__).with_name(name).read_text(encoding="utf-8")
+        for name in ("0001_history.sql", "0002_player_data.sql")
+    )
 
 
 def immutable(objects: Objects, key: str, raw: bytes) -> None:
@@ -192,7 +195,7 @@ def backup(source: Objects, destination: Objects, scope: str) -> dict:
         if not (
             key == "installation.json"
             or re.fullmatch(
-                r"objects/sha256/[0-9a-f]{64}|captures/[0-9a-f]{64}/"
+                r"players/[0-9a-f]{64}\.json|objects/sha256/[0-9a-f]{64}|captures/[0-9a-f]{64}/"
                 r"(?:manifest\.json|published\.json|sources/[0-9a-f]{64}\.json)",
                 key,
             )

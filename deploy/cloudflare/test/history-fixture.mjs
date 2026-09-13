@@ -7,13 +7,15 @@ export const headersSource = `const headers = extra => ({'Cache-Control':'privat
 
 export async function fixture(directory, origin = 'https://synthetic.test') {
   const source = await readFile(fileURLToPath(new URL('../src/history.js',import.meta.url)),'utf8');
+  const stream = await readFile(fileURLToPath(new URL('../src/report-stream.js',import.meta.url)),'utf8');
+  const security = await readFile(fileURLToPath(new URL('../src/security.js',import.meta.url)),'utf8');
   const config = JSON.parse(await readFile(path.join(directory,'fixture.json'),'utf8'));
   if (config.synthetic !== true) throw Error('CI only accepts the explicitly synthetic archive');
   const latest = await readFile(path.join(directory,config.latestHTML),'utf8');
   const worker = source.replaceAll('export ','') + `\n${headersSource}\nexport default {async fetch(request,env){if(new URL(request.url).searchParams.get('fixture')==='empty')env={...env,HISTORY_SCOPE:'synthetic:empty'};const response=await handleHistory(request,env,headers,${JSON.stringify(config.support || {})});if(response)return response; const pathname=new URL(request.url).pathname;if(pathname==='/maimai/'||pathname==='/maimai/index.html')return new Response(withHistoryNavigation(${JSON.stringify(latest)}),{headers:headers({'Content-Type':'text/html;charset=utf-8'})});return new Response('Not found',{status:404,headers:headers({'Content-Type':'text/plain'})})}};`;
   const mf = new Miniflare(convertV4MiniflareOptions({
-    cf:false,
-    modules:true, script:worker, compatibilityDate:'2026-08-31',
+    cf:false,modulesRoot:directory,
+    modules:[{type:'ESModule',path:path.join(directory,'fixture-worker.js'),contents:worker.replace("import {streamReport} from './report-stream.js';",'')+'\n'+stream.replace(/^import .*;$/gm,'').replaceAll('export ','')+'\n'+security.replaceAll('export ','')}], compatibilityDate:'2026-08-31',
     d1Databases:{HISTORY_DB:'synthetic-history'}, r2Buckets:['HISTORY_OBJECTS'],
     bindings:{HISTORY_SCOPE:'synthetic:maimaidx',HISTORY_ORIGIN:origin,HISTORY_PREFIX:'/maimai/'},
   }));

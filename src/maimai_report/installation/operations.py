@@ -13,9 +13,13 @@ from ..capture import capture_existing, write_capture
 from ..cli import _player
 from ..history.bundle import prepare_capture, report_data
 from ..history.cloudflare import D1, R2, Cloudflare, required
+from ..history.player import latest as latest_player
+from ..history.player import materialize
 from ..history.setup import provision, resource_plan, verify_private_bucket
 from ..history.storage import archive, backup, backup_capture, rebuild
 from ..io import write_json
+from ..party import prepare as prepare_player
+from ..party_catalog import load as load_party_catalog
 from ..render import enrich_report, read_json, render_report
 from ..sync import synchronize, write_sync_result
 from .config import Instance
@@ -100,7 +104,9 @@ def capture(
     write_capture(result, source)
 
 
-def render_capture(instance: Instance, source: Path, *, fetch_artwork: bool = False) -> dict:
+def render_capture(
+    instance: Instance, source: Path, *, fetch_artwork: bool = False, offline: bool = False
+) -> dict:
     meaningful(source)
     original = read_json(source / "report-input.json")
     after_path = source / "after-pbs.json"
@@ -111,6 +117,31 @@ def render_capture(instance: Instance, source: Path, *, fetch_artwork: bool = Fa
         support=instance.app.support_enabled,
         current_version_display_names=original.get("currentNewDisplayVersions"),
     )
+    prepare_player(report, source=source)
+    report["_partyEnabled"] = instance.app.party_enabled
+    report["_partyCatalog"], warning = load_party_catalog(
+        instance.app.party_catalog_cache, refresh=not offline
+    )
+    if warning:
+        import sys
+
+        print("maimai.party: " + warning, file=sys.stderr)
+    if instance.history_enabled and instance.app.party_enabled and not offline:
+        # Processing, never a report click, assembles the retained history.
+        api = Cloudflare(instance.account_id, required(os.environ, "CLOUDFLARE_HISTORY_API_TOKEN"))
+        objects, database = R2(instance.account_id, instance.bucket), D1(api, instance.database_id)
+        current = latest_player(objects, database, instance.scope)
+        from .._party.player_data import merge
+
+        if current:
+            report["_partyData"] = merge(current[1], report["_partyData"])
+        else:
+            from ..history.player import retained
+
+            report["_partyData"] = merge(
+                report["_partyData"], *retained(objects, instance.scope, _player(instance.app))
+            )
+        report["_partyLatestPath"] = instance.prefix + "party/latest.json"
     jackets = {}
     jacket_path = source / "jackets.json"
     if jacket_path.is_file():
@@ -198,18 +229,33 @@ def storage(
         )
         result = archive(bundle, objects, database)
         verify_private_bucket(api, instance.backup_bucket)
+        recovery_objects = R2(instance.account_id, instance.backup_bucket)
         result["backup"] = backup_capture(
             objects,
-            R2(instance.account_id, instance.backup_bucket),
+            recovery_objects,
             instance.scope,
             bundle.capture_id,
+        )
+        result["playerData"] = materialize(
+            objects,
+            database,
+            instance.scope,
+            _player(instance.app),
+            bundle=bundle,
+            recovery_objects=recovery_objects,
         )
         return result
     if operation == "backup":
         verify_private_bucket(api, instance.backup_bucket)
         return backup(objects, R2(instance.account_id, instance.backup_bucket), instance.scope)
     if operation == "rebuild":
-        return rebuild(objects, database, instance.scope)
+        result = rebuild(objects, database, instance.scope)
+        result["playerData"] = materialize(
+            objects, database, instance.scope, _player(instance.app), backfill=True
+        )
+        return result
+    if operation == "player-backfill":
+        return materialize(objects, database, instance.scope, _player(instance.app), backfill=True)
     return {
         "index": database.query(
             "SELECT state,meaningful,COUNT(*) count FROM captures "

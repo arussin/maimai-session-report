@@ -97,6 +97,6 @@ class BadgeIntegrationTests(unittest.TestCase):
             capture(source, instance)
             before = (source / "report-input.json").read_bytes()
             with patch.object(socket, "socket", side_effect=AssertionError("Network forbidden")):
-                operations.render_capture(instance, source)
+                operations.render_capture(instance, source, offline=True)
             self.assertEqual((source / "report-input.json").read_bytes(), before)
             self.assertIn("data:image/webp;base64,", (source / "maimai-report.html").read_text())

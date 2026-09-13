@@ -137,7 +137,14 @@ def provision(api: Cloudflare, config: dict) -> dict:
             "SELECT name FROM sqlite_master WHERE type='table' "
             "AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%'"
         )
-        allowed = {"history_migrations", "captures", "rating_snapshots", "archive_state"}
+        allowed = {
+            "history_migrations",
+            "captures",
+            "rating_snapshots",
+            "archive_state",
+            "player_state",
+            "player_revisions",
+        }
         if any(row["name"] not in allowed for row in tables):
             raise ArchiveError("Refusing to migrate a database containing unrelated tables")
         database.query(migration_sql())

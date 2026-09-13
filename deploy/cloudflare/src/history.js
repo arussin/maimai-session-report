@@ -1,4 +1,5 @@
 /* Hosted history reader. All data access stays in the Worker; navigation is ordinary GET. */
+import {streamReport} from './report-stream.js';
 const PAGE_SIZE = 20;
 const MAX_BYTES = 20 * 1024 * 1024;
 const ID = /^[a-f0-9]{64}$/;
@@ -17,6 +18,18 @@ const CSS = `${NAV_CSS}
 
 function nav(prefix, selected) {
   return `<nav class="history-nav" aria-label="Report archive"><a href="${esc(prefix)}"${selected ? '' : ' aria-current="page"'}>Latest session</a><a href="${esc(prefix)}history"${selected ? ' aria-current="page"' : ''}>History</a></nav>`;
+}
+
+export function historyStream(response, {prefix='/maimai/', capture=null}={}) {
+  const context=capture?`<aside class="history-context"><p><strong>Archived session · ${esc(date(capture.start_ms??capture.sort_ms,capture.timezone))}</strong> · ${number(capture.score_count)} plays</p></aside>`:'';
+  const rewriter=new HTMLRewriter().on('head',{element(el){el.append(`<style>${NAV_CSS}</style>`,{html:true});}})
+    .on('body',{element(el){el.prepend(nav(prefix,Boolean(capture))+context,{html:true});}});
+  if(capture){
+    const download={href:capture.b50_key?`${prefix}history/c/${capture.id}/b50.webp`:null,unavailable:!capture.b50_key,unavailableLabel:'B50 not retained',filename:`maimai-b50-${capture.id.slice(0,12)}.webp`};
+    rewriter.on('script#download-data',{element(el){el.setInnerContent(JSON.stringify(download).replaceAll('<','\\u003c'));}})
+      .on('a#download-b50',{element(el){if(capture.b50_key)el.setAttribute('href',download.href);else el.replace('<span class="action-button history-unavailable">B50 not retained</span>',{html:true});}});
+  }
+  return rewriter.transform(response);
 }
 
 export function withHistoryNavigation(html, {prefix = '/maimai/', capture = null} = {}) {
@@ -105,8 +118,7 @@ export async function handleHistory(request, env, makeHeaders, support = {}) {
       if (!capture.b50_key) return respond('B50 image was not retained for this capture.',404,'text/plain');
       return respond(await verifiedObject(env,capture.b50_key,capture.b50_hash),200,'image/webp',{'Content-Disposition':`attachment; filename="maimai-b50-${capture.id.slice(0,12)}.webp"`});
     }
-    const html = new TextDecoder().decode(await verifiedObject(env,capture.report_key,capture.report_hash));
-    return respond(withHistoryNavigation(html,{prefix,capture}));
+    return await streamReport(request,env,{key:capture.report_key,sha256:capture.report_hash},{prefix,capture});
   } catch {
     // Do not log score data or provider error bodies. The static latest report is independent.
     return respond('History is temporarily unavailable. Your latest report remains available.',503,'text/plain');

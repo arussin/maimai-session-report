@@ -9,6 +9,12 @@ styling, with fixed project-support wording and a simple show/hide setting.
 
 ## Artwork and sample data
 
+The personal-data integration places the compact maimai.party link below the
+main wordmark, groups the player-file download with B50/print actions, and shows
+the selected practice chart's jacket alongside its identity. The presentation
+snapshot is updated for these reviewed refinements; the four report views and
+existing support controls retain their behavior.
+
 | Element | Release behavior |
 | --- | --- |
 | Rating badge | The default `builtin` pack includes all 12 original embedded game frames, including the distinct 16000+ kiwami frame. Compact right-hand digits, font, five slots and 296:86 proportions are preserved. Select `plain` for CSS-only styling or supply a local artwork pack. |

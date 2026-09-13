@@ -26,13 +26,20 @@ class PublicPreviewTests(unittest.TestCase):
         self.assertIn('"support":true', sample)
         self.assertIn("data:image/png;base64,", sample)
 
-    def test_explicit_disabled_demo_has_no_external_urls_or_checkout_script(self) -> None:
+    def test_explicit_disabled_demo_has_only_public_links_and_no_checkout_script(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             generated = render_demo(Path(directory, "demo.html"), support=False).read_text(
                 encoding="utf-8"
             )
         validate_generated_html(generated)
-        self.assertNotRegex(generated, r"(?i)https?://")
+        public_links = (
+            "https://maimai.party",
+            "https://github.com/arussin/maimai-session-report/blob/main/docs/PLAYER_FILE.md",
+        )
+        without_links = generated
+        for link in public_links:
+            without_links = without_links.replace(link, "")
+        self.assertNotRegex(without_links, r"(?i)https?://")
         self.assertIn('"support":false', generated)
         self.assertNotIn("buymeacoffee", generated)
 

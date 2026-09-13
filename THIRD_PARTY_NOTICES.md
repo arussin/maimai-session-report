@@ -12,6 +12,21 @@ The built-in rating frames are identified as
 identifier for the artwork notice below, **not** the name of a permission granted
 by SEGA or a claim that the artwork is open-source.
 
+## maimai.party public interfaces and wordmark
+
+The portable player-data and public structural-matching modules are pinned from
+[maimai-chart-browser](https://github.com/arussin/maimai-chart-browser), under its
+MIT license. The original maimai.party wordmark HTML/CSS is included unchanged.
+The complete license and per-file SHA-256 provenance accompany the modules in
+`src/maimai_report/_party/`. The downstream report recommendation selector is
+separate from those public interfaces.
+
+The report rating policy is an independent integer implementation of the
+[Kamaitachi calculation](https://github.com/zkldi/Tachi/blob/f08148f8644e40de9b178445df4bd59da712d3de/typescript/rg-stats/src/algorithms/maimaidx-rate.ts)
+at revision `f08148f8644e40de9b178445df4bd59da712d3de`. The policy identifier and
+tests retain its boundary and AP-bonus behavior; the upstream application is not
+included in the report package.
+
 ## Tomomai code
 
 Thanks to **shedaniel and the Tomomai contributors** for

@@ -8,6 +8,11 @@ close to the next rating gain. Four interactive views cover your scorecard,
 scores, rating pools and practice targets, with search, score details and a
 mobile layout.
 
+New reports can open maimai.party with your achievements after consent. Export
+one reusable player file to retain history across local runs, and use exact song
+details/similarity links throughout the report. See the
+[maimai.party integration and hosted upgrade guide](docs/MAIMAI_PARTY.md).
+
 Start with the fictional offline demo below. For your own scores, choose an
 existing MYT sync or [generate from an already imported Kamaitachi session](docs/KAMAITACHI.md).
 Official-network players can use the maimai DX NET recent-score importer, then
@@ -18,6 +23,20 @@ private. Default reports have embedded data, CSS and JavaScript, with no browser
 network requests on load, analytics, remote fonts or account requirement to open
 the file. The optional developer-support checkout contacts Buy Me a Coffee only
 after you click its button; report data stays in the report.
+
+## Personal data in maimai.party
+
+Use **Open in Party** below the report logo to bring your achievements
+and retained history into the chart browser. The browser asks before importing.
+**Remember on this device** is optional; otherwise results last for the tab.
+
+To keep a reusable file, add `--export-party-data` when generating a report.
+Import `player.maimai.json.gz` through maimai.party's Settings menu, or use
+**Download player file** beside the report's other download controls.
+File import and the report button use the same data. No maimai.party account
+is needed, and score records remain in your browser.
+See [what the player file does and how to use it](docs/PLAYER_FILE.md), or the
+[complete setup and history guide](docs/MAIMAI_PARTY.md).
 
 ## See the report
 

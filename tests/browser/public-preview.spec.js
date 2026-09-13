@@ -68,7 +68,10 @@ test('disabled developer support stays absent and sealed across every view', asy
     await expect(page.getByRole('tabpanel',{name,exact:true})).toBeVisible();
     await expect(page.locator('.support-card')).toHaveCount(0);
     await expect(page.locator('iframe')).toHaveCount(0);
-    await expect(page.locator('a[href^="http"]')).toHaveCount(0);
+    expect(await page.locator('a[href^="http"]').evaluateAll(links=>links.map(a=>({href:a.href,isolated:a.rel.includes('noopener')})))).toEqual([
+      {href:'https://maimai.party/',isolated:true},
+      {href:'https://github.com/arussin/maimai-session-report/blob/main/docs/PLAYER_FILE.md',isolated:true},
+    ]);
   }
   expect(external).toEqual([]);
 });

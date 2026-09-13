@@ -16,6 +16,7 @@ allowed = {
     "archive",
     "backup",
     "rebuild",
+    "player-backfill",
     "health",
     "release",
     "publish",

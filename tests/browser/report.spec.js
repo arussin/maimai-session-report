@@ -118,7 +118,7 @@ test('score details expose PB comparisons and missing fields without inventing z
   await expect(dialog.locator('.judgement-grid dd')).toHaveText(['—','—','—','—','—']);
   await cleanAxe(page); await noOverflow(page);
   await page.getByRole('button',{name:'Close score details'}).press('Tab');
-  await expect(page.getByRole('button',{name:'Close score details'})).toBeFocused();
+  await expect(dialog.getByRole('link',{name:'Search for this song on maimai.party'})).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(page.getByRole('button',{name:'Close score details'})).toBeFocused();
   await page.keyboard.press('Escape'); await expect(dialog).not.toBeVisible(); await expect(opener).toBeFocused();
@@ -145,7 +145,8 @@ test('uncounted targets open directly and keep the floor-aware estimate', async 
   await page.getByRole('button',{name:'Target details: Synthetic uncounted target',exact:true}).click();
   const dialog=page.locator('.chart-dialog');
   await expect(dialog).toContainText(`96.2000% → 97% · +${expectedGain} est.`);
-  await expect(dialog).toContainText('New 15 floor');
+  await expect(dialog).toContainText(`Reach S for an estimated +${expectedGain} in New 15.`);
+  await expect(dialog).toContainText('applicable rating-pool floor');
   await page.keyboard.press('Escape');
   await page.getByRole('tab',{name:'Targets',exact:true}).click();
   await page.getByRole('button',{name:'Target details: Synthetic uncounted target',exact:true}).click();

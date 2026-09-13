@@ -8,11 +8,11 @@ player data copied from any account.
 from __future__ import annotations
 
 import datetime as dt
-import math
 from copy import deepcopy
 from typing import Any
 
 from ..calculations import build_report_input
+from ..party_recommendations import rating
 
 CURRENT_VERSION = "maimai DX Synthetic Current"
 LEGACY_VERSION = "maimai DX Synthetic Legacy"
@@ -35,7 +35,7 @@ _UNICODE_TITLES = (
 )
 
 
-def _achievement(percent: float, level_num: float) -> dict[str, Any]:
+def _achievement(percent: float, level_num: float, lamp: str = "CLEAR") -> dict[str, Any]:
     """Fictional scores follow the same documented threshold model as the UI."""
     thresholds = (
         (100.5, "SSS+", 22.4),
@@ -46,11 +46,14 @@ def _achievement(percent: float, level_num: float) -> dict[str, Any]:
         (97, "S", 20.0),
         (94, "AAA", 17.6),
     )
-    _, grade, coefficient = next(item for item in thresholds if percent >= item[0])
+    _, grade, _ = next(item for item in thresholds if percent >= item[0])
+    if lamp == "ALL PERFECT" and percent < 100:
+        lamp = "FULL COMBO+"
     return {
         "percent": round(percent, 4),
         "grade": grade,
-        "rate": math.floor(level_num * min(percent, 100.5) / 100 * coefficient),
+        "rate": rating(round(percent * 10000), round(level_num * 10), lamp),
+        "lamp": lamp,
     }
 
 
@@ -79,8 +82,7 @@ def _record(index: int, *, current: bool) -> dict[str, Any]:
         "level": str(int(level_num)) + ("+" if round(level_num % 1, 1) >= 0.7 else ""),
         "levelNum": level_num,
         "displayVersion": CURRENT_VERSION if current else LEGACY_VERSION,
-        **_achievement(percent, level_num),
-        "lamp": _LAMPS[index % len(_LAMPS)],
+        **_achievement(percent, level_num, _LAMPS[index % len(_LAMPS)]),
         "fast": fast,
         "slow": slow,
         "miss": index % 3,

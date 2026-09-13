@@ -92,6 +92,12 @@ class CLITests(unittest.TestCase):
                     self.assertIs(report_data(html)["support"], expected)
                     if not expected:
                         self.assertNotIn(b"http://", html)
+                        public_links = (
+                            b"https://maimai.party",
+                            b"https://github.com/arussin/maimai-session-report/blob/main/docs/PLAYER_FILE.md",
+                        )
+                        for link in public_links:
+                            html = html.replace(link, b"")
                         self.assertNotIn(b"https://", html)
                     network.assert_not_called()
 
@@ -175,7 +181,15 @@ class CLITests(unittest.TestCase):
                 )
             self.assertEqual(code, cli.EXIT_OK)
             self.assertIs(report_data(output.read_bytes())["support"], False)
-            self.assertNotIn("https://", output.read_text(encoding="utf-8"))
+            self.assertNotIn(
+                "https://",
+                output.read_text(encoding="utf-8")
+                .replace("https://maimai.party", "")
+                .replace(
+                    "https://github.com/arussin/maimai-session-report/blob/main/docs/PLAYER_FILE.md",
+                    "",
+                ),
+            )
             network.assert_not_called()
 
     def test_offline_doctor_never_constructs_a_client_or_syncs(self) -> None:
