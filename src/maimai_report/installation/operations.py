@@ -9,6 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ..artwork import prepare_jackets
+from ..capture import capture_existing, write_capture
 from ..cli import _player
 from ..history.bundle import prepare_capture, report_data
 from ..history.cloudflare import D1, R2, Cloudflare, required
@@ -79,6 +80,24 @@ def sync(instance: Instance, source: Path) -> None:
     )
     result = synchronize(replace(instance.app, output_dir=source), environ=os.environ)
     write_sync_result(result, source)
+
+
+def capture(
+    instance: Instance, source: Path, session_id: str, baseline: Path | None = None
+) -> None:
+    instance.validate("capture")
+    check(
+        not source.exists() or not any(source.iterdir()), "Capture needs an empty output directory"
+    )
+    selection = (
+        {"latest": True}
+        if session_id == "latest"
+        else ({"pb_snapshot": True} if session_id == "pb-snapshot" else {"session_id": session_id})
+    )
+    result = capture_existing(
+        replace(instance.app, output_dir=source), baseline_path=baseline, **selection
+    )
+    write_capture(result, source)
 
 
 def render_capture(instance: Instance, source: Path, *, fetch_artwork: bool = False) -> dict:
@@ -231,7 +250,15 @@ def retained_report_matches(source: Path) -> None:
     """Ensure a publishable artifact contains the same analytical input, not a stale HTML."""
     original = read_json(source / "report-input.json")
     displayed = report_data((source / "maimai-report.html").read_bytes())
-    for key in ("before", "after", "session", "currentNewDisplayVersions"):
+    for key in (
+        "before",
+        "after",
+        "delta",
+        "session",
+        "currentNewDisplayVersions",
+        "capture",
+        "comparison",
+    ):
         # Enrichment adds complete pool records; compare each retained analytical field.
         value = original.get(key)
         if isinstance(value, dict):

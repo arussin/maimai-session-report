@@ -2,9 +2,24 @@ name: Build private report artifact
 
 on:
   workflow_dispatch:
+    inputs:
+      source:
+        description: Report source
+        type: choice
+        default: myt
+        options: [myt, kamaitachi]
+      session-id:
+        description: For Kamaitachi, enter a session ID, latest, or pb-snapshot
+        type: string
+        default: ''
+      baseline-run:
+        description: Optional earlier report run containing baseline.json
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: maimai-report-live-sync
@@ -48,11 +63,20 @@ jobs:
 
       - name: Validate required secret and repository variables
         env:
-          KAMAITACHI_API_TOKEN: ${{ secrets.KAMAITACHI_API_TOKEN }}
+          KAMAITACHI_API_TOKEN: ${{ inputs.source != 'kamaitachi' && secrets.KAMAITACHI_API_TOKEN || '' }}
+          MAIMAI_SOURCE: ${{ inputs.source }}
+          MAIMAI_SESSION: ${{ inputs.session-id }}
+          MAIMAI_BASELINE_RUN: ${{ inputs.baseline-run }}
         shell: bash
         run: |
           missing=()
-          [[ -n "$KAMAITACHI_API_TOKEN" ]] || missing+=(KAMAITACHI_API_TOKEN)
+          if [[ "$MAIMAI_SOURCE" == kamaitachi ]]; then
+            [[ "$MAIMAI_SESSION" =~ ^[A-Za-z0-9_-]{1,128}$ ]] || { echo 'Choose a Kamaitachi session ID, latest, or pb-snapshot' >&2; exit 2; }
+            [[ -z "$MAIMAI_BASELINE_RUN" || "$MAIMAI_BASELINE_RUN" =~ ^[1-9][0-9]{0,19}$ ]] || { echo 'Choose a numeric baseline run' >&2; exit 2; }
+          else
+            [[ -z "$MAIMAI_SESSION" && -z "$MAIMAI_BASELINE_RUN" ]] || { echo 'Session and baseline selection require source: kamaitachi' >&2; exit 2; }
+            [[ -n "$KAMAITACHI_API_TOKEN" ]] || missing+=(KAMAITACHI_API_TOKEN)
+          fi
           [[ -n "$MAIMAI_REPORT_USERNAME" ]] || missing+=(MAIMAI_REPORT_USERNAME)
           [[ -n "$MAIMAI_REPORT_DISPLAY_NAME" ]] || missing+=(MAIMAI_REPORT_DISPLAY_NAME)
           [[ -n "$MAIMAI_REPORT_TIMEZONE" ]] || missing+=(MAIMAI_REPORT_TIMEZONE)
@@ -71,9 +95,35 @@ jobs:
         run: maimai-report doctor
 
       - name: Start exactly one import, wait over SSE, and render
+        if: ${{ inputs.source != 'kamaitachi' }}
         env:
           KAMAITACHI_API_TOKEN: ${{ secrets.KAMAITACHI_API_TOKEN }}
         run: maimai-report sync-and-render --output actions-output/report.html
+
+      - name: Read an earlier report baseline
+        if: ${{ inputs.source == 'kamaitachi' && inputs.baseline-run != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: maimai-report
+          path: .maimai/baseline-source
+          run-id: ${{ inputs.baseline-run }}
+          github-token: ${{ github.token }}
+
+      - name: Generate from existing Kamaitachi scores
+        if: ${{ inputs.source == 'kamaitachi' }}
+        env:
+          MAIMAI_SESSION: ${{ inputs.session-id }}
+          MAIMAI_BASELINE_RUN: ${{ inputs.baseline-run }}
+        shell: bash
+        run: |
+          extra=()
+          if [[ -n "$MAIMAI_BASELINE_RUN" ]]; then extra+=(--baseline .maimai/baseline-source/baseline.json); fi
+          case "$MAIMAI_SESSION" in
+            latest) extra+=(--latest) ;;
+            pb-snapshot) extra+=(--pb-snapshot) ;;
+            *) extra+=(--session-id "$MAIMAI_SESSION") ;;
+          esac
+          maimai-report from-kamaitachi --output actions-output/report.html "${extra[@]}"
 
       - name: Store short-lived private result
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

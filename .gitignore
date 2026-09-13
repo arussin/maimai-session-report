@@ -23,6 +23,9 @@ actions-downloads/
 *-recent-scores.json
 report-input.json
 metadata.json
+baseline.json
+*.baseline.json
+kamaitachi-session.json
 api-response*.json
 
 # Python

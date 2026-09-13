@@ -30,8 +30,8 @@ and a hostname. You can add it after you have a local report working.
   and tokens are owner steps; this project does not automate them.
 - A Cloudflare Access application protecting your complete report prefix, including
   the bare prefix, history and downloads. Test it signed out before publishing.
-- A working Kamaitachi/MYT integration if you want to capture new sessions. See
-  the [account prerequisites](../README.md#account-and-myt-prerequisites).
+- Kamaitachi scores supplied by either the [official-network importer](KAMAITACHI.md)
+  or a working [MYT integration](../README.md#account-and-myt-prerequisites).
 - GitHub-hosted Linux runners use Python 3.13 and Node 22. Local report generation
   supports Python 3.11+. R2 operations install the pinned `history` extra; jacket
   preparation uses the `artwork` extra. The optional B50 adapter uses pinned
@@ -324,3 +324,9 @@ current [Worker limits](https://developers.cloudflare.com/workers/platform/limit
 and your Cloudflare billing notifications; a CPU limit does not cap storage or
 request charges. Stop new refreshes/publications while investigating unexpected
 usage, without deleting the backup needed for recovery.
+
+## Existing Kamaitachi sessions
+
+The Refresh workflow also supports `source: kamaitachi` with a session ID,
+`latest`, or `pb-snapshot`, and an optional earlier `baseline-run`. See the
+[official-network guide](KAMAITACHI.md) for setup and comparison semantics.

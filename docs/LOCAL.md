@@ -1,5 +1,9 @@
 # Local use and command reference
 
+For official-network imports without MYT, use the [Kamaitachi session workflow](KAMAITACHI.md).
+It adds `sessions`, `snapshot`, and `from-kamaitachi`. The MYT instructions below
+describe starting an import directly from this report.
+
 Use this guide after the [project quickstart](../README.md). The local workflow needs only Python 3.11+ and, for live sync, your own configured Kamaitachi account. Hosted history and deployment are optional; see [installation](INSTALLATION.md).
 
 ## Five-command offline demo

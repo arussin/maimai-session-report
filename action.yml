@@ -1,7 +1,16 @@
 name: Build private maimai report
-description: Run one explicit Kamaitachi/MYT sync and render a private self-contained report
+description: Import from MYT or read an existing Kamaitachi session and render a private report
 
 inputs:
+  source:
+    description: myt to import, or kamaitachi to read an existing session
+    default: myt
+  session-id:
+    description: Existing session ID, latest, or pb-snapshot; required for kamaitachi
+    default: ''
+  baseline:
+    description: Optional local pre-session baseline.json for kamaitachi
+    default: ''
   output:
     description: Report HTML path relative to the caller workspace
     required: false
@@ -41,10 +50,20 @@ runs:
 
     - name: Validate required secret and configuration
       shell: bash
+      env:
+        MAIMAI_ACTION_SOURCE: ${{ inputs.source }}
+        MAIMAI_ACTION_SESSION: ${{ inputs.session-id }}
+        MAIMAI_ACTION_BASELINE: ${{ inputs.baseline }}
       run: |
         set -euo pipefail
         missing=()
-        [[ -n "${KAMAITACHI_API_TOKEN:-}" ]] || missing+=(KAMAITACHI_API_TOKEN)
+        case "$MAIMAI_ACTION_SOURCE" in
+          myt)
+            [[ -z "$MAIMAI_ACTION_SESSION" && -z "$MAIMAI_ACTION_BASELINE" ]] || { echo 'Session and baseline require source: kamaitachi' >&2; exit 2; }
+            [[ -n "${KAMAITACHI_API_TOKEN:-}" ]] || missing+=(KAMAITACHI_API_TOKEN) ;;
+          kamaitachi) [[ "$MAIMAI_ACTION_SESSION" =~ ^[A-Za-z0-9_-]{1,128}$ ]] || { echo 'Choose a Kamaitachi session ID, latest, or pb-snapshot' >&2; exit 2; } ;;
+          *) echo 'source must be myt or kamaitachi' >&2; exit 2 ;;
+        esac
         [[ -n "${MAIMAI_REPORT_USERNAME:-}" ]] || missing+=(MAIMAI_REPORT_USERNAME)
         [[ -n "${MAIMAI_REPORT_DISPLAY_NAME:-}" ]] || missing+=(MAIMAI_REPORT_DISPLAY_NAME)
         [[ -n "${MAIMAI_REPORT_TIMEZONE:-}" ]] || missing+=(MAIMAI_REPORT_TIMEZONE)
@@ -70,11 +89,14 @@ runs:
       shell: bash
       run: python -m pip install --disable-pip-version-check --only-binary=:all: Pillow==12.3.0
 
-    - name: Start exactly one import, wait over SSE, and render
+    - name: Generate the selected report
       shell: bash
       env:
         MAIMAI_ACTION_OUTPUT: ${{ inputs.output }}
         MAIMAI_ACTION_ARTWORK: ${{ inputs.artwork }}
+        MAIMAI_ACTION_SOURCE: ${{ inputs.source }}
+        MAIMAI_ACTION_SESSION: ${{ inputs.session-id }}
+        MAIMAI_ACTION_BASELINE: ${{ inputs.baseline }}
       run: |
         set -euo pipefail
         extra=()
@@ -83,7 +105,17 @@ runs:
           false) ;;
           *) echo 'artwork must be true or false' >&2; exit 2 ;;
         esac
-        python -m maimai_report sync-and-render --output "$MAIMAI_ACTION_OUTPUT" "${extra[@]}"
+        if [[ "$MAIMAI_ACTION_SOURCE" == kamaitachi ]]; then
+          case "$MAIMAI_ACTION_SESSION" in
+            latest) extra+=(--latest) ;;
+            pb-snapshot) extra+=(--pb-snapshot) ;;
+            *) extra+=(--session-id "$MAIMAI_ACTION_SESSION") ;;
+          esac
+          if [[ -n "$MAIMAI_ACTION_BASELINE" ]]; then extra+=(--baseline "$MAIMAI_ACTION_BASELINE"); fi
+          python -m maimai_report from-kamaitachi --output "$MAIMAI_ACTION_OUTPUT" "${extra[@]}"
+        else
+          python -m maimai_report sync-and-render --output "$MAIMAI_ACTION_OUTPUT" "${extra[@]}"
+        fi
 
     - name: Publish action output path
       id: result

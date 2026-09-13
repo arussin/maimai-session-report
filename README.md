@@ -8,10 +8,10 @@ close to the next rating gain. Four interactive views cover your scorecard,
 scores, rating pools and practice targets, with search, score details and a
 mobile layout.
 
-Start with the fictional offline demo below. For your own scores, the CLI reads
-Kamaitachi personal bests and recent plays, requests one already-configured MYT
-import, waits over server-sent events, and reads the results once. Sync happens
-only when you explicitly request it.
+Start with the fictional offline demo below. For your own scores, choose an
+existing MYT sync or [generate from an already imported Kamaitachi session](docs/KAMAITACHI.md).
+Official-network players can use the maimai DX NET recent-score importer, then
+generate a report without MYT. The existing-session path makes read-only requests.
 
 Reports contain personal play history. Keep your output and any runner repository
 private. Default reports have embedded data, CSS and JavaScript, with no browser
@@ -69,7 +69,8 @@ same file yourself with the five commands below.
 | I want to… | Start here | Accounts needed |
 | --- | --- | --- |
 | Try the report | Five commands below | None |
-| Generate my report locally | [Local setup](docs/LOCAL.md#personalize-configtoml) | Your configured Kamaitachi/MYT account |
+| Generate my report locally with MYT | [Local setup](docs/LOCAL.md#personalize-configtoml) | Your configured Kamaitachi/MYT account |
+| Generate from official-network plays | [Kamaitachi session setup](docs/KAMAITACHI.md) | Your Kamaitachi account with imported recent plays |
 | Run manually in GitHub Actions and download a report | [Private artifact workflow](docs/LOCAL.md#github-actions-private-artifact-mode) | A **private copy** and a Kamaitachi secret |
 | Keep a protected site and session history | [Hosted installation](docs/INSTALLATION.md) | A private runner, Cloudflare and your own protected hostname |
 

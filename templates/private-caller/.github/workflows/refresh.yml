@@ -1,6 +1,20 @@
 name: Refresh maimai session
 on:
   workflow_dispatch:
+    inputs:
+      source:
+        description: Report source
+        type: choice
+        default: myt
+        options: [myt, kamaitachi]
+      session-id:
+        description: For Kamaitachi, enter a session ID, latest, or pb-snapshot
+        type: string
+        default: ''
+      baseline-run:
+        description: Optional earlier capture run containing baseline.json
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -23,8 +37,10 @@ jobs:
       - id: capture
         uses: arussin/maimai-session-report/installation@__CORE_SHA__ # installed release
         with:
-          operation: sync
-          kamaitachi-token: ${{ secrets.KAMAITACHI_API_TOKEN }}
+          operation: ${{ inputs.source == 'kamaitachi' && 'capture' || 'sync' }}
+          session-id: ${{ inputs.session-id }}
+          baseline-run: ${{ inputs.baseline-run }}
+          kamaitachi-token: ${{ inputs.source != 'kamaitachi' && secrets.KAMAITACHI_API_TOKEN || '' }}
   archive:
     needs: capture
     if: ${{ always() && needs.capture.result != 'skipped' }}

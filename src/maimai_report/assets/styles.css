@@ -641,3 +641,4 @@ select:focus-visible { outline: 3px solid var(--aqua-deep); outline-offset: 3px;
   .chart-dialog, .pool-controls { display: none !important; }
   .rating-plaque { print-color-adjust: exact; }
 }
+.capture-context { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: 12px; background: #f1f5fa; color: #334155; line-height: 1.5; }

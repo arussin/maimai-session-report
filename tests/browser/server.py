@@ -17,6 +17,10 @@ ALLOWED = {
         "custom-badges",
         "score-sort",
         "score-sort-levels",
+        "kama-missing",
+        "kama-partial",
+        "kama-snapshot",
+        "kama-lamp",
     )
 }
 ALLOWED["/synthetic-b50.webp"] = ("synthetic-b50.webp", "image/webp")

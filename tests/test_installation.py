@@ -264,6 +264,14 @@ class InstallationTests(unittest.TestCase):
             {"INSTANCE_OPERATION": "health", "INSTANCE_PRIVATE": "false"},
             {"INSTANCE_OPERATION": "release"},
             {"INSTANCE_OPERATION": "render", "INSTANCE_SOURCE_RUN": "not-a-run"},
+            {"INSTANCE_OPERATION": "capture"},
+            {"INSTANCE_OPERATION": "capture", "INSTANCE_SESSION_ID": "../scores"},
+            {
+                "INSTANCE_OPERATION": "capture",
+                "INSTANCE_SESSION_ID": "latest",
+                "INSTANCE_BASELINE_RUN": "not-a-run",
+            },
+            {"INSTANCE_OPERATION": "sync", "INSTANCE_SESSION_ID": "latest"},
             {"INSTANCE_OPERATION": "verify-fresh"},
             {
                 "INSTANCE_OPERATION": "verify-fresh",
@@ -298,6 +306,20 @@ class InstallationTests(unittest.TestCase):
             capture_output=True,
         )
         self.assertEqual(approved.returncode, 0, approved.stderr)
+
+        for session in ("external-session", "latest", "pb-snapshot"):
+            read_only = subprocess.run(  # noqa: S603 -- fixed script and synthetic env
+                [sys.executable, str(ROOT / "installation/check-inputs.py")],
+                env={
+                    **env,
+                    "INSTANCE_OPERATION": "capture",
+                    "INSTANCE_SESSION_ID": session,
+                    "INSTANCE_BASELINE_RUN": "123",
+                    "GITHUB_RUN_ATTEMPT": "2",
+                },
+                capture_output=True,
+            )
+            self.assertEqual(read_only.returncode, 0, read_only.stderr)
 
 
 if __name__ == "__main__":
