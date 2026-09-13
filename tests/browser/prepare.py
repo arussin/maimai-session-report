@@ -13,6 +13,8 @@ from PIL import Image, ImageDraw
 
 from maimai_report.badges import export_badge_pack
 from maimai_report.fixtures import load_scenario
+from maimai_report.fixtures.synthetic import CURRENT_VERSION, _raw_record
+from maimai_report.party_recommendations import rating
 from maimai_report.render import build_html, enrich_report, render_demo
 
 ROOT = Path(__file__).parent / "generated"
@@ -74,21 +76,25 @@ report["session"]["scores"][0].update(
     fast=None, slow=None, pcrit=None, perfect=None, great=None, good=None, miss=None
 )
 # A fictional, uncounted threshold candidate exercises direct target navigation.
-report["after"]["newPool"].append(
-    {
-        "songID": "synthetic-target",
-        "chartID": "synthetic-target-chart",
-        "title": "Synthetic uncounted target",
-        "artist": "Test Artist",
-        "difficulty": "DX MASTER",
-        "level": "15",
-        "levelNum": 15.2,
-        "percent": 96.2,
-        "grade": "AAA",
-        "rate": 260,
-        "displayVersion": "Synthetic Current",
-    }
-)
+target = {
+    **report["after"]["newPool"][0],
+    "songID": "synthetic-target",
+    "chartID": "synthetic-target-chart",
+    "title": "Synthetic uncounted target",
+    "artist": "Test Artist",
+    "difficulty": "DX MASTER",
+    "level": "15",
+    "levelNum": 15.2,
+    "percent": 96.2,
+    "grade": "AAA",
+    "rate": rating(962000, 152, "CLEAR"),
+    "lamp": "CLEAR",
+    "displayVersion": CURRENT_VERSION,
+}
+pb, chart, song = _raw_record(target)
+for key, row in (("pbs", pb), ("charts", chart), ("songs", song)):
+    pbs["body"][key].append(row)
+report = enrich_report(report, pbs)
 save("presentation", report)
 runpy.run_path(str(Path(__file__).with_name("prepare-score-sort.py")), run_name="__main__")
 runpy.run_path(str(Path(__file__).with_name("prepare-kamaitachi.py")))["generate"](save)

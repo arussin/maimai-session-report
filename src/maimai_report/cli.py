@@ -288,7 +288,7 @@ def _doctor(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
     if config.support_enabled:
         checks.append(("Developer support", "enabled; in-page checkout loads only after a click"))
     else:
-        checks.append(("Developer support", "disabled; report remains fully sealed"))
+        checks.append(("Developer support", "disabled; external checkout is blocked"))
 
     if args.network:
         token = get_api_token(environ, required=True)

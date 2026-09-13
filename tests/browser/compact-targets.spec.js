@@ -12,9 +12,9 @@ test('Scorecard and Targets share concise rows and unchanged floor-aware opportu
   await page.goto('/presentation.html');
   const before = await page.locator('#report-data').textContent();
   const overview = page.locator('#overview-view .target-list');
-  // Authored fixture: floor 278; S ratings 294 and 291, respectively.
+  // Authored fixture: floor 278; S rating 294, then a 302 → 315 SSS+ opportunity.
   await expect(overview.locator('.target-estimate')).toHaveText(['+16 est.', '+13 est.']);
-  await expect(overview.locator('.target-progress')).toHaveText(['PB 96.2000% → 97% S', 'PB 96.4200% → 97% S']);
+  await expect(overview.locator('.target-progress')).toHaveText(['PB 96.2000% → 97% S', 'PB 100.1500% → 100.5% SSS+']);
   const rows = await overview.innerHTML();
   await page.getByRole('tab', {name:'Targets', exact:true}).click();
   expect(await page.locator('#targets-view .target-list').innerHTML()).toBe(rows);
@@ -23,7 +23,7 @@ test('Scorecard and Targets share concise rows and unchanged floor-aware opportu
   await expect(page.locator('#targets-view .practice-note')).toContainText('Practice idea');
   await expect(page.locator('#targets-view .practice-note')).toContainText('Aim for 97–99%');
   await expect(page.locator('#targets-view')).not.toContainText('Coach’s read');
-  await expect(page.locator('#targets-view .pool-threshold-note')).toContainText('New 15 floor · 278');
+  await expect(page.locator('#targets-view .pool-threshold-note')).toContainText('Old 35: 258 · New 15: 278');
   const opener = page.locator('#targets-view .target-row').first();
   await opener.click();
   await expect(page.locator('.chart-dialog')).toContainText('Synthetic uncounted target');
@@ -43,21 +43,21 @@ test('no new session retains prior targets; no eligible candidates is explicit; 
   await page.goto('/empty.html');
   await page.getByRole('tab', {name:'Targets', exact:true}).click();
   // The bundled empty scenario has no new plays, but still retains earlier PBs.
-  await expect(page.locator('#targets-view .target-estimate')).toHaveText(['+13 est.', '+9 est.']);
+  await expect(page.locator('#targets-view .target-estimate')).toHaveText(['+13 est.', '+13 est.']);
   await expect(page.locator('#targets-view .practice-note')).toHaveCount(0);
   const html = (await readFile(new URL('generated/empty.html', import.meta.url), 'utf8'))
     .replace(/(<script id="report-data"[^>]*>)(.*?)(<\/script>)/s, (_, open, json, close) => {
       const model = JSON.parse(json);
-      // Exclude the two uncounted near-S records from this authored catalog;
-      // preserve counted pools, ratings and the empty session unchanged.
-      model.after.newPool = model.after.newPool.filter(item => item.percent >= 97);
+      // Exercise a prepared snapshot with no eligible recommendations while
+      // preserving the empty session and its historical score display.
+      model.partyRecommendations.rating = [];
       return open + JSON.stringify(model).replace(/</g, '\\u003c') + close;
     });
   await page.route('**/no-targets.html', route => route.fulfill({contentType:'text/html', body:html}));
   await page.goto('/no-targets.html');
   await page.getByRole('tab', {name:'Targets', exact:true}).click();
   await expect(page.locator('#targets-view .target-row')).toHaveCount(0);
-  await expect(page.locator('#targets-view')).toContainText('No positive-gain S-threshold targets');
+  await expect(page.locator('#targets-view')).toContainText('No positive-gain grade targets within 2.5%');
   await expect(page.locator('#targets-view .practice-note')).toHaveCount(0);
   await page.goto('/complete.html');
   await page.getByRole('tab', {name:'Targets', exact:true}).click();

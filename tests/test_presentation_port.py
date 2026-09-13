@@ -21,7 +21,7 @@ class PresentationPortTests(unittest.TestCase):
         # the support assets retain their original published hashes.
         expected = {
             "styles.css": "70a0716bab0b22b9e53793f50570d4e48b87ad15",
-            "app.js": "5cf09f8bd5e22ef5616e15841ecb4bc76b76cb21",
+            "app.js": "cab007d18b55068c4572cc742f982518edbfc351",
             "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
             "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }
@@ -46,7 +46,7 @@ class PresentationPortTests(unittest.TestCase):
                         )
                         self.assertLessEqual(len(state[key]), size)
                         for row in state[key]:
-                            expected = _achievement(row["percent"], row["levelNum"])
+                            expected = _achievement(row["percent"], row["levelNum"], row["lamp"])
                             self.assertEqual(row["rate"], expected["rate"])
                             self.assertEqual(row["grade"], expected["grade"])
                     self.assertEqual(

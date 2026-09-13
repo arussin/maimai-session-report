@@ -61,7 +61,7 @@ jobs:
       - name: Validate sealed reports and the exact checkout origin allowance
         run: |
           python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; files = list(Path('ci-output').glob('*.html')); assert len(files) == 3; [validate_generated_html(path.read_text(encoding='utf-8')) for path in files]"
-          python -c "from pathlib import Path; import re; assert not re.search(r'https?://', Path('ci-output/sealed-report.html').read_text(encoding='utf-8'), re.I)"
+          python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; html = Path('ci-output/sealed-report.html').read_text(encoding='utf-8'); validate_generated_html(html); assert \"frame-src 'none'\" in html; assert 'support-checkout-dialog' not in html"
 
   cloudflare-adapter:
     name: Optional Cloudflare adapter

@@ -662,11 +662,12 @@
   chartDialog.addEventListener("keydown", event=>{
     if (event.key !== "Tab") return;
     const controls = [...chartDialog.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.getClientRects().length);
-    const first = controls[0], last = controls[controls.length-1];
-    if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
-      event.preventDefault();
-      (event.shiftKey ? last : first)?.focus();
-    }
+    if (!controls.length) return;
+    // Include public chart links even where the browser's native Tab order
+    // skips links, and keep every step inside the modal.
+    const index = controls.indexOf(document.activeElement);
+    event.preventDefault();
+    controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length].focus();
   });
 
 })();

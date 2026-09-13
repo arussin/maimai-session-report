@@ -1,6 +1,6 @@
 """Report-owned target selection using the upstream public comparison API."""
 
-from ._party.player_data import current
+from ._party.player_data import current, number
 from ._party.public_matching import ComparisonIndex
 
 POLICY = "kamaitachi-maimaidx-f08148f-v1"
@@ -144,9 +144,10 @@ def prepare(data, catalog=None, session_scores=()):
     # The selected session is preferred. PB-only reports use retained attempts,
     # then dated PBs. None of these sources imply calibrated reachability.
     anchor_rows = [
-        (s.get("timeAchieved") or 0, s.get("chartID"), round(s["percent"] * 10000))
+        (number(s.get("timeAchieved")) or 0, s.get("chartID"), achievement)
         for s in session_scores
-        if s.get("percent") is not None and s["percent"] >= 97
+        for achievement in [number(s.get("percent"), 10000)]
+        if achievement is not None and 970000 <= achievement <= 1010000
     ]
     if not anchor_rows:
         anchor_rows = [

@@ -31,6 +31,32 @@ def dataset(*, when=None, player=None):
 
 
 class PlayerDataTests(unittest.TestCase):
+    def test_demo_scores_support_real_grade_targets(self):
+        for scenario in ("complete", "empty", "incomplete"):
+            report, payload = load_scenario(scenario)
+            result = recommendations(from_documents(report, payload))
+            self.assertTrue(result["ratingCompatible"], scenario)
+            self.assertTrue(result["rating"], scenario)
+
+    def test_retained_display_fields_do_not_break_recommendation_rendering(self):
+        report, payload = load_scenario("complete")
+        report = enrich_report(report, payload)
+        original = deepcopy(report["session"]["scores"][0])
+        report["session"]["scores"] = [
+            {**original, "percent": percent, "timeAchieved": when}
+            for percent, when in [
+                ("99.5", "unknown"),
+                ("invalid", None),
+                (99.5, "unknown"),
+                (98, 1),
+            ]
+        ]
+        before = deepcopy(report)
+        html = build_html(report)
+        self.assertIn("partyRecommendations", html)
+        self.assertIn('"percent":"invalid"', html)
+        self.assertEqual(report, before)
+
     def test_profile_uses_recorded_pool_rating_and_distinct_source_sessions(self):
         report, payload = load_scenario("complete")
         report["capture"] = {"kind": "session", "sessionID": "retained-session"}
