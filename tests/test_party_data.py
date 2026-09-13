@@ -31,6 +31,23 @@ def dataset(*, when=None, player=None):
 
 
 class PlayerDataTests(unittest.TestCase):
+    def test_legacy_session_summary_reuses_the_richer_retained_source_play(self):
+        report, payload = load_scenario("complete")
+        report = enrich_report(report, payload)
+        raw = {**report["session"]["scores"][0], "scoreID": "retained-source", "maxCombo": 100}
+        summary = {k: v for k, v in raw.items() if k not in ("scoreID", "maxCombo")}
+        report["session"]["scores"] = [summary]
+        data = from_documents(
+            report,
+            payload,
+            documents={
+                "before-recent-scores.json": {"scores": [raw]},
+                "after-recent-scores.json": {"scores": [raw]},
+            },
+        )
+        self.assertEqual(list(data["plays"]), ["retained-source"])
+        self.assertEqual(data["records"][data["plays"]["retained-source"]]["maxCombo"], 100)
+
     def test_demo_scores_support_real_grade_targets(self):
         for scenario in ("complete", "empty", "incomplete"):
             report, payload = load_scenario(scenario)

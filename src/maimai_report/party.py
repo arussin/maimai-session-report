@@ -236,7 +236,7 @@ def from_documents(report, after_payload=None, *, documents=None, player=None):
         "snapshotIDs": sorted(snapshot_ids),
     }
     data["captures"][core.digest(capture)] = capture
-    return core.seal(data)
+    return core.reconcile(core.seal(data))
 
 
 def documents_from_directory(path):

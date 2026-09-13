@@ -314,6 +314,66 @@ def observation_dates(data):
     return dates
 
 
+def reconcile(data):
+    """Resolve a legacy summary only against one source play in the same capture.
+
+    Matching timestamps/scores alone never merge distinct source IDs. Missing
+    optional summary fields can match richer source data; conflicting or
+    ambiguous evidence remains separate. Original observations stay retained.
+    """
+    proposals, blocked = {}, set()
+    legacy = re.compile(r"legacy:[a-f0-9]{64}\Z")
+    for capture in data["captures"].values():
+        groups = {}
+        for pid in capture["playIDs"]:
+            record = data["records"][data["plays"][pid]]
+            if not record["timeAchieved"] or record["achievement"] is None:
+                continue
+            key = (record["chartID"], record["timeAchieved"], record["achievement"])
+            groups.setdefault(key, ([], []))[bool(legacy.fullmatch(pid))].append(pid)
+        for sources, summaries in groups.values():
+            # Bound ambiguous comparisons without discarding any evidence.
+            if len(sources) > 64 or len(summaries) > 64:
+                blocked.update(summaries)
+                continue
+            matches = {}
+            for pid in summaries:
+                weak = data["records"][data["plays"][pid]]
+                candidates = [
+                    source
+                    for source in sources
+                    if all(
+                        value in (None, "")
+                        or value == data["records"][data["plays"][source]][field]
+                        for field, value in weak.items()
+                    )
+                ]
+                if len(candidates) == 1:
+                    matches.setdefault(candidates[0], []).append(pid)
+                elif len(candidates) > 1:
+                    blocked.add(pid)
+            for source, ids in matches.items():
+                if len(ids) == 1:
+                    proposals.setdefault(ids[0], set()).add(source)
+                else:
+                    blocked.update(ids)
+    aliases = {
+        pid: next(iter(ids))
+        for pid, ids in proposals.items()
+        if len(ids) == 1 and pid not in blocked
+    }
+    if not aliases:
+        return data
+    result = deepcopy(data)
+    for pid in aliases:
+        del result["plays"][pid]
+    result["captures"] = {}
+    for capture in data["captures"].values():
+        updated = {**capture, "playIDs": sorted({aliases.get(p, p) for p in capture["playIDs"]})}
+        result["captures"][digest(updated)] = updated
+    return seal(result)
+
+
 def merge(*datasets):
     if not datasets:
         raise ValueError("No player data supplied")
@@ -342,7 +402,7 @@ def merge(*datasets):
                     canonical(old),
                 ):
                     result[name][key] = deepcopy(value)
-    return seal(result)
+    return reconcile(seal(result))
 
 
 def encode(data):
