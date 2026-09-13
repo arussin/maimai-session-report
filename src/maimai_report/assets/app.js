@@ -472,7 +472,7 @@
       <button id="tab-session" class="tab" role="tab" aria-selected="false" aria-controls="session-view" tabindex="-1" data-target="session"><span>Scores</span></button>
       <button id="tab-pools" class="tab" role="tab" aria-selected="false" aria-controls="pools-view" tabindex="-1" data-target="pools"><span>Rating pools</span></button>
       <button id="tab-targets" class="tab" role="tab" aria-selected="false" aria-controls="targets-view" tabindex="-1" data-target="targets"><span>Targets</span></button>
-    </div><div class="report-downloads">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></nav>`;
+    </div><div class="report-exports"><button id="export-toggle" class="action-button export-toggle" type="button" aria-expanded="false" aria-controls="report-downloads"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/></svg><span>Export</span></button><div id="report-downloads" class="report-downloads" role="group" aria-label="Report exports">${download.href ? `<a id="download-b50" class="action-button" href="${safe(download.href)}" download="${safe(download.filename || "maimai-b50.webp")}">Download B50</a>` : download.unavailable ? `<span id="historical-b50-unavailable" class="action-button" aria-disabled="true">${safe(download.unavailableLabel || "B50 unavailable")}</span>` : '<button id="print-report" class="action-button">Print / Save PDF</button>'}</div></div></nav>`;
   }
 
 
@@ -537,6 +537,46 @@
   document.getElementById("session-search")?.setAttribute("aria-label", "Filter session scores");
   document.getElementById("pool-search")?.setAttribute("aria-label", "Filter rating pools");
   document.getElementById("print-report")?.addEventListener("click", () => window.print());
+
+  const exports = document.querySelector(".report-exports");
+  const exportToggle = document.getElementById("export-toggle");
+  const compactExports = window.matchMedia("(max-width: 1000px)");
+  let exportFocus = null;
+  function setExportsOpen(open, restoreFocus = false) {
+    exports.dataset.expanded = String(open);
+    exportToggle.setAttribute("aria-expanded", String(open));
+    if (restoreFocus) exportToggle.focus();
+  }
+  exportToggle.addEventListener("click", () => setExportsOpen(exportToggle.getAttribute("aria-expanded") !== "true"));
+  exportToggle.addEventListener("keydown", event => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setExportsOpen(true);
+      exports.querySelector(".report-downloads a, .report-downloads button:not([hidden])")?.focus();
+    }
+  });
+  document.addEventListener("focusin", event => {
+    exportFocus = exports.contains(event.target) ? event.target : null;
+  });
+  exports.addEventListener("keydown", event => {
+    if (event.key === "Escape" && exportToggle.getAttribute("aria-expanded") === "true") {
+      event.preventDefault();
+      setExportsOpen(false, true);
+    }
+  });
+  exports.addEventListener("focusout", event => {
+    if (!exports.contains(event.relatedTarget)) setExportsOpen(false);
+  });
+  document.addEventListener("click", event => {
+    if (!exports.contains(event.target)) setExportsOpen(false);
+    else if (compactExports.matches && event.target.closest(".report-downloads a, .report-downloads button")) setExportsOpen(false, true);
+  });
+  compactExports.addEventListener("change", event => {
+    // CSS can hide the focused control before the media-query event arrives.
+    const focused = exportFocus;
+    setExportsOpen(false, event.matches && !!focused);
+    if (!event.matches && focused === exportToggle) exports.querySelector(".report-downloads a, .report-downloads button:not([hidden])")?.focus();
+  });
 
   function filterScores() {
     const query = document.getElementById("session-search").value.trim().toLowerCase();

@@ -1,3 +1,4 @@
+import {openExports} from './export-controls.js';
 import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile} from 'node:fs/promises';
@@ -23,6 +24,7 @@ for (const presentation of ['corrected','original','unavailable']) {
     } else {
       await expect(context.getByRole('status')).toContainText('Corrected version unavailable');
     }
+    await openExports(page);
     await expect(page.getByRole('link',{name:'Download B50',exact:true})).toHaveAttribute('href',`/maimai/history/c/${capture.id}/b50.webp`);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     const axe=await new AxeBuilder({page}).include('.history-context').analyze();

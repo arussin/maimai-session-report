@@ -1,3 +1,4 @@
+import {openExports} from './export-controls.js';
 import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile} from 'node:fs/promises';
@@ -61,6 +62,7 @@ test('no new session retains prior targets; no eligible candidates is explicit; 
   await expect(page.locator('#targets-view .practice-note')).toHaveCount(0);
   await page.goto('/complete.html');
   await page.getByRole('tab', {name:'Targets', exact:true}).click();
+  await openExports(page);
   const pending = page.waitForEvent('download');
   await page.getByRole('link', {name:'Download B50'}).click();
   const downloaded = await pending;

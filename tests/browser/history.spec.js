@@ -1,3 +1,4 @@
+import {openExports} from './export-controls.js';
 import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 const origin='http://127.0.0.1:4181';
@@ -16,6 +17,7 @@ test('history dates open the full retained report and return to latest',async({p
     await tab.click();await expect(tab).toHaveAttribute('aria-selected','true');
     await expect(page).toHaveURL(origin+href);
   }
+  await openExports(page);
   const download=page.getByRole('link',{name:'Download B50',exact:true});
   await expect(download).toHaveAttribute('href',href+'b50.webp');
   const [file]=await Promise.all([page.waitForEvent('download'),download.click()]);
@@ -35,6 +37,7 @@ test('history pagination, unavailable B50, keyboard access and reduced motion',a
   expect(olderIds.every(id=>!firstPageIds.includes(id))).toBeTruthy();
   await page.locator('.capture').last().focus();
   await page.keyboard.press('Enter');
+  await openExports(page);
   await expect(page.getByText('B50 not retained',{exact:true})).toBeVisible();
   await expect(page.getByRole('link',{name:'Download B50',exact:true})).toHaveCount(0);
   await page.getByRole('link',{name:'History',exact:true}).click();

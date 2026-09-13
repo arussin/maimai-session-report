@@ -1,3 +1,4 @@
+import {openExports} from './export-controls.js';
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 
@@ -11,6 +12,7 @@ test('installed Worker keeps the scorecard, complete pools, download and both su
   await expect(page.getByText('SYNTHETIC ALPHA',{exact:true})).toBeVisible();
   await expect(page.getByRole('tab',{name:'Scorecard',exact:true})).toBeVisible();
   expect(external).toEqual([]);
+  await openExports(page);
   const filePromise=page.waitForEvent('download');
   await page.getByRole('link',{name:'Download B50',exact:true}).click();
   const file=await filePromise;

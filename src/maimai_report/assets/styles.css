@@ -54,6 +54,21 @@ button, input, p, h1, h2, h3, strong, span { overflow-wrap: anywhere; }
 .tab:hover { color: var(--aqua-deep); }
 .action-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; color: var(--ink); background: white; border: 1px solid #c1d3d7; border-radius: 6px; font-size: var(--text-label); text-decoration: none; white-space: nowrap; }
 .action-button:hover { background: var(--paper-2); }
+.report-exports { flex: none; }
+.report-downloads { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.export-toggle { display: none; }
+
+/* Keep the header to one action on smaller screens; the same exports remain available. */
+@media (max-width: 1000px) {
+  .report-exports { position: relative; margin-left: auto; }
+  .export-toggle { display: inline-flex; gap: 8px; }
+  .export-toggle svg { flex: none; }
+  .export-toggle[aria-expanded="true"] { background: var(--paper-2); border-color: var(--aqua-deep); }
+  .report-exports .report-downloads { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: min(22rem, 248px); max-width: calc(100vw - 32px); padding: 8px; flex-direction: column; align-items: stretch; gap: 6px; background: white; border: 1px solid #c1d3d7; border-radius: 12px; box-shadow: 0 8px 28px #183b4326; }
+  .report-exports:not([data-expanded="true"]) .report-downloads { display: none; }
+  .report-exports .report-downloads .action-button { flex: 1; justify-content: flex-start; min-height: 44px; padding: 10px 12px; font-size: var(--text-label); text-align: left; white-space: normal; }
+  .report-exports .party-player-help { width: 44px; height: 44px; }
+}
 
 /* One result, then one line of session facts. */
 .session-header { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
