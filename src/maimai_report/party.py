@@ -138,8 +138,34 @@ def compact_payload(payload, key):
             .get("data", {})
             .get("inGameID", row.get("inGameID")),
         )
+        # Keep provenance during export only; it is not part of a score observation.
+        row["composedFrom"] = record.get("composedFrom")
         result.append(row)
     return result
+
+
+def pb_play_id(row, captured_at):
+    """Only a dated, single-source PB describes one recoverable historical play.
+
+    Tachi PBs can combine the percent and lamp from different scores. A date alone
+    cannot turn that composite into a play. One Best Percent reference means all
+    retained score fields came from that source; use its identity, never a saved date.
+    """
+    refs = row.get("composedFrom")
+    when = row.get("timeAchieved")
+    if (
+        not isinstance(refs, list)
+        or len(refs) != 1
+        or not isinstance(refs[0], dict)
+        or refs[0].get("name") != "Best Percent"
+        or not isinstance(refs[0].get("scoreID"), str)
+        or not refs[0]["scoreID"]
+        or type(when) is not int
+        or not 0 < when <= captured_at
+        or core.number(row.get("percent"), 10000) is None
+    ):
+        return None
+    return refs[0]["scoreID"]
 
 
 def from_documents(report, after_payload=None, *, documents=None, player=None):
@@ -149,6 +175,7 @@ def from_documents(report, after_payload=None, *, documents=None, player=None):
     captured = timestamp(source.get("ratingAsOf") or report.get("generatedAt"))
     versions = report.get("currentNewDisplayVersions", [])
     snapshot_ids, play_ids = [], []
+    pb_history = []
 
     def add(item):
         if not item.get("chartID"):
@@ -167,7 +194,9 @@ def from_documents(report, after_payload=None, *, documents=None, player=None):
         when = timestamp(report.get("comparison", {}).get("baselineAt")) or captured
         if baseline.get("capturedAt") and baseline.get("pbsPayload") == before_payload:
             when = timestamp(baseline["capturedAt"])
-        refs = {str(r["chartID"]): add(r) for r in compact_payload(before_payload, "pbs")}
+        before_rows = compact_payload(before_payload, "pbs")
+        refs = {str(r["chartID"]): add(r) for r in before_rows}
+        pb_history.append((when, before_rows))
         snap = {
             "capturedAt": when,
             "phase": "before",
@@ -192,6 +221,7 @@ def from_documents(report, after_payload=None, *, documents=None, player=None):
         )
     )
     refs = {str(r["chartID"]): add(r) for r in rows}
+    pb_history.append((captured, rows))
     snap = {
         "capturedAt": captured,
         "phase": "after",
@@ -236,6 +266,38 @@ def from_documents(report, after_payload=None, *, documents=None, player=None):
         "snapshotIDs": sorted(snapshot_ids),
     }
     data["captures"][core.digest(capture)] = capture
+    # These scores predate their PB snapshot and do not belong to this session.
+    # Keep their provenance separate, including when an actual recent score also
+    # exists. Provider IDs deduplicate repeated snapshots and subsequent imports.
+    raw_play_ids = set(data["plays"])
+    recovered_ids = set()
+    for when, history_rows in sorted(pb_history, key=lambda item: item[0]):
+        for row in history_rows:
+            pid = pb_play_id(row, when)
+            if pid is None:
+                continue
+            ref = add(row)
+            if (
+                pid in data["plays"]
+                and data["records"][data["plays"][pid]]["chartID"] != row["chartID"]
+            ):
+                raise ValueError("A retained source score refers to different charts")
+            if pid not in raw_play_ids:
+                data["plays"][pid] = ref
+            recovered_ids.add(pid)
+    if recovered_ids:
+        history_capture = {
+            "capturedAt": captured,
+            "sourceKind": "pb-history",
+            "sourceID": capture["sourceID"],
+            "sessionID": "",
+            "historyCoverage": "retained-window",
+            # Recent observations in these same documents provide evidence to
+            # reconcile legacy summaries, without attributing older PBs to a session.
+            "playIDs": sorted(recovered_ids | raw_play_ids),
+            "snapshotIDs": [],
+        }
+        data["captures"][core.digest(history_capture)] = history_capture
     return core.reconcile(core.seal(data))
 
 
