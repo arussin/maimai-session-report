@@ -20,7 +20,7 @@ export function createHostedWorker(report, b50, support, installation) {
       if (env.HISTORY_ORIGIN !== installation.origin || env.HISTORY_PREFIX !== prefix || env.HISTORY_SCOPE !== installation.scope) {
         return text('Installation configuration mismatch', 503, request.method);
       }
-      const archived = await handleHistory(request, env, headers, support);
+      const archived = await handleHistory(request, env, headers, support, installation.presentationRevisions || {});
       if (archived) return archived;
       const player = await handlePlayerData(request, env, headers);
       if (player) return player;

@@ -1,5 +1,4 @@
 /* Hosted history reader. All data access stays in the Worker; navigation is ordinary GET. */
-import {streamReport} from './report-stream.js';
 const PAGE_SIZE = 20;
 const MAX_BYTES = 20 * 1024 * 1024;
 const ID = /^[a-f0-9]{64}$/;
@@ -32,8 +31,8 @@ export function historyStream(response, {prefix='/maimai/', capture=null}={}) {
   return rewriter.transform(response);
 }
 
-export function withHistoryNavigation(html, {prefix = '/maimai/', capture = null} = {}) {
-  const context = capture ? `<aside class="history-context" aria-label="Selected historical capture"><p><strong>Archived session · ${esc(date(capture.start_ms ?? capture.sort_ms, capture.timezone))}</strong> · ${number(capture.score_count)} plays</p>${!capture.b50_key ? '<p>B50 image was not retained for this capture.</p>' : ''}</aside>` : '';
+export function withHistoryNavigation(html, {prefix = '/maimai/', capture = null, presentation = null} = {}) {
+  const context = capture ? `<aside class="history-context" aria-label="Selected historical capture"><p><strong>Archived session · ${esc(date(capture.start_ms ?? capture.sort_ms, capture.timezone))}</strong> · ${number(capture.score_count)} plays</p>${!capture.b50_key ? '<p>B50 image was not retained for this capture.</p>' : ''}${presentation ? presentationContext(prefix,capture,presentation) : ''}</aside>` : '';
   html = html.replace('</head>', `<style>${NAV_CSS}</style></head>`).replace(/(<body\b[^>]*>)/i, `$1${nav(prefix, Boolean(capture))}${context}`);
   if (capture) {
     if (html.includes('<script id="download-data"')) {
@@ -46,6 +45,57 @@ export function withHistoryNavigation(html, {prefix = '/maimai/', capture = null
       : '<span id="historical-b50-unavailable" class="action-button history-unavailable" aria-disabled="true">B50 not retained</span>';
     html = html.replace(/<a id="download-b50"[^>]*>Download B50<\/a>|<button id="print-report" class="action-button">Print \/ Save PDF<\/button>/, control);
   }
+  return html;
+}
+
+// Selection is owner-configured and hash-pinned; never discover a "latest" source
+// from bucket listing order. Original publications and index rows remain untouched.
+function presentationContext(prefix, capture, state) {
+  const base = `${esc(prefix)}history/c/${capture.id}/`;
+  if (state === 'corrected') return `<p>Corrected rating contributions · Original scores preserved. <a href="${base}?view=original">Original report</a></p>`;
+  if (state === 'original') return `<p>Original published report. <a href="${base}">Corrected report</a></p>`;
+  return `<p role="status">Corrected version unavailable; showing the original report.</p>`;
+}
+
+const stable = value => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item)
+  ? Object.fromEntries(Object.keys(item).sort().map(key => [key,item[key]])) : item);
+const sha256 = async raw => [...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(b=>b.toString(16).padStart(2,'0')).join('');
+function payload(html) {
+  const match = /<script\b[^>]*\bid=["']report-data["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
+  if (!match) throw Error('Retained presentation data missing');
+  return JSON.parse(match[1]);
+}
+async function manifestBytes(env, key, expectedHash) {
+  const object = await env.HISTORY_OBJECTS.get(key);
+  if (!object || object.size > 1024 * 1024) throw Error('Revision manifest unavailable');
+  const raw = await object.arrayBuffer();
+  if (raw.byteLength > 1024 * 1024 || await sha256(raw) !== expectedHash) throw Error('Revision manifest mismatch');
+  return JSON.parse(new TextDecoder().decode(raw));
+}
+async function correctedHTML(env, capture, hash, originalHTML) {
+  if (typeof hash !== 'string' || !ID.test(hash)) throw Error('Invalid revision selection');
+  const revision = await manifestBytes(env, `captures/${capture.id}/sources/${hash}.json`, hash);
+  const evidence = revision.presentationRevision;
+  if (!evidence || evidence.schemaVersion !== 1 || evidence.reason !== 'corrected-session-rating-contributions' ||
+      !ID.test(evidence.originalPublishedManifestSha256 || '') || evidence.originalReportSha256 !== capture.report_hash ||
+      revision.schemaVersion !== 1 || revision.captureID !== capture.id || revision.scope !== env.HISTORY_SCOPE ||
+      !/^[a-f0-9]{40}$/.test(revision.rendererCommit || '')) throw Error('Revision identity mismatch');
+  const original = await manifestBytes(env, `captures/${capture.id}/published.json`, evidence.originalPublishedManifestSha256);
+  const originalFields = Object.keys(original).filter(k => !['report','files','rendererCommit'].includes(k));
+  if (Object.keys(revision).sort().join() !== [...Object.keys(original),'presentationRevision'].sort().join() ||
+      originalFields.some(k => stable(original[k]) !== stable(revision[k])) ||
+      original.report?.key !== capture.report_key || original.report?.sha256 !== capture.report_hash ||
+      (original.b50?.key || null) !== (capture.b50_key || null) ||
+      (original.b50?.sha256 || null) !== (capture.b50_hash || null)) throw Error('Revision changed original metadata');
+  const extra = `renders/${revision.rendererCommit}/report.html`;
+  if (!original.files || !revision.files || Object.hasOwn(original.files,extra) ||
+      Object.keys(revision.files).length !== Object.keys(original.files).length + 1 ||
+      Object.keys(original.files).some(k => stable(original.files[k]) !== stable(revision.files[k])) ||
+      stable(revision.files[extra]) !== stable(revision.report)) throw Error('Revision changed original references');
+  const raw = await verifiedObject(env,revision.report?.key,revision.report?.sha256);
+  if (raw.byteLength !== revision.report.bytes) throw Error('Revision length mismatch');
+  const html = new TextDecoder().decode(raw);
+  if (stable(payload(html)) !== stable(payload(originalHTML))) throw Error('Revision changed retained scores');
   return html;
 }
 
@@ -87,7 +137,7 @@ async function verifiedObject(env, key, hash) {
   return raw;
 }
 
-export async function handleHistory(request, env, makeHeaders, support = {}) {
+export async function handleHistory(request, env, makeHeaders, support = {}, revisions = {}) {
   const prefix = env.HISTORY_PREFIX || '/maimai/';
   const url = new URL(request.url);
   if (!url.pathname.startsWith(`${prefix}history`)) return null;
@@ -118,7 +168,28 @@ export async function handleHistory(request, env, makeHeaders, support = {}) {
       if (!capture.b50_key) return respond('B50 image was not retained for this capture.',404,'text/plain');
       return respond(await verifiedObject(env,capture.b50_key,capture.b50_hash),200,'image/webp',{'Content-Disposition':`attachment; filename="maimai-b50-${capture.id.slice(0,12)}.webp"`});
     }
-    return await streamReport(request,env,{key:capture.report_key,sha256:capture.report_hash},{prefix,capture});
+    const views = url.searchParams.getAll('view');
+    if (views.length > 1 || (views.length && !['original','corrected'].includes(views[0]))) return respond('Invalid report view',400,'text/plain');
+    if (!Object.hasOwn(revisions,capture.id)) {
+      const {streamReport} = await import('./report-stream.js');
+      return await streamReport(request,env,{key:capture.report_key,sha256:capture.report_hash},{prefix,capture});
+    }
+    let html = new TextDecoder().decode(await verifiedObject(env,capture.report_key,capture.report_hash));
+    let presentation = null;
+    if (Object.hasOwn(revisions,capture.id)) {
+      presentation = 'original';
+      if (views[0] !== 'original') {
+        try {
+          html = await correctedHTML(env,capture,revisions[capture.id],html);
+          presentation = 'corrected';
+        } catch {
+          // The independently verified original is always recoverable; do not
+          // substitute unverified bytes or conceal a failed correction.
+          presentation = 'unavailable';
+        }
+      }
+    }
+    return respond(withHistoryNavigation(html,{prefix,capture,presentation}));
   } catch {
     // Do not log score data or provider error bodies. The static latest report is independent.
     return respond('History is temporarily unavailable. Your latest report remains available.',503,'text/plain');
