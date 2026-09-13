@@ -26,7 +26,7 @@ after you click its button; report data stays in the report.
 
 ## Personal data in maimai.party
 
-Use **Open in maimai.party** below the report logo to bring your achievements
+Use **Open in Party** below the report logo to bring your achievements
 and retained history into the chart browser. The browser asks before importing.
 **Remember on this device** is optional; otherwise results last for the tab.
 
@@ -35,7 +35,8 @@ Import `player.maimai.json.gz` through maimai.party's Settings menu, or use
 **Download player file** beside the report's other download controls.
 File import and the report button use the same data. No maimai.party account
 is needed, and score records remain in your browser.
-See the [complete setup and history guide](docs/MAIMAI_PARTY.md).
+See [what the player file does and how to use it](docs/PLAYER_FILE.md), or the
+[complete setup and history guide](docs/MAIMAI_PARTY.md).
 
 ## See the report
 

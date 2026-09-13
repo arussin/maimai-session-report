@@ -33,7 +33,14 @@ class SupportRendererTests(unittest.TestCase):
         report, pbs = load_scenario()
         html = build_html(enrich_report(report, pbs, support=False))
         self.assertIs(embedded_report(html)["support"], False)
-        self.assertNotRegex(html.replace("https://maimai.party", ""), r"https?://")
+        public_links = (
+            "https://maimai.party",
+            "https://github.com/arussin/maimai-session-report/blob/main/docs/PLAYER_FILE.md",
+        )
+        without_links = html
+        for link in public_links:
+            without_links = without_links.replace(link, "")
+        self.assertNotRegex(without_links, r"https?://")
         self.assertIn("frame-src 'none'", html)
         self.assertNotIn("initializeSupportCheckout", html)
         self.assertFalse(support_enabled_in_html(html))

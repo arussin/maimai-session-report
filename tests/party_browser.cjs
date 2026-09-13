@@ -24,6 +24,21 @@ for(const channel of channels){console.log(channel+': launching');const browser=
 try {
   let baseline;console.log(channel+': importing');
   {const h=await context(browser),p=await h.ctx.newPage();await p.goto('https://maimai.party/?version='+expected.version+'&view=catalog&chart='+expected.chart);await loaded(p);await importFile(p,'player',true);baseline=await record(p);assert.equal(baseline.achievement,982500);
+    const gradeButtons=p.getByRole('group',{name:'Filter by grade',exact:true});
+    await gradeButtons.getByRole('button',{name:'S+',exact:true}).click();
+    await gradeButtons.getByRole('button',{name:'SS',exact:true}).click();
+    assert.equal(await gradeButtons.locator('button[aria-pressed=true]').count(),2);
+    assert.equal(await p.locator('#songs > article').count(),1);
+    await gradeButtons.getByRole('button',{name:'S+',exact:true}).click();
+    assert.equal(await p.locator('#songs > article').count(),0);
+    await gradeButtons.getByRole('button',{name:'Any grade',exact:true}).click();
+    assert.equal(await gradeButtons.locator('button[aria-pressed=true]').count(),1);
+    await p.locator('[data-chart-id="'+expected.chart+'"]').waitFor();
+    await p.locator('#settings-toggle').click();
+    assert.notEqual(await p.evaluate(()=>document.activeElement.id),'player-import');
+    assert.equal(await p.locator('#player-status .player-profile-compact').isVisible(),true);
+    assert.equal(await p.locator('#player-status .player-profile-name').innerText(),expected.newOffer.player.displayName);
+    await p.keyboard.press('Escape');
     assert.equal(await p.locator('.player-history').count(),1);assert.match(await p.locator('.player-history').innerText(),/Recorded play/);
     await p.locator('#personal-recorded').selectOption('yes');assert.equal(await p.locator('#songs > *').count(),1);
     const sibling=await p.evaluate(id=>{const c=maimaiResearchCatalog.catalog.find(c=>c.chart_id===id);return maimaiResearchCatalog.catalog.find(x=>x.chart_id!==id&&x.source_container_id===c.source_container_id&&x.format===c.format)?.chart_id;},expected.chart);
@@ -38,6 +53,13 @@ try {
     await p.locator('input[type=file]').setInputFiles({name:'bad.gz',mimeType:'application/gzip',buffer:Buffer.from('invalid')});await p.getByRole('heading',{name:'Player data could not be imported'}).waitFor();assert.equal((await record(p)).achievement,992000);await p.getByRole('button',{name:'Close',exact:true}).click();
     if(channel==='chrome')await p.screenshot({path:path.join(root,'personal-desktop.png'),fullPage:true});
     await p.setViewportSize({width:390,height:844});if(channel==='chrome')await p.screenshot({path:path.join(root,'personal-mobile.png'),fullPage:true});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    for(const size of [{width:320,height:568},{width:844,height:390}]){
+      await p.setViewportSize(size);await p.locator('#settings-toggle').click();
+      const bounds=await p.locator('#settings-menu').boundingBox();
+      assert(bounds.y+bounds.height<=size.height+1,'Settings must fit short and landscape screens');
+      await p.locator('#player-status').scrollIntoViewIfNeeded();assert.equal(await p.locator('#player-status').isVisible(),true);
+      await p.keyboard.press('Escape');
+    }
     assert.deepEqual(h.errors,[]);await h.ctx.close();}
   for(const source of [pathToFileURL(path.join(root,'local.html')).href,pathToFileURL(path.join(root,'legacy.html')).href,'http://localhost:9476/','https://report.example.invalid/private/']){
     console.log(channel+': handoff '+source.split(':')[0]);const h=await context(browser),report=await h.ctx.newPage();await report.goto(source);await report.locator('#open-maimai-party').waitFor();assert.equal(h.requests.filter(u=>u.startsWith('https://maimai.party')).length,0);assert.equal(h.counts().latestRequests,0);

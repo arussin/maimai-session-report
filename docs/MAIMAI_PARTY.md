@@ -1,6 +1,8 @@
 # maimai.party integration
 
-New reports keep the four existing views and add Open in maimai.party using its original wordmark. Every chart detail dialog includes exact song details and similar-chart links when the prepared public mapping resolves it. Unmapped records have a labeled title-search fallback.
+For a walkthrough of importing and remembering your profile, start with the [player-file guide](PLAYER_FILE.md).
+
+New reports keep the four existing views and add Open in Party using the colored Party portion of its original wordmark. Every chart detail dialog includes exact song details and similar-chart links when the prepared public mapping resolves it. Unmapped records have a labeled title-search fallback.
 
 The local result is one HTML file plus an optional cumulative `player.maimai.json.gz`. Both use the same normalized player dataset. Opening an HTML report makes no personal-data request or transfer. Clicking a maimai.party link opens a new tab, offers the player and capture date, and transfers the compressed data only after acceptance.
 
