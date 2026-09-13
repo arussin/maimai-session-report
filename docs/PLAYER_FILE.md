@@ -27,11 +27,15 @@ maimai.party reads the file in your browser. You do not need an account, and imp
 
 Choose **Remember on this device** if you want your profile restored when you return. Otherwise it stays for the current tab session. The gear menu lets you **Hide player data** temporarily, or **Forget remembered player data**. Forgetting removes the saved copy; the current tab can keep displaying it until closed.
 
-The small playercard in Settings shows which profile is active. Its rating is reconstructed from the available rating pools. A missing score means **No recorded PB**, not proof that you have never played the chart. History includes only what your report has retained; a PB captured on a date is an observation, not an extra play.
+The small playercard in Settings shows which profile is active. Its rating is reconstructed from the available rating pools. A missing score means **No recorded PB**, not proof that you have never played the chart.
+
+**Recorded plays** shows actual retained plays at their original play times. A score can be present in several reports without becoming several plays. Older report summaries are matched to their original score records only when the saved evidence identifies one source play unambiguously; distinct source score IDs are always preserved.
+
+**Show saved PB changes** opens a separate list of changes to the saved best score. Unchanged snapshots are grouped. These dates describe when the PB was saved, not a session in which you played that song. A chart may have a saved PB and no retained play history.
 
 ## Keeping your file up to date
 
-Download a file from a newer report, or open that report in Party again. For the same player, importing retains earlier history without duplicating source plays and keeps newer results. A different player's file switches profiles without combining their scores.
+Download a file from a newer report, or open that report in Party again. For the same player, importing retains earlier history without duplicating source plays and keeps newer results. The same reconciliation applies when restoring a profile already saved in your browser. A different player's file switches profiles without combining their scores.
 
 If you generate reports locally, add `--export-party-data` to maintain a reusable player file alongside the HTML report. For configuration and adding earlier captures, see the [setup and history guide](MAIMAI_PARTY.md#local-commands).
 
