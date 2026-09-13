@@ -1,6 +1,10 @@
 # Bring your scores into maimai.party
 
-A **player file** lets maimai.party show your own scores while you browse charts. You can see your best achievement, grade, chart rating, combo and sync badges, and any history kept by Session Report. You can also filter by several grades at once, achievement range, and other personal results.
+[![maimai Session Report on GitHub](images/session-report-github.svg)](https://github.com/arussin/maimai-session-report)
+
+If you use **Kamaitachi** to track your maimai DX scores, **maimai Session Report** can turn your play sessions into a report showing your scores, rating progress and practice targets. Start with the project on GitHub above, then follow the [Kamaitachi setup guide](https://github.com/arussin/maimai-session-report/blob/main/docs/KAMAITACHI.md) to create a report from your imported plays.
+
+Once you have a report, you can bring its scores into maimai.party directly or download a **player file** to import later. Your best achievement, grade, chart rating, combo and sync badges, and saved history appear beside the charts you browse. You can also filter by several grades at once, achievement range, and other personal results.
 
 ## From a session report
 
