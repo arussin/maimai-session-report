@@ -2,7 +2,7 @@
 
 For a walkthrough of importing and remembering your profile, start with the [player-file guide](PLAYER_FILE.md).
 
-New reports keep the four existing views and add Open in Party using the colored Party portion of its original wordmark. Every chart detail dialog includes exact song details and similar-chart links when the prepared public mapping resolves it. Unmapped records have a labeled title-search fallback.
+Reports include **Open in Party** links from chart details to maimai.party. Charts with a match in the public catalog link to exact song details and similar charts. Unmatched records offer a labeled title search.
 
 The local result is one HTML file plus an optional cumulative `player.maimai.json.gz`. Both use the same normalized player dataset. Opening an HTML report makes no personal-data request or transfer. Clicking a maimai.party link opens a new tab, offers the player and capture date, and transfers the compressed data only after acceptance.
 
@@ -53,8 +53,6 @@ Remember on this device is optional. Otherwise the dataset lasts for the current
 
 PB percentage, grade, recorded chart rating and available clear/sync badges appear beside the selected chart variant. Personal filters and sorting work on that variant before song grouping. Details show retained plays, dated PB observations and achievement progress.
 
-See the upstream [format, matching and browser contract](https://github.com/arussin/maimai-chart-browser/blob/e134d585c7b738fb13e1d08dadf1c048fff6aea4/docs/PLAYER_DATA.md). The pinned modules and original wordmark retain their upstream license and hashes in `src/maimai_report/_party/PROVENANCE.json`. Refresh them intentionally with `python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER --revision REVIEWED_FULL_COMMIT_SHA`. There is no runtime dependency in the reverse direction.
-
 ## Recommendations
 
 Targets retain two rating opportunities, pool-floor context and one specific practice choice when evidence supports it.
@@ -97,10 +95,20 @@ The handoff changes only a connected report's opener policy to `same-origin-allo
 - Download/import recovers blocked popups or interrupted messaging. Player data never appears in URL parameters or analytics.
 - Existing archive backup/recovery includes immutable player artifacts; rebuilding from validated raw captures can rematerialize them.
 
-## Acceptance checks
+## For maintainers
+
+The upstream [format, matching and browser contract](https://github.com/arussin/maimai-chart-browser/blob/e134d585c7b738fb13e1d08dadf1c048fff6aea4/docs/PLAYER_DATA.md) defines the shared player-data interface. Copied modules and the wordmark are recorded with their licenses and hashes in `src/maimai_report/_party/PROVENANCE.json`.
+
+To refresh those files from a local chart-browser checkout, specify the full upstream commit:
+
+```console
+python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER --revision FULL_COMMIT_SHA
+```
+
+The chart browser has no runtime dependency on Session Report.
+
+### Acceptance checks
 
 Python tests cover full-PB exports, equivalent embedded/file bytes, repeated histories, player isolation, PB-only data, incomplete coverage, corruption/size/atomic failures, concurrent revision updates, archive backfill, provider boundaries and pool floors, practice choices and verified catalog fallback. Upstream parity tests cover measurement and pattern ranking.
 
 `tests/prepare_party_browser.py --party-source PATH` builds fictional fixtures. `tests/party_browser.cjs` runs Chrome, Edge, Firefox and WebKit against local files, local serving and protected pages. It checks import/transfer equivalence, consent, retained/newer data, rejection, storage conflicts, interrupted refresh/payloads, exact details/similarity, reload/Back, keyboard access, personal sorting and mobile overflow. The Worker tests use real local D1/R2 emulation. No acceptance fixture contains real player data.
-
-Implementation and local testing do not deploy either site or change an existing installation pin.
