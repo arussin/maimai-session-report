@@ -14,6 +14,7 @@ output/
 reports/
 actions-downloads/
 *.html
+!src/maimai_report/assets/favicon.html
 # The sole reviewed source template is package code, not generated player data.
 !src/maimai_report/assets/template.html
 !src/maimai_report/assets/party-site-brand.html

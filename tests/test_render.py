@@ -155,7 +155,14 @@ class RendererBehaviorTests(unittest.TestCase):
         self.assertEqual(first, second)
         validate_generated_html(first)
         self.assertNotIn("<script src=", first.lower())
-        self.assertNotIn("<link ", first.lower())
+        links = re.findall(r"<link\b[^>]*>", first, re.IGNORECASE)
+        self.assertEqual(len(links), 3)
+        for link in links:
+            self.assertRegex(
+                link,
+                r'^<link rel="icon" type="image/png" sizes="(16x16|32x32|48x48)" '
+                r'href="data:image/png;base64,[A-Za-z0-9+/=]+">$',
+            )
         self.assertNotRegex(first, re.compile(r"@import\s+url", re.IGNORECASE))
         self.assertIn("Content-Security-Policy", first)
         self.assertIn("prefers-reduced-motion", first)
