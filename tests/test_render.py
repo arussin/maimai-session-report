@@ -90,7 +90,7 @@ class FixtureCoverageTests(unittest.TestCase):
         self.assertEqual(enriched["session"]["changedPBs"], [])
         self.assertIsNone(enriched["session"]["startTimeAchieved"])
         self.assertIsNone(enriched["session"]["endTimeAchieved"])
-        self.assertIn("No new PBs this time", build_html(enriched))
+        self.assertIn("No rating gains this session.", build_html(enriched))
 
     def test_incomplete_fixture_has_open_new_15_slots(self) -> None:
         report, after_payload = load_scenario("incomplete")
