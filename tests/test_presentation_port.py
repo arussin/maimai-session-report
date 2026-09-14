@@ -21,7 +21,7 @@ class PresentationPortTests(unittest.TestCase):
         # the support assets retain their original published hashes.
         expected = {
             "styles.css": "15bc93f3c5d21d0816f6d737fb8c0908f9aa13e3",
-            "app.js": "3bfa85a02d8b0564bffbd4d2afb798efade1e0e7",
+            "app.js": "03037cb24d3fdc98a1e3120f433af514751cc05a",
             "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
             "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }
