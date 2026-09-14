@@ -42,6 +42,127 @@
     : comparisonNote;
   const hasSession = changedPBs.length > 0 || sessionScores.length > 0 || Number(delta.reconstructedRating || 0) !== 0;
 
+  // Replay only PB improvements, not raw chart-rating differences. The starting
+  // counted pools plus the previous PBs of changed charts are sufficient: an
+  // unchanged, uncounted PB cannot enter a pool while its floor only rises.
+  // Refuse attribution when that monotonic model or retained coverage fails.
+  function calculateRatingContributions(report) {
+    const unavailable = {complete: false, contributions: [], total: null};
+    if (report.comparison?.available === false) return unavailable;
+    const initial = report.before;
+    const final = report.after;
+    const changes = report.session?.changedPBs;
+    const plays = report.session?.scores;
+    const versions = report.currentNewDisplayVersions;
+    const integer = value => Number.isInteger(value) && value >= 0;
+    const valid = item => item && typeof item.chartID === "string" && item.chartID.length > 0 &&
+      integer(item.rate) && Number.isFinite(item.percent) && item.percent >= 0 &&
+      typeof item.displayVersion === "string" && item.displayVersion.length > 0;
+    if (!initial || !final || !Array.isArray(changes) || !Array.isArray(plays) ||
+        !Array.isArray(versions) || !versions.length ||
+        versions.some(value => typeof value !== "string" || !value.length)) return unavailable;
+    const current = new Set(versions);
+    const pool = item => current.has(item.displayVersion) ? "new15" : "old35";
+    const pools = [["old35", 35], ["new15", 15]];
+    const state = new Map();
+    const changed = new Map();
+    const amounts = new Map();
+    const totals = () => Object.fromEntries(pools.map(([key, limit]) => [key,
+      [...state.values()].filter(item => pool(item) === key)
+        .map(item => item.rate).sort((a,b) => b-a).slice(0,limit)
+        .reduce((sum,value) => sum+value,0)
+    ]));
+    for (const snapshot of [initial, final]) {
+      const seen = new Set();
+      for (const [key, limit] of pools) {
+        const items = snapshot[key];
+        if (!Array.isArray(items) || items.length > limit ||
+            !integer(snapshot[`${key}Rating`])) return unavailable;
+        let sum = 0;
+        for (const item of items) {
+          if (!valid(item) || pool(item) !== key || seen.has(item.chartID)) return unavailable;
+          seen.add(item.chartID);
+          sum += item.rate;
+          if (snapshot === initial) state.set(item.chartID, {...item});
+        }
+        if (sum !== snapshot[`${key}Rating`]) return unavailable;
+      }
+      if (snapshot.old35Rating + snapshot.new15Rating !== snapshot.reconstructedRating) return unavailable;
+    }
+    for (const item of changes) {
+      if (!valid(item) || changed.has(item.chartID)) return unavailable;
+      changed.set(item.chartID, item);
+      if (item.changeType === "new") {
+        if (state.has(item.chartID) || item.previousRate != null || item.previousPercent != null) return unavailable;
+      } else if (item.changeType === "improved") {
+        if (!integer(item.previousRate) || !Number.isFinite(item.previousPercent) ||
+            item.previousPercent < 0 || item.rate < item.previousRate ||
+            item.percent <= item.previousPercent) return unavailable;
+        const previous = state.get(item.chartID);
+        if (previous && (previous.rate !== item.previousRate ||
+            previous.percent !== item.previousPercent || previous.displayVersion !== item.displayVersion)) return unavailable;
+        state.set(item.chartID, {...item, rate: item.previousRate, percent: item.previousPercent});
+      } else return unavailable;
+    }
+    let previousTotals = totals();
+    if (pools.some(([key]) => previousTotals[key] !== initial[`${key}Rating`])) return unavailable;
+    const ordered = [];
+    const timestamps = new Map();
+    for (const play of plays) {
+      if (!play || !changed.has(play.chartID)) continue;
+      if (!valid(play) || !Number.isFinite(play.timeAchieved) ||
+          play.displayVersion !== changed.get(play.chartID).displayVersion ||
+          (Number.isFinite(report.session.cutoffTimeAchieved) &&
+            play.timeAchieved <= report.session.cutoffTimeAchieved)) return unavailable;
+      // Different charts with indistinguishable timestamps have no defensible
+      // chronological attribution. Never silently assign by API array order.
+      if (timestamps.has(play.timeAchieved) && timestamps.get(play.timeAchieved) !== play.chartID) return unavailable;
+      timestamps.set(play.timeAchieved, play.chartID);
+      ordered.push(play);
+    }
+    ordered.sort((a,b) => a.timeAchieved-b.timeAchieved || a.percent-b.percent || a.rate-b.rate);
+    for (const play of ordered) {
+      const previous = state.get(play.chartID);
+      if (previous && play.percent < previous.percent) continue;
+      if (previous && play.percent === previous.percent) {
+        if (play.rate !== previous.rate) return unavailable;
+        continue;
+      }
+      if (previous && play.rate < previous.rate) return unavailable;
+      state.set(play.chartID, {...play});
+      const nextTotals = totals();
+      const step = nextTotals.old35 + nextTotals.new15 - previousTotals.old35 - previousTotals.new15;
+      if (step < 0) return unavailable;
+      amounts.set(play.chartID, (amounts.get(play.chartID) || 0) + step);
+      previousTotals = nextTotals;
+    }
+    // Match individual changed PB endpoints and both pools, not only the total:
+    // offsetting metadata changes must not masquerade as verified play gains.
+    for (const item of changes) {
+      const replayed = state.get(item.chartID);
+      if (!replayed || replayed.rate !== item.rate || replayed.percent !== item.percent) return unavailable;
+    }
+    for (const [key] of pools) {
+      if (previousTotals[key] !== final[`${key}Rating`]) return unavailable;
+      for (const item of final[key]) {
+        const replayed = state.get(item.chartID);
+        if (!replayed || replayed.rate !== item.rate || replayed.percent !== item.percent ||
+            replayed.displayVersion !== item.displayVersion) return unavailable;
+      }
+    }
+    const total = [...amounts.values()].reduce((sum,value) => sum+value,0);
+    if (total !== final.reconstructedRating-initial.reconstructedRating ||
+        total !== report.delta?.reconstructedRating ||
+        pools.some(([key]) => report.delta?.[`${key}Rating`] !== final[`${key}Rating`]-initial[`${key}Rating`])) return unavailable;
+    const contributions = [...amounts].filter(([,amount]) => amount > 0)
+      .map(([chartID,amount]) => ({chartID, amount}))
+      .sort((a,b) => b.amount-a.amount || changed.get(b.chartID).rate-changed.get(a.chartID).rate ||
+        (a.chartID < b.chartID ? -1 : a.chartID > b.chartID ? 1 : 0));
+    return {complete: true, contributions, total};
+  }
+
+  const ratingContributions = calculateRatingContributions(data);
+
   function timeRange() {
     const allTimes = sessionScores.map((x) => x.timeAchieved).filter(Number.isFinite);
     const start = Number(session.startTimeAchieved || (allTimes.length ? Math.min(...allTimes) : 0));
@@ -405,12 +526,16 @@
 
 
   function overviewScoresHtml() {
-    if (!comparisonAvailable) return `<p class="mini-empty">PB changes unavailable without a baseline. ${pbSnapshot ? "Individual plays were not captured." : "Individual plays are available in Scores."}</p>`;
-    const moments = [...changedPBs].sort((a,b)=>gain(b)-gain(a)||rate(b)-rate(a)).slice(0,4);
-    if (!moments.length) return `<p class="mini-empty">No new PBs this time.</p>`;
-    return `<div class="score-list">${moments.map(x=>`<button type="button" class="score-row" data-detail-source="pbs" data-detail-index="${changedPBs.indexOf(x)}" aria-label="View ${safe(x.title)} score details">
-      ${jacketHtml(x)}<span class="score-info"><strong>${safe(x.title)}</strong>${chartBadge(x)}<span class="score-achievement">${pct(x.percent)} ${gradeHtml(x.grade)}</span></span><span class="score-gain ${gain(x)<0?"negative":""}">${signed(gain(x))}<small>chart gain</small></span>
-    </button>`).join("")}</div>`;
+    if (!ratingContributions.complete) return `<p class="mini-empty">Rating contributions unavailable: retained plays do not fully reconcile with the before/after snapshots. PB changes are still available in All scores.</p>`;
+    const moments = ratingContributions.contributions.slice(0,4);
+    if (!moments.length) return `<p class="mini-empty">No rating gains this session. PB improvements outside the counted pools are still available in All scores.</p>`;
+    const shown = moments.reduce((sum,item)=>sum+item.amount,0);
+    return `<div class="score-list">${moments.map(({chartID,amount})=>{
+      const x = changedPBs.find(item=>item.chartID===chartID);
+      return `<button type="button" class="score-row" data-detail-source="pbs" data-detail-index="${changedPBs.indexOf(x)}" aria-label="View ${safe(x.title)} score details">
+      ${jacketHtml(x)}<span class="score-info"><strong>${safe(x.title)}</strong>${chartBadge(x)}<span class="score-achievement">${pct(x.percent)} ${gradeHtml(x.grade)}</span><span class="score-achievement">PB rating: ${x.previousRate == null ? "new" : num(x.previousRate)} → ${num(x.rate)}</span></span><span class="score-gain">${signed(amount)}<small>rating gain</small></span>
+    </button>`;
+    }).join("")}</div><p class="section-caption contribution-summary">Top ${moments.length}: ${signed(shown)} of ${signed(ratingContributions.total)} verified session rating gain.</p>`;
   }
 
   function poolSummaryHtml() {
@@ -434,7 +559,7 @@
 
   function overviewView() {
     return `<section id="overview-view" class="view active" data-view="overview" role="tabpanel" aria-labelledby="tab-overview">
-      <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>${externalCapture || pbSnapshot ? "PB snapshot changes" : "Session highlights"}</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Biggest PB gains, before counted-pool replacements.</p>${overviewScoresHtml()}</section>
+      <div class="overview-lead"><section class="overview-scores"><div class="section-heading"><h2>${externalCapture || pbSnapshot ? "PB snapshot changes" : "Session highlights"}</h2><button type="button" class="text-action" data-open-view="session">All scores</button></div><p class="section-caption">Rating gained in recorded play order, after Old 35 / New 15 replacements. Repeat plays are combined.</p>${overviewScoresHtml()}</section>
         <section class="overview-targets"><div class="section-heading"><h2>Play next</h2><button type="button" class="text-action" data-open-view="targets">All targets</button></div>${overviewTargetsHtml()}<button type="button" class="analysis-link" data-open-view="targets"><span><strong>Find your practice focus</strong><small>Targets & session level bands</small></span><span aria-hidden="true">→</span></button></section></div>
     </section>`;
   }
@@ -672,7 +797,7 @@
     chartDialog.innerHTML = `<header class="chart-dialog-header"><span>${context}</span><button type="button" class="detail-close" aria-label="Close score details">×</button></header><div class="chart-dialog-body">
       <div class="detail-song">${jacketHtml(item)}<div><h2 id="chart-detail-title">${safe(item.title || "Untitled chart")}</h2><p>${safe(item.artist || "Artist unavailable")}</p>${chartBadge(item)}</div></div>
       <div class="detail-result"><div><span>Achievement</span><strong>${presentPct(item.percent)}</strong>${gradeHtml(item.grade)}</div><div><span>Chart rating</span><strong>${presentNum(item.rate)}<small>RT</small></strong></div></div>
-      ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr><tr><th scope="row">Lamp</th><td>${safe(item.previousLamp || "—")}</td><td>${safe(item.lamp || "—")}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> ${externalCapture ? "This compares account PBs since the saved baseline, including any other sessions or backfills." : "This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements."}</p></section>`:""}
+      ${source==="pbs"?`<section class="detail-section"><h3>${item.changeType==="new"?"First recorded PB":"PB comparison"}</h3><table class="detail-comparison"><thead><tr><th scope="col">Metric</th><th scope="col">Previous</th><th scope="col">Now</th></tr></thead><tbody><tr><th scope="row">Achievement</th><td>${presentPct(item.previousPercent)}</td><td>${presentPct(item.percent)}</td></tr><tr><th scope="row">Chart rating</th><td>${presentNum(item.previousRate)}</td><td>${presentNum(item.rate)}</td></tr><tr><th scope="row">Lamp</th><td>${safe(item.previousLamp || "—")}</td><td>${safe(item.lamp || "—")}</td></tr></tbody></table><p class="detail-note"><strong class="${gain(item)<0?"negative":"positive"}">${signed(gain(item))} chart gain.</strong> ${externalCapture ? "This compares account PBs since the saved baseline, including any other sessions or backfills." : "This compares PB chart ratings; the session’s net gain also accounts for counted-pool replacements."}</p>${ratingContributions.complete?`<p class="detail-note"><strong>Session rating contribution: ${signed(ratingContributions.contributions.find(x=>x.chartID===item.chartID)?.amount || 0)}.</strong> Assigned in recorded play order, including pool replacements and repeat plays. A contributing score can later be displaced.</p>`:""}</section>`:""}
       ${target?`<section class="detail-section target-detail"><h3>Next rating opportunity</h3><p>${safe(target.sub)} · ${safe(target.reward)}</p><p class="detail-note">${safe(target.copy)} This estimate considers the applicable rating-pool floor.</p></section>`:""}
       <section class="detail-section"><h3>Recorded score details</h3><dl class="detail-facts">${field("Lamp",safe(item.lamp || "—"))}${field("Chart constant",presentNum(item.levelNum))}${field("Fast",presentNum(item.fast))}${field("Slow",presentNum(item.slow))}</dl></section>
       <section class="detail-section"><h3>Judgements</h3><dl class="judgement-grid">${[["Critical perfect","pcrit"],["Perfect","perfect"],["Great","great"],["Good","good"],["Miss","miss"]].map(([label,key])=>field(label,presentNum(item[key]))).join("")}</dl></section>
