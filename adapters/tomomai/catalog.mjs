@@ -53,7 +53,7 @@ export async function getIntlCatalog(fetcher = fetch) {
   const catalog = new Map();
   for (const entry of body.songs) {
     if (!entry || typeof entry.songId !== 'string' || !entry.songId ||
-        typeof entry.songName !== 'string' || !entry.songName ||
+        typeof entry.songName !== 'string' ||
         (entry.cover !== null && typeof entry.cover !== 'string') ||
         !['std', 'dx', 'utage'].includes(entry.type) || !DIFFICULTIES.has(entry.difficulty) ||
         entry.region !== REGION || entry.gameVersion !== version || catalog.has(entry.songId)) {

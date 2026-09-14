@@ -44,6 +44,12 @@ test('accepts supported Utage entries and null jackets for the renderer fallback
   assert.deepEqual([...catalog.values()], [entry]);
 });
 
+test('retains an intentionally untitled chart with an empty song name', async () => {
+  const entry = { ...song, songName: '' };
+  const catalog = await getIntlCatalog(mockFetch(response(versions), response({ songs: [entry] })).fetcher);
+  assert.deepEqual([...catalog.values()], [entry]);
+});
+
 test('rejects invalid version metadata before requesting a catalogue', async () => {
   for (const bad of [null, {}, { ...versions, currentVersion: '13' }, { ...versions, currentVersion: 32768 },
     { ...versions, versions: [] }]) {
