@@ -25,6 +25,7 @@ from .io import atomic_write_text
 ASSET_PACKAGE = "maimai_report.assets"
 TEMPLATE_TOKENS = (
     "__CONTENT_SECURITY_POLICY__",
+    "__FAVICON__",
     "__INLINE_CSS__",
     "__REPORT_JSON__",
     "__JACKET_JSON__",
@@ -492,6 +493,7 @@ def build_html(
     template = _asset_text("template.html")
     substitutions = {
         "__CONTENT_SECURITY_POLICY__": content_security_policy,
+        "__FAVICON__": _asset_text("favicon.html"),
         "__INLINE_CSS__": "\n\n".join(
             (
                 _asset_text("styles.css"),

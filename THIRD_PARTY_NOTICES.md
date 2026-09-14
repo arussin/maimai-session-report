@@ -120,3 +120,11 @@ tiles, not real song artwork.
 Custom local packs and jackets remain subject to the rights and notices
 supplied by their owners. Supplying a pack does not transfer its copyright to
 this project or change its license.
+
+## Derakkuma microscope favicon
+
+The embedded favicon is AI-generated fan artwork created for maimai.party with
+OpenAI's image-generation tool and shared with the Session Report. Derakkuma and
+maimai character rights remain with SEGA. This is not official SEGA artwork or an
+endorsement, and the software license does not relicense the underlying character
+rights.
