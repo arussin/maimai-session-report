@@ -53,7 +53,7 @@ Remember on this device is optional. Otherwise the dataset lasts for the current
 
 PB percentage, grade, recorded chart rating and available clear/sync badges appear beside the selected chart variant. Personal filters and sorting work on that variant before song grouping. Details show retained plays, dated PB observations and achievement progress.
 
-See the upstream [format, matching and browser contract](https://github.com/arussin/maimai-chart-browser/blob/codex/player-data-integration/docs/PLAYER_DATA.md). The pinned modules and original wordmark retain their upstream license and hashes in `src/maimai_report/_party/PROVENANCE.json`. Refresh them intentionally with `python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER`. There is no runtime dependency in the reverse direction.
+See the upstream [format, matching and browser contract](https://github.com/arussin/maimai-chart-browser/blob/e134d585c7b738fb13e1d08dadf1c048fff6aea4/docs/PLAYER_DATA.md). The pinned modules and original wordmark retain their upstream license and hashes in `src/maimai_report/_party/PROVENANCE.json`. Refresh them intentionally with `python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER --revision REVIEWED_FULL_COMMIT_SHA`. There is no runtime dependency in the reverse direction.
 
 ## Recommendations
 

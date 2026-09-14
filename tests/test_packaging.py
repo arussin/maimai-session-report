@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import tarfile
 import tempfile
 import unittest
@@ -20,6 +21,29 @@ def _load_backend():
 
 
 class PackagingTests(unittest.TestCase):
+    def test_wheel_party_files_match_canonical_provenance(self) -> None:
+        backend = _load_backend()
+        with tempfile.TemporaryDirectory() as directory:
+            wheel_name = backend.build_wheel(directory)
+            with zipfile.ZipFile(Path(directory, wheel_name)) as archive:
+                provenance = json.loads(archive.read("maimai_report/_party/PROVENANCE.json"))
+                self.assertEqual(provenance["canonical_text"], "UTF-8 with LF line endings")
+                self.assertRegex(provenance["upstream_revision"], r"^[a-f0-9]{40}$")
+                paths = {
+                    "player_data.py": "_party/player_data.py",
+                    "public_matching.py": "_party/public_matching.py",
+                    "site-brand.html": "assets/party-site-brand.html",
+                    "site-brand.css": "assets/party-site-brand.css",
+                }
+                self.assertEqual(set(provenance["files"]), set(paths))
+                for name, relative_path in paths.items():
+                    with self.subTest(file=name):
+                        raw = archive.read(f"maimai_report/{relative_path}")
+                        canonical = raw.decode("utf-8").replace("\r\n", "\n").encode("utf-8")
+                        self.assertEqual(
+                            hashlib.sha256(canonical).hexdigest(), provenance["files"][name]
+                        )
+
     def test_wheel_contains_assets_entry_point_and_declared_metadata(self) -> None:
         backend = _load_backend()
         with tempfile.TemporaryDirectory() as directory:

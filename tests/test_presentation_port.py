@@ -18,10 +18,11 @@ class PresentationPortTests(unittest.TestCase):
     def test_reviewed_layout_interactions_and_support_assets_match(self):
         # Git blob IDs of the reviewed presentation (UTF-8 / LF).
         # Scores, Targets, contributions, compact exports and playercard are updated;
+        # app.js also omits the unused shortDifficulty helper.
         # the support assets retain their original published hashes.
         expected = {
             "styles.css": "15bc93f3c5d21d0816f6d737fb8c0908f9aa13e3",
-            "app.js": "03037cb24d3fdc98a1e3120f433af514751cc05a",
+            "app.js": "06092dca1056df481b493234f0889dd570ed7bff",
             "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
             "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }
