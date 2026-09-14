@@ -227,10 +227,6 @@
     return {floor, name, next, key:name.toLowerCase().replace(/ /g,"-")};
   }
 
-  function shortDifficulty(difficulty = "") {
-    return String(difficulty).replace(/^DX\s+/i, "DX ").replace(/^Standard\s+/i, "Std ");
-  }
-
   function story() {
     if (externalCapture || pbSnapshot) return {
       title: pbSnapshot ? "Current PB snapshot" : "Selected Kamaitachi session",
