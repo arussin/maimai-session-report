@@ -88,6 +88,9 @@ jobs:
         working-directory: deploy/cloudflare
         run: npm run check
 
+      - name: Test the B50 public catalogue contract offline
+        run: node --test tests/tomomai-catalog.test.mjs
+
   presentation:
     name: Synthetic browser presentation
     runs-on: ubuntu-latest

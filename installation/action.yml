@@ -179,6 +179,7 @@ runs:
         pnpm --dir _tomomai install --frozen-lockfile --filter @tomomai/render...
         mkdir -p .maimai
         cp "$INSTANCE_ACTION_PATH/../adapters/tomomai/render.ts" .maimai/render-b50.ts
+        cp "$INSTANCE_ACTION_PATH/../adapters/tomomai/catalog.mjs" .maimai/catalog.mjs
         pnpm --dir _tomomai --filter @tomomai/render exec tsx \
           "$GITHUB_WORKSPACE/.maimai/render-b50.ts" \
           "$GITHUB_WORKSPACE/$INSTANCE_CAPTURE/after-pbs.json" \

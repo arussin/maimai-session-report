@@ -17,7 +17,6 @@ Our `render.ts` directly imports these modules from that checkout:
 | Upstream module under `apps/render/src/` | Used for |
 |---|---|
 | `lib/render-image.ts` | B50 canvas layout and drawing |
-| `lib/catalog.ts` | Public catalogue metadata for drawing |
 | `lib/rating-calculator.ts` | Upstream renderer's split and rating representation |
 | `lib/types.ts` | Renderer input types |
 | `render-route.ts` | Snapshot resources and WebP generation |
@@ -27,6 +26,15 @@ preserves difficulty normalization, chart-constant unit conversion, achievement
 conversion, rating total and pool assignment. It does not import scores or use
 public catalogue versions to reclassify a canonical pool. Its supplied
 `addedVersion` values encode the report's existing pool membership.
+
+The local `catalog.mjs` reads `/api/v1/songs/versions?region=intl`, then requests
+`/api/v1/songs?region=intl&gameVersion=CURRENT_VERSION`. Tomomai's September 11,
+2026 API change made both catalogue parameters mandatory; the old unparameterized
+request now returns HTTP 400. The adapter verifies the catalogue's shape, region,
+version and unique chart IDs. It uses normal TLS verification and bounded requests,
+and reports the failed stage/status without response bodies or private scores.
+This catalogue supplies artwork and decorative version metadata; it never changes
+the retained report's release aliases, chart constants, rating or pool membership.
 
 **Downstream change dated 2026-09-08:** the build applies
 [`scripts/harden_tomomai.py`](../../scripts/harden_tomomai.py) to the pinned

@@ -12,7 +12,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { renderImage, type SongForRender } from "../_tomomai/apps/render/src/lib/render-image";
-import { getCatalog } from "../_tomomai/apps/render/src/lib/catalog";
+import { getIntlCatalog, describeFailure } from "./catalog.mjs";
 import { splitSongs } from "../_tomomai/apps/render/src/lib/rating-calculator";
 import { commonSnapshotResources, renderToWebp } from "../_tomomai/apps/render/src/render-route";
 import type { Difficulty, FullCombo, SongType } from "../_tomomai/apps/render/src/lib/types";
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     throw new Error(`Report B50 is incomplete: new15=${new15.length}, old35=${old35.length}`);
   }
 
-  const catalog = await getCatalog();
+  const catalog = await getIntlCatalog();
   const allEntries = [...catalog.values()];
   const intlEntries = allEntries.filter((entry) => entry.region === "intl");
   if (!intlEntries.length) throw new Error("Tomomai catalog returned no INTL charts");
@@ -201,5 +201,6 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error("B50 rendering failed; retained score inputs are available for a build retry.");
+  console.error(describeFailure(error));
   process.exitCode = 1;
 });
