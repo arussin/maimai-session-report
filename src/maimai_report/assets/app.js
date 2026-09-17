@@ -95,9 +95,16 @@
       if (item.changeType === "new") {
         if (state.has(item.chartID) || item.previousRate != null || item.previousPercent != null) return unavailable;
       } else if (item.changeType === "improved") {
+        // A composite PB can improve its clear lamp without changing
+        // its best achievement or rating. This contributes zero rating.
+        const lampChanged = typeof item.lamp === "string" && item.lamp.trim().length > 0 &&
+          typeof item.previousLamp === "string" && item.previousLamp.trim().length > 0 &&
+          item.lamp !== item.previousLamp;
         if (!integer(item.previousRate) || !Number.isFinite(item.previousPercent) ||
             item.previousPercent < 0 || item.rate < item.previousRate ||
-            item.percent <= item.previousPercent) return unavailable;
+            item.percent < item.previousPercent ||
+            (item.percent === item.previousPercent &&
+              (item.rate !== item.previousRate || !lampChanged))) return unavailable;
         const previous = state.get(item.chartID);
         if (previous && (previous.rate !== item.previousRate ||
             previous.percent !== item.previousPercent || previous.displayVersion !== item.displayVersion)) return unavailable;
