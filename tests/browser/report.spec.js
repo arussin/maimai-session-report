@@ -173,12 +173,12 @@ test('B50 button downloads the exact supplied image', async ({page})=> {
   expect(await readFile(await download.path())).toEqual(await readFile(new URL('generated/synthetic-b50.webp',import.meta.url)));
 });
 
-test('support stays hidden until activation; the footer makes no provider requests', async ({page}) => {
+test('the active footer makes no provider requests before a click', async ({page}) => {
   const external = [];
   page.on('request', request => { if (/^https:/.test(request.url())) external.push(request.url()); });
   await page.goto('/complete.html');
   await expect(page.getByRole('link', {name: 'View on GitHub', exact: true})).toBeVisible();
-  await expect(page.getByRole('link', {name: 'Support maimai.party', exact: true})).toHaveCount(0);
+  await expect(page.getByRole('link', {name: 'Support maimai.party', exact: true})).toBeVisible();
   await expect(page.locator('iframe')).toHaveCount(0);
   expect(external).toEqual([]);
 });

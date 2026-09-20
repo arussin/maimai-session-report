@@ -1,15 +1,7 @@
 import {expect} from '@playwright/test';
 
-// Exercise the release-gated UI with synthetic documents. Never contact Stripe.
+// Exercise the shipped UI with a synthetic destination. Never contact Stripe.
 export async function enableSupportFixture(context) {
-  await context.route(/^http:\/\/127\.0\.0\.1:/, async route => {
-    const response = await route.fetch();
-    if (!(response.headers()['content-type'] || '').includes('text/html')) {
-      await route.fulfill({response}); return;
-    }
-    await route.fulfill({response, body: (await response.text()).replace(
-      'const supportAvailable = false;', 'const supportAvailable = true;')});
-  });
   const requests = [];
   await context.route('https://maimai.party/support.html', async route => {
     requests.push({url: route.request().url(), referer: route.request().headers().referer || ""});

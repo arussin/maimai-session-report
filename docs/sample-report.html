@@ -1632,8 +1632,8 @@ window.maimaiParty=Object.freeze({actions,mount});queueMicrotask(mount);
   const footer = document.querySelector(".footer");
   if (!footer) return;
 
-  // Activate with the shared checkout release after live Stripe verification.
-  const supportAvailable = false;
+  // Shared checkout has its own availability switch; no payment state lives here.
+  const supportAvailable = true;
   const checkoutUrl = "https://maimai.party/support.html";
   const repositoryUrl = "https://github.com/arussin/maimai-session-report";
   function link(label, url, className, icon) {

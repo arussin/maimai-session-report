@@ -25,7 +25,7 @@ class SupportRendererTests(unittest.TestCase):
         self.assertIn('anchor.rel = "noopener noreferrer"', html)
         self.assertIn('anchor.referrerPolicy = "no-referrer"', html)
         self.assertIn("popup,width=540,height=780,noopener,noreferrer", html)
-        self.assertIn("const supportAvailable = false;", html)
+        self.assertIn("const supportAvailable = true;", html)
         self.assertNotIn('createElement("iframe")', html)
         self.assertNotIn("buymeacoffee", html.lower())
         validate_generated_html(html)
@@ -81,7 +81,7 @@ class SupportRendererTests(unittest.TestCase):
         for changed in (
             html + '<img src="https://example.invalid/image.png">',
             html + '<a href="https://maimai.party/support.html">extra</a>',
-            html.replace("const supportAvailable = false;", "const supportAvailable = true;"),
+            html.replace("const supportAvailable = true;", "const supportAvailable = false;"),
             html.replace('"support":true', '"support":"true"'),
         ):
             with self.subTest():

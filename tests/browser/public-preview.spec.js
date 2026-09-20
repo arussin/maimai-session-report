@@ -33,7 +33,7 @@ test('public demo shows real targets, embedded demo tiles and original compact r
   // independently instead of incorrectly treating deferred loading as failure.
   expect(await page.locator('img').evaluateAll(async images=> {
     for(const image of images) {
-      if(!image.src.startsWith('data:image/png;base64,')) return false;
+      if(!/^data:image\/(?:png|svg\+xml);base64,/.test(image.src)) return false;
       const decoded=new Image(); decoded.src=image.src; await decoded.decode();
       if(!decoded.naturalWidth) return false;
     }
