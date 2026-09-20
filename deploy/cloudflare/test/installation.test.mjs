@@ -32,7 +32,7 @@ test('packaged Worker serves two isolated installations, exact retained bytes an
         assert.equal(history.status,200);
         assert.match(await history.text(),/No archived sessions/i);
         assert.match(response.headers.get('Content-Security-Policy'),/connect-src 'none'/);
-        assert.match(response.headers.get('Content-Security-Policy'),/frame-src https:\/\/buymeacoffee.com/);
+        assert.match(response.headers.get('Content-Security-Policy'),/frame-src 'none'/);
         assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');
       } finally {await mf.dispose();}
     }

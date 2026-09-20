@@ -54,7 +54,7 @@ There is no polling loop. A successful explicit run makes two PB reads, two rece
 
 ## Report boundary
 
-The renderer escapes `<`, `>`, `&`, U+2028, and U+2029 in embedded JSON, so a title such as `</script>` cannot terminate the script-data element. Presentation code uses text-safe DOM operations for player and score content. The removable developer-support footer is enabled by default; it permits only the fixed Buy Me a Coffee origin in its matching CSP and trusted footer script. Its checkout loads only after a click. With support disabled, the completed HTML contains no HTTP/HTTPS URL and omits the checkout script. Song artwork and rating frames are embedded; there is no remote font, third-party parent script, analytics endpoint or runtime data fetch.
+The renderer escapes `<`, `>`, `&`, U+2028, and U+2029 in embedded JSON, so a title such as `</script>` cannot terminate the script-data element. Presentation code uses text-safe DOM operations for player and score content. Optional footer project links use exact bundled controllers and open separately with no referrer or opener. Reports permit no payment frames or payment delegation. Embedded player data and the optional Party handoff retain their existing validation and privacy boundaries.
 
 The absence of network activity does not make the file anonymous: the embedded report data is the product. Anyone who can read the HTML can read the play history.
 

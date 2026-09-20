@@ -15,9 +15,10 @@ const ADAPTER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 const GENERATOR = path.join(ADAPTER_ROOT, "scripts", "generate-config.mjs");
 const GENERATED_REPORT_MODULE = path.join(ADAPTER_ROOT, ".wrangler", "report.generated.js");
 const WRANGLER = path.join(ADAPTER_ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
-const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
+const CHECKOUT_URL = "https://maimai.party/support.html";
 const SUPPORT_DATA = '<script id="report-data" type="application/json">{"support":true}</script>';
-const SUPPORT_CODE = `<script>const origin = "${BUY_ME_A_COFFEE_ORIGIN}";</script>`;
+const SUPPORT_CODE = '<script>' + (await readFile(path.resolve(ADAPTER_ROOT,
+  '../../src/maimai_report/assets/support.js'), 'utf8')).replaceAll('\r\n', '\n') + '</script>';
 
 async function generate({ html = "<!doctype html><title>Fixture</title><p>private</p>", env = {} } = {}) {
   const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "maimai-report-cloudflare-"));
@@ -72,11 +73,11 @@ test("generator rejects reports with external HTTP URLs", async () => {
   }
 });
 
-test("generator allows only the isolated Buy Me a Coffee frame origin", async () => {
+test("generator allows only the exact project links controller", async () => {
   const approved = await generate({
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
-      `content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">` +
+      `content="frame-src 'none'">` +
       SUPPORT_DATA + SUPPORT_CODE,
   });
   try {
@@ -88,19 +89,19 @@ test("generator allows only the isolated Buy Me a Coffee frame origin", async ()
   const unapproved = await generate({
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
-      `content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">` +
+      `content="frame-src 'none'">` +
       SUPPORT_DATA + SUPPORT_CODE +
       '<img src="https://example.invalid/tracker.png">',
   });
   try {
     assert.equal(unapproved.result.status, 2);
-    assert.match(unapproved.result.stderr, /only the two fixed/u);
+    assert.match(unapproved.result.stderr, /external HTTP\/HTTPS URL|exact project links/u);
   } finally {
     await rm(unapproved.temporaryDirectory, { recursive: true, force: true });
   }
 });
 
-test("only the explicit report support boolean grants frame and payment permissions", () => {
+test("support never grants frame or payment permissions", () => {
   assert.equal(developerSupportEnabled(SUPPORT_DATA), true);
   for (const data of [false, null, {}, [], "true", 1]) {
     const html = `<script id="report-data" type="application/json">${JSON.stringify({support: data})}</script>`;
@@ -123,21 +124,21 @@ test("only the explicit report support boolean grants frame and payment permissi
   }
 });
 
-test("generator permits the fixed origin only in the frame CSP and checkout code", async () => {
+test("generator rejects project URLs outside the exact controller", async () => {
   for (const html of [
-    `<!doctype html>${SUPPORT_DATA}<img src="${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html>${SUPPORT_DATA}<meta http-equiv="Content-Security-Policy" content="connect-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html>${SUPPORT_DATA}${SUPPORT_CODE}<meta http-equiv="Content-Security-Policy" content="connect-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html>${SUPPORT_DATA}<p>const origin = "${BUY_ME_A_COFFEE_ORIGIN}";</p><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html>${SUPPORT_DATA}<img src="${BUY_ME_A_COFFEE_ORIGIN}"><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html><p>"support":true</p><meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
-    `<!doctype html>${SUPPORT_DATA.replace('true', 'false')}<meta http-equiv="Content-Security-Policy" content="frame-src ${BUY_ME_A_COFFEE_ORIGIN}">`,
+    `<!doctype html>${SUPPORT_DATA}<img src="${CHECKOUT_URL}">`,
+    `<!doctype html>${SUPPORT_DATA}<meta http-equiv="Content-Security-Policy" content="connect-src ${CHECKOUT_URL}">`,
+    `<!doctype html>${SUPPORT_DATA}${SUPPORT_CODE}<meta http-equiv="Content-Security-Policy" content="connect-src ${CHECKOUT_URL}">`,
+    `<!doctype html>${SUPPORT_DATA}<p>const origin = "${CHECKOUT_URL}";</p><meta http-equiv="Content-Security-Policy" content="frame-src 'none'">`,
+    `<!doctype html>${SUPPORT_DATA}<img src="${CHECKOUT_URL}"><meta http-equiv="Content-Security-Policy" content="frame-src 'none'">`,
+    `<!doctype html><p>"support":true</p>${SUPPORT_CODE}<meta http-equiv="Content-Security-Policy" content="frame-src 'none'">`,
+    `<!doctype html>${SUPPORT_DATA.replace('true', 'false')}${SUPPORT_CODE}<meta http-equiv="Content-Security-Policy" content="frame-src 'none'">`,
     `<!doctype html>${SUPPORT_DATA}`,
   ]) {
     const generated = await generate({html});
     try {
       assert.equal(generated.result.status, 2);
-      assert.match(generated.result.stderr, /external HTTP\/HTTPS URL|only the two fixed/u);
+      assert.match(generated.result.stderr, /external HTTP\/HTTPS URL|exact project links/u);
     } finally {
       await rm(generated.temporaryDirectory, {recursive: true, force: true});
     }
@@ -287,11 +288,11 @@ test("worker serves only the configured path with restrictive headers", async ()
     const supportHtml = SUPPORT_DATA;
     assert.match(
       contentSecurityPolicyFor(supportHtml),
-      new RegExp(`frame-src ${BUY_ME_A_COFFEE_ORIGIN.replaceAll(".", "\\.")}`, "u"),
+      /frame-src 'none'/u,
     );
     assert.match(
       permissionsPolicyFor(supportHtml),
-      new RegExp(`payment=\\(self "${BUY_ME_A_COFFEE_ORIGIN.replaceAll(".", "\\.")}"\\)`, "u"),
+      /payment=\(\)/u,
     );
 
     const missing = handleRequest(new Request("https://report.example.invalid/"), {

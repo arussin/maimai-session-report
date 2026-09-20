@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 
-export const headersSource = `const headers = extra => ({'Cache-Control':'private, no-store, max-age=0','Content-Security-Policy':"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://buymeacoffee.com; frame-ancestors 'none'",'Permissions-Policy':'camera=(), microphone=(), geolocation=(), payment=(self "https://buymeacoffee.com")','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow, noarchive',...extra});`;
+export const headersSource = `const headers = extra => ({'Cache-Control':'private, no-store, max-age=0','Content-Security-Policy':"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'",'Permissions-Policy':'camera=(), microphone=(), geolocation=(), payment=()','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow, noarchive',...extra});`;
 
 export async function fixture(directory, origin = 'https://synthetic.test') {
   const source = await readFile(fileURLToPath(new URL('../src/history.js',import.meta.url)),'utf8');

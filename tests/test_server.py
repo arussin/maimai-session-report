@@ -9,7 +9,7 @@ from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from maimai_report.render import BUY_ME_A_COFFEE_ORIGIN, render_demo
+from maimai_report.render import render_demo
 from maimai_report.server import make_handler, serve_file
 
 
@@ -28,12 +28,8 @@ class LocalServerTests(unittest.TestCase):
                     response.read()
                     csp = response.getheader("Content-Security-Policy")
                     payment = response.getheader("Permissions-Policy")
-                    if enabled:
-                        self.assertIn(f"frame-src {BUY_ME_A_COFFEE_ORIGIN}", csp)
-                        self.assertIn(f'payment=(self "{BUY_ME_A_COFFEE_ORIGIN}")', payment)
-                    else:
-                        self.assertIn("frame-src 'none'", csp)
-                        self.assertIn("payment=()", payment)
+                    self.assertIn("frame-src 'none'", csp)
+                    self.assertIn("payment=()", payment)
                     self.assertIn("connect-src 'none'", csp)
                     self.assertEqual(response.getheader("Referrer-Policy"), "no-referrer")
                     connection.close()

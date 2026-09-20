@@ -1,5 +1,3 @@
-const BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com";
-
 export function developerSupportEnabled(html) {
   if (html && typeof html === 'object') return html.flags?.support === true;
   // Read only the renderer's data block; incidental page text grants no permissions.
@@ -23,7 +21,6 @@ export function partyIntegration(html) {
 }
 
 export function contentSecurityPolicyFor(html) {
-  const supportEnabled = developerSupportEnabled(html);
   return [
     "default-src 'none'",
     "base-uri 'none'",
@@ -31,7 +28,7 @@ export function contentSecurityPolicyFor(html) {
     "font-src 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",
-    `frame-src ${supportEnabled ? BUY_ME_A_COFFEE_ORIGIN : "'none'"}`,
+    "frame-src 'none'",
     "img-src data:",
     "manifest-src 'none'",
     "media-src 'none'",
@@ -43,7 +40,6 @@ export function contentSecurityPolicyFor(html) {
 }
 
 export function permissionsPolicyFor(html) {
-  const supportEnabled = developerSupportEnabled(html);
   return [
     "accelerometer=()",
     "autoplay=()",
@@ -56,7 +52,7 @@ export function permissionsPolicyFor(html) {
     "magnetometer=()",
     "microphone=()",
     "midi=()",
-    supportEnabled ? `payment=(self "${BUY_ME_A_COFFEE_ORIGIN}")` : "payment=()",
+    "payment=()",
     "picture-in-picture=()",
     "publickey-credentials-get=()",
     "screen-wake-lock=()",

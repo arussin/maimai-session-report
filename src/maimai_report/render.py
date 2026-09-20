@@ -2,8 +2,8 @@
 
 The renderer performs no network access. It accepts already-fetched JSON data,
 adds display-only metadata, and embeds the report plus all presentation assets in
-one HTML file. Developer support loads an isolated checkout only after a click;
-disabling support seals the report against all external requests.
+one HTML file. Optional project links open separately after a click; payment
+services never load inside the report.
 """
 
 from __future__ import annotations
@@ -34,17 +34,10 @@ TEMPLATE_TOKENS = (
     "__INLINE_JS__",
 )
 EXTERNAL_URL = re.compile(r"https?://", re.IGNORECASE)
-BUY_ME_A_COFFEE_ORIGIN = "https://buymeacoffee.com"
 SEALED_CONTENT_SECURITY_POLICY = (
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
     "img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; "
     "object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
-)
-BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY = (
-    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-    "img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; "
-    f"object-src 'none'; frame-src {BUY_ME_A_COFFEE_ORIGIN}; base-uri 'none'; "
-    "form-action 'none'"
 )
 _REPORT_DATA = re.compile(
     r'<script id="report-data" type="application/json">(.*?)</script>', re.DOTALL
@@ -263,7 +256,7 @@ def support_enabled_in_html(html: str) -> bool:
 
 
 def validate_generated_html(html: str) -> None:
-    """Allow only the checkout origin in its CSP and embedded controller."""
+    """Allow external project links only in the exact bundled controllers."""
     matches = _REPORT_DATA.findall(html)
     if len(matches) != 1:
         raise ValueError("Generated report must contain one report-data element")
@@ -274,7 +267,7 @@ def validate_generated_html(html: str) -> None:
     if not isinstance(report, dict):
         raise ValueError("Generated report data must be an object")
     enabled = _support_enabled(report.get("support"))
-    policy = BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if enabled else SEALED_CONTENT_SECURITY_POLICY
+    policy = SEALED_CONTENT_SECURITY_POLICY
     if report.get("partyIntegration", {}).get("hosted") is True:
         policy = policy.replace("connect-src 'none'", "connect-src 'self'")
     marker = f'<meta http-equiv="Content-Security-Policy" content="{policy}" />'
@@ -482,9 +475,7 @@ def build_html(
     }
     support = _support_enabled(report_data.get("support", True))
     report_data["support"] = support
-    content_security_policy = (
-        BUY_ME_A_COFFEE_CONTENT_SECURITY_POLICY if support else SEALED_CONTENT_SECURITY_POLICY
-    )
+    content_security_policy = SEALED_CONTENT_SECURITY_POLICY
     if enabled and party_latest_path:
         content_security_policy = content_security_policy.replace(
             "connect-src 'none'", "connect-src 'self'"

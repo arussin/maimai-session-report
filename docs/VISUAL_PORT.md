@@ -4,8 +4,8 @@ The four-view layout, spacing, system fonts, navigation, difficulty and grade
 styling, tables, dialogs, filters, print rules, mobile navigation and reduced-motion
 rules preserve the interface from the original standalone report.
 `tests/test_presentation_port.py` checks the preserved presentation assets without
-fetching anything. The developer-support footer uses the same card and popup
-styling, with fixed project-support wording and a simple show/hide setting.
+fetching anything. The footer now uses the shared maimai.party button styling
+and separate checkout window; its behavior has dedicated privacy and browser tests.
 
 ## Artwork and sample data
 
@@ -13,7 +13,7 @@ The personal-data integration places the compact maimai.party link below the
 main wordmark, groups the player-file download with B50/print actions, and shows
 the selected practice chart's jacket alongside its identity. The presentation
 snapshot is updated for these reviewed refinements; the four report views and
-existing support controls retain their behavior.
+project links use the shared maimai.party support flow.
 
 | Element | Release behavior |
 | --- | --- |
@@ -21,7 +21,7 @@ existing support controls retain their behavior.
 | Demo song covers | Original geometric tiles marked **DEMO**, attached only to fictional fixture songs. These are not authentic maimai jackets. Live/local jacket embedding remains unchanged; missing real art still shows the original `NO ART` placeholder. |
 | Demo scores | Entirely fictional. Before/after pools, deltas and target recommendations are computed through the same model used for live reports. |
 | Browser title / project name | Uses “maimai Session Report.” The report's existing maimai DX text wordmark remains unchanged. |
-| Developer support | The footer appears in every active view by default. Its in-page checkout loads only after a click. Use `--no-support` to hide it. The card, popup and mobile behavior preserve the report's styling. |
+| Developer support | Matching project buttons appear near the footer; shared Stripe checkout opens separately after activation. Use `--no-support` to hide the links. |
 | Hosted extras | The standalone demo has no account history shell or B50 download. These remain optional installation features, not removed report features. Enabling them has separate dependencies and privacy implications. |
 
 See [rating assets](RATING_ASSETS.md) for provenance and ownership, and

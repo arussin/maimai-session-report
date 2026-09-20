@@ -15,16 +15,14 @@ from maimai_report.render import enrich_report, render_demo
 
 
 class PresentationPortTests(unittest.TestCase):
-    def test_reviewed_layout_interactions_and_support_assets_match(self):
+    def test_reviewed_report_layout_and_interactions_match(self):
         # Git blob IDs of the reviewed presentation (UTF-8 / LF).
         # Scores, Targets, contributions, compact exports and playercard are updated;
         # app.js also omits the unused shortDifficulty helper.
-        # the support assets retain their original published hashes.
+        # Support has separate behavior and privacy coverage in test_support.py.
         expected = {
             "styles.css": "15bc93f3c5d21d0816f6d737fb8c0908f9aa13e3",
             "app.js": "0020d9efa10b39b81d098b82acd0b3d24423f021",
-            "support.css": "c65a3d29d4c8ebac63f412e864d5ddab6ae5fa27",
-            "support.js": "84d786e9c2e408a62c743c6710c872347da36a38",
         }
         for name, digest in expected.items():
             with self.subTest(asset=name):
