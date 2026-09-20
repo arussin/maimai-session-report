@@ -1,4 +1,4 @@
-import {enableSupportFixture, verifySupportPopup} from './support-popup.js';
+import {enableSupportFixture, verifySupportDialog} from './support-dialog.js';
 import {openExports} from './export-controls.js';
 import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -183,11 +183,46 @@ test('the active footer makes no provider requests before a click', async ({page
   expect(external).toEqual([]);
 });
 
-test('enabled support opens separately and preserves the report', async ({page, context}, testInfo) => {
+test('support wallet return resumes in the same tab without trusting the URL', async ({page, context}) => {
+  const requests = await enableSupportFixture(context);
+  await page.goto('/complete.html');
+  await page.getByRole('link', {name: 'Support maimai.party', exact: true}).click();
+  const dialog = page.getByRole('dialog', {name: 'Support maimai.party'});
+  await expect(dialog.locator('iframe')).toHaveCount(1);
+  const attempt = requests.at(-1).body.attempt;
+  await page.goto('/complete.html#support-return');
+  await page.reload();
+  await expect(dialog.locator('iframe')).toHaveCount(1);
+  await expect(page).toHaveURL(/\/complete.html$/);
+  expect(requests.at(-1).body.attempt).toBe(attempt);
+  expect(requests.at(-1).body.session).toBe('cs_test_synthetic123456789');
+  expect(page.context().pages()).toHaveLength(1);
+});
+
+test('support checkout failure stays in the dialog and retries the same attempt', async ({page, context}) => {
+  const requests = await enableSupportFixture(context);
+  let failedAttempt;
+  await context.route('https://maimai.party/api/support/checkout', async (route) => {
+    if (route.request().method() === 'OPTIONS' || failedAttempt) return route.fallback();
+    failedAttempt = route.request().postDataJSON().attempt;
+    return route.fulfill({status: 503, headers: {'Access-Control-Allow-Origin': route.request().headers().origin},
+      json: {error: 'support_unavailable'}});
+  });
+  await page.goto('/complete.html');
+  await page.getByRole('link', {name: 'Support maimai.party', exact: true}).click();
+  const dialog = page.getByRole('dialog', {name: 'Support maimai.party'});
+  await expect(dialog.getByRole('status')).toContainText('Checkout is unavailable');
+  await dialog.getByRole('button', {name: 'Try again'}).click();
+  await expect(dialog.locator('iframe')).toHaveCount(1);
+  expect(requests.at(-1).body.attempt).toBe(failedAttempt);
+  expect(page.context().pages()).toHaveLength(1);
+});
+
+test('enabled support opens in the report dialog and preserves the report', async ({page, context}, testInfo) => {
   const requests = await enableSupportFixture(context);
   await page.goto('/complete.html');
   expect(requests).toEqual([]);
-  await verifySupportPopup(page, requests);
+  await verifySupportDialog(page, requests);
   await cleanAxe(page);
   await page.locator('.support-card').scrollIntoViewIfNeeded();
   await testInfo.attach('support-footer.png', {body: await page.screenshot(), contentType: 'image/png'});

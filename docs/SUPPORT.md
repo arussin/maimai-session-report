@@ -3,11 +3,13 @@
 The footer contains **View on GitHub**, linking to the Session Report repository.
 **Support maimai.party** appears beside
 it with a filled logo-color heart and the official Stripe wordmark. It opens the
-fixed `https://maimai.party/support.html` address in a separate browser window;
-mobile browsers may use a new tab. No player name, scores, report URL, query string,
-referrer, or window opener is passed to checkout. No payment code runs in the report.
+same native Stripe dialog as maimai.party on the configured hosted report at
+adamrussin.com. Closing it restores focus to the button without navigating or opening
+a window. Other, unregistered hosts keep a normal link to the shared checkout in
+the current tab. No player name, scores, report URL or query string is sent to the
+checkout API. The native Stripe SDK loads only after a click.
 
-The shared page uses maimai.party branding and native Stripe amounts and methods.
+The shared dialog uses maimai.party branding and native Stripe amounts and methods.
 It says: “maimai.party is free for everyone. If you’d like to help with hosting and
 domain costs, a few dollars is more than enough.” There is no alternate provider.
 Stripe localization, amount/currency selection and payment confirmation belong to
@@ -35,16 +37,27 @@ artwork, history, exports, or the separate optional Party integration.
 
 ## Isolation and validation
 
-Report frame and payment policies are always `frame-src 'none'` and `payment=()`.
-Existing private headers and Party integration policies remain in force. Logos are
+Enabled reports allow specific Stripe script/frame/payment origins and the
+maimai.party checkout API. Disabled reports retain `frame-src 'none'` and `payment=()`.
+Existing private access, no-cache headers and Party integration policies remain in force. Logos are
 embedded. Only the exact bundled controllers may contain approved project URLs;
 placing an allowed URL in player data or unrelated markup still fails validation.
 The report makes no payment-service requests on load or while switching views.
-Popup navigation uses `noopener,noreferrer` and a fixed URL with no return parameter.
+API requests omit credentials and referrers and contain only the fixed project ID,
+random checkout attempt and optional Stripe session ID. The payment Worker permits
+only the exact configured report origin, with no wildcard CORS. Wallet returns use
+the fixed `/maimai/#support-return` address and resume the same tab's payment-only
+session state; server status is required before showing a successful payment.
 
-Automated tests use synthetic reports and a mock destination. They check the hidden
-state, keyboard activation, exact destination, empty referrer, null opener, preserved
-report data and URL, history navigation, B50 bytes, accessibility and narrow screens.
+The native dialog and payment client bundled in `support.js` are shared verbatim
+with maimai.party's `support-stripe.js` and `support-client.js`. Keep those modules
+in sync when changing payment behavior. Host registration and Stripe payment-domain
+registration are required before enabling native checkout on another report origin.
+
+Automated tests use synthetic reports, payment API responses and a mock Stripe SDK.
+They check idle isolation, keyboard activation, no new windows, empty referrers,
+preserved report data and URL, close/reopen, history navigation, B50 bytes,
+accessibility and narrow screens.
 Actual Stripe methods are verified separately in the shared site's sandbox.
 
 ## Updating an existing publication

@@ -9,6 +9,7 @@ import {
   contentSecurityPolicyFor,
   developerSupportEnabled,
   permissionsPolicyFor,
+  reportMetaPolicy,
 } from "../src/security.js";
 
 const ADAPTER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -77,7 +78,7 @@ test("generator allows only the exact project links controller", async () => {
   const approved = await generate({
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
-      `content="frame-src 'none'">` +
+      `content="${reportMetaPolicy(SUPPORT_DATA)}">` +
       SUPPORT_DATA + SUPPORT_CODE,
   });
   try {
@@ -89,7 +90,7 @@ test("generator allows only the exact project links controller", async () => {
   const unapproved = await generate({
     html:
       `<!doctype html><meta http-equiv="Content-Security-Policy" ` +
-      `content="frame-src 'none'">` +
+      `content="${reportMetaPolicy(SUPPORT_DATA)}">` +
       SUPPORT_DATA + SUPPORT_CODE +
       '<img src="https://example.invalid/tracker.png">',
   });
@@ -101,7 +102,7 @@ test("generator allows only the exact project links controller", async () => {
   }
 });
 
-test("support never grants frame or payment permissions", () => {
+test("only explicit support permits the known Stripe origins", () => {
   assert.equal(developerSupportEnabled(SUPPORT_DATA), true);
   for (const data of [false, null, {}, [], "true", 1]) {
     const html = `<script id="report-data" type="application/json">${JSON.stringify({support: data})}</script>`;
@@ -288,11 +289,11 @@ test("worker serves only the configured path with restrictive headers", async ()
     const supportHtml = SUPPORT_DATA;
     assert.match(
       contentSecurityPolicyFor(supportHtml),
-      /frame-src 'none'/u,
+      /frame-src https:\/\/js.stripe.com/u,
     );
     assert.match(
       permissionsPolicyFor(supportHtml),
-      /payment=\(\)/u,
+      /payment=\(self/u,
     );
 
     const missing = handleRequest(new Request("https://report.example.invalid/"), {
