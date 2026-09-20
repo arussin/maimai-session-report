@@ -23,8 +23,8 @@ test('public demo shows real targets, embedded demo tiles and original compact r
   expect(geometry.width).toBeLessThan(.55);
   for(const name of ['Scorecard','Scores','Rating pools','Targets']) {
     await page.getByRole('tab',{name,exact:true}).click();
-    await expect(page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true})).toBeVisible();
-    await expect(page.locator('.support-frame')).not.toHaveAttribute('src');
+    await expect(page.getByRole('link',{name:'View on GitHub',exact:true})).toBeVisible();
+    await expect(page.locator('iframe')).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([]);
     await testInfo.attach(`public-demo-${name}.png`,{body:await page.screenshot(),contentType:'image/png'});

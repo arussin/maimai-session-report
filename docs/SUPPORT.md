@@ -1,83 +1,62 @@
-# Developer support
+# Project links and optional support
 
-Reports include a small **Enjoying maimai Session Report?** footer with a
-**Buy the developer a maimai credit** button. Contributions go to the project's
-developer through [Buy Me a Coffee](https://buymeacoffee.com/russin). No payment
-account or payment credentials are needed to generate your report.
+The footer contains **View on GitHub**, linking to the Session Report repository.
+After the shared live checkout is activated, **Support maimai.party** appears beside
+it with a filled logo-color heart and the official Stripe wordmark. It opens the
+fixed `https://maimai.party/support.html` address in a separate browser window;
+mobile browsers may use a new tab. No player name, scores, report URL, query string,
+referrer, or window opener is passed to checkout. No payment code runs in the report.
 
-## Show or hide the footer
+The shared page uses maimai.party branding and native Stripe amounts and methods.
+It says: “maimai.party is free for everyone. If you’d like to help with hosting and
+domain costs, a few dollars is more than enough.” There is no alternate provider.
+Stripe localization, amount/currency selection and payment confirmation belong to
+the shared checkout. The report never constructs amounts or stores payment state.
 
-Developer support is enabled by default. To remove it, use this in `config.toml`
-or a hosted installation's private `instance.toml`:
+## Availability and configuration
+
+The release switch `supportAvailable` in the bundled controller is currently false.
+Enable it only with the reviewed shared live checkout release, after provider
+eligibility, branding and live configuration checks. The public site has its own
+availability switch. Disabled or unconfigured payment service must not advertise a
+working Support button. Runtime errors in an active checkout offer retry.
+
+Owner configuration remains a single boolean, enabled by default:
 
 ```toml
 [support]
 enabled = false
 ```
 
-For the standalone CLI, `MAIMAI_REPORT_SUPPORT_ENABLED=false` provides the same
-setting. `--support` and `--no-support` explicitly override it when generating a
-report. For example:
+This hides both footer project links. `MAIMAI_REPORT_SUPPORT_ENABLED=false` and
+`--no-support` provide the same override. The setting does not change scores,
+artwork, history, exports, or the separate optional Party integration.
 
-```console
-maimai-report demo --no-support --output output/demo-report.html
-```
+## Isolation and validation
 
-This is the only support setting. It does not affect scores, artwork, hosting,
-or any report feature. A disabled report contains no external HTTP(S) URL,
-permits no frames, and makes no runtime request.
+Report frame and payment policies are always `frame-src 'none'` and `payment=()`.
+Existing private headers and Party integration policies remain in force. Logos are
+embedded. Only the exact bundled controllers may contain approved project URLs;
+placing an allowed URL in player data or unrelated markup still fails validation.
+The report makes no payment-service requests on load or while switching views.
+Popup navigation uses `noopener,noreferrer` and a fixed URL with no return parameter.
 
-## In-page checkout
+Automated tests use synthetic reports and a mock destination. They check the hidden
+state, keyboard activation, exact destination, empty referrer, null opener, preserved
+report data and URL, history navigation, B50 bytes, accessibility and narrow screens.
+Actual Stripe methods are verified separately in the shared site's sandbox.
 
-The footer appears immediately above the metadata footer in every active report
-view. Loading the report or changing views makes no request to Buy Me a Coffee.
-Only clicking the button opens the checkout popup and loads the provider's
-cross-origin iframe. The report does not send player data to the provider.
+## Updating an existing publication
 
-The popup stays inside the report. **Open separately** is available as a fallback;
-the provider may also require a separate window for payment verification.
-Checkout needs an internet connection and is controlled by Buy Me a Coffee.
+Use the currently installed renderer and its retained source inputs. Keep original
+captures/publications immutable, preserve approved historical presentation selections,
+and compare all embedded report, player, jacket and download data before publication.
+Do not start a score import, create a new session, change dates, advance a latest
+pointer, or bulk rerender history for a footer change. Preserve original B50 bytes.
 
-The iframe uses the canonical `https://buymeacoffee.com` origin, a no-referrer
-policy and payment delegation. The report does not load the provider's
-parent-page widget script, remote fonts, icons or analytics. The browser's
-same-origin policy separates the payment form from report data. Once you open
-checkout, the provider's own privacy and payment terms apply.
-
-Desktop uses a narrow popup; mobile uses the full viewport. The checkout and
-support footer are hidden in print output.
-
-## Hosting and security policy
-
-Support-enabled reports permit only the provider's frame origin:
-
-```text
-frame-src https://buymeacoffee.com
-payment=(self "https://buymeacoffee.com")
-```
-
-With support disabled, those policies become:
-
-```text
-frame-src 'none'
-payment=()
-```
-
-All other report restrictions remain in force: `connect-src 'none'`,
-`form-action 'none'`, `font-src 'none'`, `object-src 'none'`,
-`Referrer-Policy: no-referrer` and frame denial for the report itself.
-The renderer and deployment adapter reject unexpected external URLs. The only
-HTTP(S) URL permitted in a support-enabled file is the exact provider origin in
-the matching content security policy and fixed footer script. Payment links are
-created locally by that script; disabled reports omit it entirely.
-
-A host supplying its own response headers must make the same conditional frame
-and payment allowance. A stricter response header overrides the report's meta
-policy and can prevent checkout from loading. Do not loosen unrelated policies.
-
-## Testing
-
-Automated browser tests substitute a fictional checkout page. They verify the
-fixed destination, lazy loading, keyboard focus, mobile layout and disabled state
-without contacting the provider or submitting a payment. Actual payment methods
-and verification requirements depend on Buy Me a Coffee and the supporter.
+Retain the previous Worker version/settings and use the established drift-checked
+retained publish operation. Verify primary and backup manifests, history counts,
+ordering, selected revision hashes, original routes, downloads and private access
+before and after. A Worker-only release preserves HTML and therefore does not, by
+itself, replace an embedded footer. See [historical presentation revisions](HISTORICAL_PRESENTATION_REVISIONS.md)
+and [installation upgrades](INSTALLATION.md#upgrades-and-rollback).

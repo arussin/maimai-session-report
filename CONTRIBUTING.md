@@ -51,7 +51,7 @@ maimai-report doctor
 maimai-report demo --output output/demo-report.html
 ```
 
-Validate the report's restrictive policy and fixed checkout-origin allowance:
+Validate the report's restrictive policy and fixed project-link controllers:
 
 ```console
 python -c "from pathlib import Path; from maimai_report.render import validate_generated_html; validate_generated_html(Path('output/demo-report.html').read_text(encoding='utf-8'))"
@@ -125,7 +125,7 @@ npm test --prefix tests/browser
 The package tests consume the actual ZIP, check common workflow pins, and stage two
 fictional owners through the shared Worker. Browser screenshots contain synthetic
 data only and cover desktop, tablet, 390px, 320px and mobile WebKit. Checkout tests
-exercise the isolated container and focus behavior, not provider payments.
+exercise isolated popup navigation and report preservation, not provider payments.
 
 Run actionlint against product and expanded caller workflows. Keep actions on full
 commit pins and install tools from their committed lockfiles. New capture/release

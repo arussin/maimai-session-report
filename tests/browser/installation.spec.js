@@ -1,13 +1,14 @@
+import {enableSupportFixture, verifySupportPopup} from './support-popup.js';
 import {openExports} from './export-controls.js';
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 
 const origin='http://127.0.0.1:4182';
-test('installed Worker keeps the scorecard, complete pools, download and both support footers usable',async({page},testInfo)=>{
+test('installed Worker keeps the scorecard, complete pools, download and both support footers usable',async({page,context},testInfo)=>{
   const errors=[],external=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(!request.url().startsWith(origin)&&!request.url().startsWith('data:'))external.push(request.url())});
-  await page.route('https://buymeacoffee.com/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic provider container</title><button>Fixture</button>'}));
+  const requests=await enableSupportFixture(context);
   await page.goto(origin+'/alpha/');
   await expect(page.getByText('SYNTHETIC ALPHA',{exact:true})).toBeVisible();
   await expect(page.getByRole('tab',{name:'Scorecard',exact:true})).toBeVisible();
@@ -25,16 +26,7 @@ test('installed Worker keeps the scorecard, complete pools, download and both su
   await expect(page.locator('#session-rows tr[data-search]:visible')).toHaveCount(0);
   for(const url of ['/alpha/','/alpha/history']) {
     await page.goto(origin+url);
-    const trigger=page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true});
-    await expect(trigger).toHaveCount(1);
-    await expect(page.locator('#support-checkout-dialog iframe')).not.toHaveAttribute('src');
-    await trigger.focus();await page.keyboard.press('Enter');
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('link',{name:'Open separately ↗',exact:true})).toHaveAttribute('href','https://buymeacoffee.com/russin');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).not.toBeVisible();
-    await expect(trigger).toBeFocused();
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    await verifySupportPopup(page, requests);
   }
   await expect(page.getByRole('heading',{name:'No archived sessions yet'})).toBeVisible();
   await page.goto(origin+'/beta/');

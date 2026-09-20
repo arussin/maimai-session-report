@@ -1,3 +1,4 @@
+import {enableSupportFixture, verifySupportPopup} from './support-popup.js';
 import {openExports} from './export-controls.js';
 import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -15,13 +16,6 @@ async function cleanAxe(page) {
   expect(result.violations.map(v=>({id:v.id, nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))).toEqual([]);
 }
 
-test.beforeEach(async ({page})=> {
-  // No actual provider checkout/payment request is made by this suite.
-  await page.route('https://buymeacoffee.com/**', route=>route.fulfill({
-    contentType:'text/html', body:'<!doctype html><html lang="en"><title>Synthetic checkout container</title><button>Test provider focus target</button></html>'
-  }));
-});
-
 for (const scenario of ['complete','empty','incomplete']) {
   test(`${scenario}: all four views remain complete, accessible and within viewport`, async ({page},testInfo)=> {
     const model=await data(scenario), errors=[], unexpected=[];
@@ -30,13 +24,13 @@ for (const scenario of ['complete','empty','incomplete']) {
     await page.goto(`/${scenario}.html`);
     await expect(page.getByRole('img',{name:`Reconstructed rating ${model.after.reconstructedRating.toLocaleString('en-US')}`})).toBeVisible();
     await expect(page.getByRole('progressbar')).toBeVisible();
-    await expect(page.getByRole('button',{name:'Buy the developer a maimai credit'})).toHaveCount(1);
+    await expect(page.getByRole('link',{name:'View on GitHub',exact:true})).toHaveCount(1);
     for(const name of ['Scorecard','Scores','Rating pools','Targets']) {
       await page.getByRole('tab',{name,exact:true}).click();
       await expect(page.getByRole('tabpanel',{name,exact:true})).toBeVisible();
-      await expect(page.getByRole('button',{name:'Buy the developer a maimai credit',exact:true})).toBeVisible();
-      await expect(page.getByText('Enjoying maimai Session Report?',{exact:true})).toBeVisible();
-      await expect(page.locator('.support-frame')).not.toHaveAttribute('src');
+      await expect(page.getByRole('link',{name:'View on GitHub',exact:true})).toBeVisible();
+      await expect(page.getByText('Enjoying maimai Session Report?',{exact:true})).toHaveCount(0);
+      await expect(page.locator('iframe')).toHaveCount(0);
       await noOverflow(page);
       await cleanAxe(page);
       await testInfo.attach(`${scenario}-${name}.png`,{body:await page.screenshot(),contentType:'image/png'});
@@ -179,32 +173,22 @@ test('B50 button downloads the exact supplied image', async ({page})=> {
   expect(await readFile(await download.path())).toEqual(await readFile(new URL('generated/synthetic-b50.webp',import.meta.url)));
 });
 
-test('footer checkout stays lazy and isolated; close, Escape and focus return work', async ({page})=> {
-  const providerRequests=[];
-  page.on('request',request=>{if(request.url().startsWith('https://buymeacoffee.com/')) providerRequests.push(request.url());});
+test('support stays hidden until activation; the footer makes no provider requests', async ({page}) => {
+  const external = [];
+  page.on('request', request => { if (/^https:/.test(request.url())) external.push(request.url()); });
   await page.goto('/complete.html');
-  const frame=page.locator('.support-frame'), opener=page.getByRole('button',{name:'Buy the developer a maimai credit'});
-  await expect(frame).not.toHaveAttribute('src'); expect(providerRequests).toHaveLength(0);
-  await expect(page.locator('script[src]')).toHaveCount(0);
-  await expect(frame).toHaveAttribute('allow','payment *');
-  await expect(frame).toHaveAttribute('loading','lazy');
-  await expect(frame).toHaveAttribute('referrerpolicy','no-referrer');
-  await opener.click(); await expect(page.locator('#support-checkout-dialog')).toBeVisible();
-  await expect(frame).toHaveAttribute('src',/^https:\/\/buymeacoffee\.com\/widget\/page\/russin\?/);
-  const destination=new URL(await frame.getAttribute('src'));
-  expect(destination.origin).toBe('https://buymeacoffee.com');
-  expect(destination.pathname).toBe('/widget/page/russin');
-  expect([...destination.searchParams.keys()].sort()).toEqual(['color','description']);
-  expect(destination.search).not.toContain('Synthetic');
-  const fallback=page.getByRole('link',{name:'Open separately ↗',exact:true});
-  await expect(fallback).toHaveAttribute('href','https://buymeacoffee.com/russin');
-  await expect(fallback).toHaveAttribute('target','_blank');
-  await expect(fallback).toHaveAttribute('rel','noopener noreferrer');
-  await expect(fallback).toHaveAttribute('referrerpolicy','no-referrer');
-  await expect(page.getByRole('button',{name:'Close support checkout'})).toBeFocused();
-  await page.frameLocator('.support-frame').getByRole('button',{name:'Test provider focus target'}).waitFor();
-  await page.keyboard.press('Escape'); await expect(page.locator('#support-checkout-dialog')).not.toBeVisible();
-  await expect(opener).toBeFocused(); await opener.click();
-  await page.getByRole('button',{name:'Close support checkout'}).click();
-  await expect(opener).toBeFocused(); expect(providerRequests).toHaveLength(1);
+  await expect(page.getByRole('link', {name: 'View on GitHub', exact: true})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Support maimai.party', exact: true})).toHaveCount(0);
+  await expect(page.locator('iframe')).toHaveCount(0);
+  expect(external).toEqual([]);
+});
+
+test('enabled support opens separately and preserves the report', async ({page, context}, testInfo) => {
+  const requests = await enableSupportFixture(context);
+  await page.goto('/complete.html');
+  expect(requests).toEqual([]);
+  await verifySupportPopup(page, requests);
+  await cleanAxe(page);
+  await page.locator('.support-card').scrollIntoViewIfNeeded();
+  await testInfo.attach('support-footer.png', {body: await page.screenshot(), contentType: 'image/png'});
 });

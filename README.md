@@ -21,8 +21,7 @@ generate a report without MYT. The existing-session path makes read-only request
 Reports contain personal play history. Keep your output and any runner repository
 private. Default reports have embedded data, CSS and JavaScript, with no browser
 network requests on load, analytics, remote fonts or account requirement to open
-the file. The optional developer-support checkout contacts Buy Me a Coffee only
-after you click its button; report data stays in the report.
+the file. Optional project links open separately after a click; report data stays in the report.
 
 ## Personal data in maimai.party
 
@@ -186,17 +185,18 @@ See [configuration](docs/CONFIGURATION.md).
   [shedaniel/Tomomai](https://github.com/shedaniel/tomomai), with
   its own AGPL license and build dependencies.
 - [Developer support](docs/SUPPORT.md): a removable footer is included by default.
-  Clicking it opens an isolated in-page checkout; nothing loads in the background.
+  The GitHub link and, after activation, shared Stripe checkout open separately.
 
 The HTML also works on an ordinary static host. An unprotected host can expose
 the whole report, regardless of whether search engines index it.
 
 ## Support development
 
-If maimai Session Report is useful to you,
-[buy the developer a maimai credit](https://buymeacoffee.com/russin).
-Reports include the same optional checkout, with no payment setup needed.
-To hide it, set `enabled = false` under `[support]` or generate with `--no-support`.
+Reports can include **View on GitHub** and **Support maimai.party** in the footer.
+The shared Stripe checkout opens separately without report data. The Support button
+stays hidden until the shared live checkout is activated. No payment account or
+credentials are needed to generate a report. See [support](docs/SUPPORT.md).
+Set `enabled = false` under `[support]` or use `--no-support` to hide these links.
 
 ## Upgrading an installation
 

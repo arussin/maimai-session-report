@@ -4,7 +4,6 @@ import unittest
 
 from maimai_report.fixtures import load_scenario
 from maimai_report.render import (
-    BUY_ME_A_COFFEE_ORIGIN,
     build_html,
     enrich_report,
     support_enabled_in_html,
@@ -18,15 +17,17 @@ class SupportRendererTests(unittest.TestCase):
         report, pbs = load_scenario()
         html = build_html(enrich_report(report, pbs))
         self.assertIs(embedded_report(html)["support"], True)
-        self.assertEqual(html.count(BUY_ME_A_COFFEE_ORIGIN), 2)
-        self.assertIn(f"frame-src {BUY_ME_A_COFFEE_ORIGIN}", html)
-        self.assertIn('const id = "russin";', html)
-        self.assertIn('const label = "Buy the developer a maimai credit";', html)
-        self.assertIn('frame.referrerPolicy = "no-referrer"', html)
-        self.assertIn('fallback.referrerPolicy = "no-referrer"', html)
-        self.assertIn('openButton.addEventListener("click", openCheckout)', html)
-        self.assertNotIn("<script src=", html.lower())
-        self.assertNotIn("cdnjs.buymeacoffee.com", html)
+        self.assertIn("frame-src 'none'", html)
+        self.assertIn('const checkoutUrl = "https://maimai.party/support.html";', html)
+        self.assertIn(
+            'const repositoryUrl = "https://github.com/arussin/maimai-session-report";', html
+        )
+        self.assertIn('anchor.rel = "noopener noreferrer"', html)
+        self.assertIn('anchor.referrerPolicy = "no-referrer"', html)
+        self.assertIn("popup,width=540,height=780,noopener,noreferrer", html)
+        self.assertIn("const supportAvailable = false;", html)
+        self.assertNotIn('createElement("iframe")', html)
+        self.assertNotIn("buymeacoffee", html.lower())
         validate_generated_html(html)
 
     def test_disabled_report_is_sealed_and_contains_no_checkout_controller(self):
@@ -42,7 +43,7 @@ class SupportRendererTests(unittest.TestCase):
             without_links = without_links.replace(link, "")
         self.assertNotRegex(without_links, r"https?://")
         self.assertIn("frame-src 'none'", html)
-        self.assertNotIn("initializeSupportCheckout", html)
+        self.assertNotIn("initializeProjectLinks", html)
         self.assertFalse(support_enabled_in_html(html))
         validate_generated_html(html)
 
@@ -66,7 +67,10 @@ class SupportRendererTests(unittest.TestCase):
 
     def test_checkout_origin_in_player_data_is_not_an_allowlist_escape(self):
         report, pbs = load_scenario()
-        for text in (BUY_ME_A_COFFEE_ORIGIN, BUY_ME_A_COFFEE_ORIGIN + ".invalid"):
+        for text in (
+            "https://maimai.party/support.html",
+            "https://github.com/arussin/maimai-session-report",
+        ):
             report["player"]["displayName"] = text
             with self.assertRaisesRegex(ValueError, "unapproved external"):
                 build_html(enrich_report(report, pbs))
@@ -76,8 +80,8 @@ class SupportRendererTests(unittest.TestCase):
         html = build_html(enrich_report(report, pbs))
         for changed in (
             html + '<img src="https://example.invalid/image.png">',
-            html + '<a href="https://buymeacoffee.com">extra</a>',
-            html.replace('const id = "russin";', 'const id = "unexpected";'),
+            html + '<a href="https://maimai.party/support.html">extra</a>',
+            html.replace("const supportAvailable = false;", "const supportAvailable = true;"),
             html.replace('"support":true', '"support":"true"'),
         ):
             with self.subTest():

@@ -1,4 +1,4 @@
-"""Package the existing optional checkout for the history index at build time."""
+"""Package the existing optional project links for the history index at build time."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ def history_support(report_html: bytes) -> dict[str, str]:
     """Reuse only the support flag, never scores or player data.
 
     The caller supplies its retained report when staging the Worker. Both pages
-    use the exact same local CSS and lazy iframe controller; no storage read or
+    use the exact same local CSS and separate-window links; no storage read or
     provider request is needed to display the footer.
     """
     support = _support_enabled(report_data(report_html).get("support", False))
