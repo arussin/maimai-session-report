@@ -11,3 +11,47 @@
 @media(max-width:600px){.support-card{flex-direction:column;align-items:stretch}.support-card .project-action,.support-button-group{width:100%}}
 @media(forced-colors:active){.creator-support-heart path{fill:ButtonText}}
 @media print{.support-card{display:none}}
+
+/* Checkout presentation adapted from maimai-session-report (MIT, Copyright 2026 arussin). */
+body.support-dialog-open{overflow:hidden}
+.support-dialog{box-sizing:border-box;width:min(420px,calc(100vw - 32px));height:min(680px,calc(100dvh - 48px));max-width:none;max-height:none;margin:auto;padding:0;overflow:hidden;border:0;border-radius:24px;background:#fff;color:#183b43;box-shadow:0 30px 90px #05293657}
+.support-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto;animation:support-dialog-in .22s ease both}
+.support-dialog::backdrop{background:#03232f94;backdrop-filter:blur(5px)}
+.support-dialog .support-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0;padding:17px 17px 14px 20px;border-bottom:1px solid #dce7e9;background:linear-gradient(135deg,#f8feff,#fff9fc)}
+.support-dialog .support-dialog-title{margin:0;font-size:18px;font-weight:650;line-height:1.25;color:#183b43}
+.support-dialog .support-dialog-title.party-brand{font-size:28px;font-weight:850;line-height:1.2;color:#007887}
+.support-dialog .support-dialog-close{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:1px solid #dce7e9;border-radius:50%;background:#fff;color:#52676d;cursor:pointer;font:inherit;font-size:24px;font-weight:500;line-height:1}
+.support-dialog .support-dialog-close:hover{background:#f2fafb;color:#183b43}
+.support-dialog-close:focus-visible{outline:3px solid #007887;outline-offset:3px}
+@keyframes support-dialog-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@media(max-width:620px){.support-dialog{width:100vw;height:100dvh;border-radius:0}.support-dialog .support-dialog-header{padding-top:max(17px,env(safe-area-inset-top))}}
+@media(prefers-reduced-motion:reduce){.support-dialog[open]{animation:none}}
+@media print{.support-dialog{display:none!important}}
+.support-stripe-dialog{width:min(420px,calc(100vw - 32px));height:fit-content;max-height:calc(100dvh - 48px);border-radius:12px;box-shadow:0 16px 48px #05293633}
+.support-stripe-dialog[open]{grid-template-rows:auto minmax(0,1fr)}
+.support-stripe-dialog::backdrop{background:#03232f80;backdrop-filter:none}
+.support-stripe-dialog .support-dialog-header{align-items:center;gap:12px;padding:10px 12px 10px 20px;background:white}
+.support-stripe-dialog .support-dialog-title{font-size:16px;font-weight:600}
+.support-stripe-dialog .support-dialog-close{border:0;border-radius:6px}
+.support-stripe-dialog[data-stage=checkout]{width:min(540px,calc(100vw - 32px));height:min(760px,calc(100dvh - 48px))}
+.support-stripe-body{overflow:auto;overscroll-behavior:contain;padding:20px;min-height:0}
+.support-stripe-dialog .support-invitation{font-size:15px;font-weight:400;line-height:1.6;margin:0 0 20px;color:#183b43}
+.support-primary,.support-secondary{font:inherit;min-height:48px;width:100%;border:2px solid #007887;border-radius:14px;background:#007887;color:white;font-weight:700;padding:10px 12px;cursor:pointer}
+.support-stripe-dialog .support-primary,.support-stripe-dialog .support-secondary{border-radius:6px;font-size:15px;font-weight:600}
+.support-stripe-dialog .support-primary:hover{background:#005f6b;border-color:#005f6b}
+.support-secondary{background:white;color:#005762;margin-top:16px}
+.support-stripe-status{line-height:1.6;margin:0 0 16px}.support-stripe-status:empty{display:none}
+.support-stripe-mount{min-width:0}.support-stripe-mount:empty{display:none}
+.support-stripe-dialog [hidden],.support-return [hidden]{display:none!important}
+.support-stripe-dialog :is(button,input,a):focus-visible{outline:3px solid #007887;outline-offset:3px}
+.support-return{margin:0;background:#eff9fa;color:#183b43;font:16px/1.6 system-ui,sans-serif}
+.support-return main{max-width:440px;margin:10vh auto;padding:24px}.support-return h1{font-size:26px}
+.support-return a{display:block;margin-top:20px;color:#005762}.support-return button{font:inherit;padding:12px;border:2px solid #007887;background:white;color:#005762;border-radius:12px}
+@media(max-width:620px){.support-stripe-dialog{width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}.support-stripe-dialog[data-stage=checkout]{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}}
+
+/* The .party letters echo the five colors of the Deluxe wordmark. */
+.party-brand{display:inline-flex;align-items:center;flex-shrink:0;min-height:44px;max-width:100%;color:#007887;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:30px;font-weight:850;font-style:italic;letter-spacing:-1.3px;line-height:1.2;white-space:nowrap;text-decoration:none}
+.party-brand:hover{color:#007887}.party-brand:focus-visible{outline:3px solid #007887;outline-offset:4px;border-radius:3px}
+.party-suffix{letter-spacing:-1px}.party-dot{color:#007887}.party-red{color:#ed5053}.party-orange{color:#f39835}.party-yellow{color:#f2c62e}.party-green{color:#8aba3d}.party-blue{color:#27a9e0}
+
+.support-card > .party-brand[hidden]{display:none!important}

@@ -28,9 +28,13 @@ class LocalServerTests(unittest.TestCase):
                     response.read()
                     csp = response.getheader("Content-Security-Policy")
                     payment = response.getheader("Permissions-Policy")
-                    self.assertIn("frame-src 'none'", csp)
-                    self.assertIn("payment=()", payment)
-                    self.assertIn("connect-src 'none'", csp)
+                    self.assertIn(
+                        "frame-src https://js.stripe.com" if enabled else "frame-src 'none'", csp
+                    )
+                    self.assertIn("payment=(self" if enabled else "payment=()", payment)
+                    self.assertIn(
+                        "connect-src https://maimai.party" if enabled else "connect-src 'none'", csp
+                    )
                     self.assertEqual(response.getheader("Referrer-Policy"), "no-referrer")
                     connection.close()
                 finally:

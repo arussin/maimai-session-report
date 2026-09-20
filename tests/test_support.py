@@ -17,14 +17,16 @@ class SupportRendererTests(unittest.TestCase):
         report, pbs = load_scenario()
         html = build_html(enrich_report(report, pbs))
         self.assertIs(embedded_report(html)["support"], True)
-        self.assertIn("frame-src 'none'", html)
+        self.assertIn("frame-src https://js.stripe.com", html)
         self.assertIn('const checkoutUrl = "https://maimai.party/support.html";', html)
         self.assertIn(
             'const repositoryUrl = "https://github.com/arussin/maimai-session-report";', html
         )
         self.assertIn('anchor.rel = "noopener noreferrer"', html)
         self.assertIn('anchor.referrerPolicy = "no-referrer"', html)
-        self.assertIn("popup,width=540,height=780,noopener,noreferrer", html)
+        self.assertNotIn("popup,width=540", html)
+        self.assertIn("createEmbeddedCheckoutPage", html)
+        self.assertIn("dialog.showModal()", html)
         self.assertIn("const supportAvailable = true;", html)
         self.assertNotIn('createElement("iframe")', html)
         self.assertNotIn("buymeacoffee", html.lower())

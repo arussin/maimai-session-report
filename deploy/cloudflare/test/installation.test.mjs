@@ -31,8 +31,9 @@ test('packaged Worker serves two isolated installations, exact retained bytes an
         const history=await mf.dispatchFetch(origin+prefix+'history');
         assert.equal(history.status,200);
         assert.match(await history.text(),/No archived sessions/i);
-        assert.match(response.headers.get('Content-Security-Policy'),/connect-src 'none'/);
-        assert.match(response.headers.get('Content-Security-Policy'),/frame-src 'none'/);
+        assert.match(response.headers.get('Content-Security-Policy'),/connect-src https:\/\/maimai.party https:\/\/api.stripe.com/);
+        assert.match(response.headers.get('Content-Security-Policy'),/frame-src https:\/\/js.stripe.com/);
+        assert.match(response.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);
         assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');
       } finally {await mf.dispose();}
     }

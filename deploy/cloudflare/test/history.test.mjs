@@ -23,7 +23,8 @@ test('hosted reader uses real D1/R2 bindings and immutable Python publications',
     assert.match(html,/22<\/p>/);
     assert.match(html,/rel="next"/);
     assert.equal(response.headers.get('cache-control'),'private, no-store, max-age=0');
-    assert.match(response.headers.get('content-security-policy'),/connect-src 'none'/);
+    assert.match(response.headers.get('content-security-policy'),/connect-src https:\/\/maimai.party https:\/\/api.stripe.com/);
+    assert.match(response.headers.get('content-security-policy'),/frame-ancestors 'none'/);
     const cursor=/before=([0-9a-f.]+)/.exec(html)[1];
     const older=await (await get('/maimai/history?before='+cursor)).text();
     assert.equal((older.match(/class="capture"/g)||[]).length,2);

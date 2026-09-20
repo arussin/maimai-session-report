@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .render import support_enabled_in_html, validate_generated_html
+from .render import report_content_security_policy, support_enabled_in_html, validate_generated_html
 
 SECURITY_HEADERS = {
     "Cache-Control": "private, no-store, max-age=0",
@@ -37,7 +37,14 @@ def make_handler(
     enabled = support_enabled_in_html(html)
     if enabled:
         validate_generated_html(html)
-    headers["Content-Security-Policy"] += "; frame-src 'none'"
+    headers["Content-Security-Policy"] = (
+        report_content_security_policy(enabled) + "; frame-ancestors 'none'"
+    )
+    if enabled:
+        headers["Permissions-Policy"] = headers["Permissions-Policy"].replace(
+            "payment=()",
+            'payment=(self "https://js.stripe.com" "https://checkout.stripe.com" "https://hooks.stripe.com")',
+        )
     allowed = frozenset(name.casefold().strip("[]") for name in allowed_hostnames)
 
     class ReportHandler(BaseHTTPRequestHandler):

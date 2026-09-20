@@ -1,4 +1,4 @@
-import {enableSupportFixture, verifySupportPopup} from './support-popup.js';
+import {enableSupportFixture, verifySupportDialog} from './support-dialog.js';
 import {openExports} from './export-controls.js';
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
@@ -26,7 +26,7 @@ test('installed Worker keeps the scorecard, complete pools, download and both su
   await expect(page.locator('#session-rows tr[data-search]:visible')).toHaveCount(0);
   for(const url of ['/alpha/','/alpha/history']) {
     await page.goto(origin+url);
-    await verifySupportPopup(page, requests);
+    await verifySupportDialog(page, requests);
   }
   await expect(page.getByRole('heading',{name:'No archived sessions yet'})).toBeVisible();
   await page.goto(origin+'/beta/');

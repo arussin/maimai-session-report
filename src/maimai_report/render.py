@@ -2,8 +2,7 @@
 
 The renderer performs no network access. It accepts already-fetched JSON data,
 adds display-only metadata, and embeds the report plus all presentation assets in
-one HTML file. Optional project links open separately after a click; payment
-services never load inside the report.
+one HTML file. Optional native support checkout loads only after a click.
 """
 
 from __future__ import annotations
@@ -39,6 +38,34 @@ SEALED_CONTENT_SECURITY_POLICY = (
     "img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; "
     "object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
 )
+SUPPORT_CONTENT_SECURITY_POLICY = (
+    SEALED_CONTENT_SECURITY_POLICY.replace(
+        "script-src 'unsafe-inline'",
+        "script-src 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com",
+    )
+    .replace(
+        "connect-src 'none'",
+        "connect-src https://maimai.party https://api.stripe.com https://checkout.stripe.com "
+        "https://link.com https://*.link.com",
+    )
+    .replace("img-src data:", "img-src data: https://*.stripe.com https://*.link.com")
+    .replace(
+        "frame-src 'none'",
+        "frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com "
+        "https://checkout.stripe.com https://link.com https://*.link.com",
+    )
+)
+
+
+def report_content_security_policy(support: bool, hosted: bool = False) -> str:
+    policy = SUPPORT_CONTENT_SECURITY_POLICY if support else SEALED_CONTENT_SECURITY_POLICY
+    if hosted:
+        policy = policy.replace("connect-src 'none'", "connect-src 'self'")
+        if support:
+            policy = policy.replace("connect-src ", "connect-src 'self' ", 1)
+    return policy
+
+
 _REPORT_DATA = re.compile(
     r'<script id="report-data" type="application/json">(.*?)</script>', re.DOTALL
 )
@@ -267,9 +294,9 @@ def validate_generated_html(html: str) -> None:
     if not isinstance(report, dict):
         raise ValueError("Generated report data must be an object")
     enabled = _support_enabled(report.get("support"))
-    policy = SEALED_CONTENT_SECURITY_POLICY
-    if report.get("partyIntegration", {}).get("hosted") is True:
-        policy = policy.replace("connect-src 'none'", "connect-src 'self'")
+    policy = report_content_security_policy(
+        enabled, report.get("partyIntegration", {}).get("hosted") is True
+    )
     marker = f'<meta http-equiv="Content-Security-Policy" content="{policy}" />'
     if html.count(marker) != 1:
         raise ValueError("Generated report must contain its expected content security policy")
@@ -475,11 +502,9 @@ def build_html(
     }
     support = _support_enabled(report_data.get("support", True))
     report_data["support"] = support
-    content_security_policy = SEALED_CONTENT_SECURITY_POLICY
-    if enabled and party_latest_path:
-        content_security_policy = content_security_policy.replace(
-            "connect-src 'none'", "connect-src 'self'"
-        )
+    content_security_policy = report_content_security_policy(
+        support, bool(enabled and party_latest_path)
+    )
 
     template = _asset_text("template.html")
     substitutions = {

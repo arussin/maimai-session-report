@@ -40,7 +40,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "private, no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Permissions-Policy", "payment=()")
+        self.send_header(
+            "Permissions-Policy",
+            'payment=(self "https://checkout.stripe.com" "https://js.stripe.com" "https://hooks.stripe.com")',
+        )
         if file[1] == "image/webp":
             self.send_header("Content-Disposition", 'attachment; filename="maimai-b50.webp"')
         self.end_headers()

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { developerSupportEnabled } from "../src/security.js";
+import { developerSupportEnabled, reportMetaPolicy } from "../src/security.js";
 
 const ADAPTER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_OUTPUT = path.join(ADAPTER_ROOT, ".wrangler", "wrangler.generated.jsonc");
@@ -116,10 +116,11 @@ async function validateReportExternalUrls(reportHtml) {
       /<meta http-equiv="Content-Security-Policy" content="([^"]*)"\s*\/?>/gu,
     )];
     if (reportHtml.split(controller).length !== 2 || policies.length !== 1 ||
-        !policies[0][1].split(';').some(value => value.trim() === "frame-src 'none'")) {
-      fail('the report must contain its exact project links controller and sealed frame policy');
+        policies[0][1] !== reportMetaPolicy(reportHtml)) {
+      fail('the report must contain its exact project links controller and expected checkout policy');
     }
     reportHtml = reportHtml.replace(controller, '');
+    reportHtml = reportHtml.replace(policies[0][0], '');
   }
   if (/https?:\/\//iu.test(reportHtml)) {
     fail('the report contains an external HTTP/HTTPS URL and will not be published');
