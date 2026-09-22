@@ -2,15 +2,25 @@
 
 import argparse
 import importlib.util
+import sys
 import tempfile
 from copy import deepcopy
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from maimai_report._party import player_data, public_matching
-from maimai_report.contract_vendor import load_bundle, validate_bundle
 from maimai_report.fixtures import SCENARIOS, load_scenario
 from maimai_report.party import from_documents
-from maimai_report.render import enrich_report
+from maimai_report.preparation import enrich_report_data
+from scripts.party_contract import load_bundle, validate_bundle
+
+
+def outcome(call):
+    try:
+        return ("accepted", call())
+    except (ValueError, TypeError, KeyError) as error:
+        return ("rejected", type(error).__name__)
 
 
 def check_bundle(bundle, revision):
@@ -28,7 +38,7 @@ def check_bundle(bundle, revision):
         candidate = modules["player_data"]
         for scenario in SCENARIOS:
             report, pbs = load_scenario(scenario)
-            data = from_documents(enrich_report(report, pbs), pbs)
+            data = from_documents(enrich_report_data(report, pbs), pbs)
             if (
                 candidate.validate(deepcopy(data)) != data
                 or candidate.encode(data) != player_data.encode(data)
@@ -36,6 +46,37 @@ def check_bundle(bundle, revision):
                 or candidate.merge(data, data) != player_data.merge(data, data)
             ):
                 raise ValueError("Player contract changed for synthetic scenario " + scenario)
+        # Retained-history overlap, input order, malformed revision and identity policy.
+        report, pbs = load_scenario("complete")
+        original = from_documents(enrich_report_data(report, pbs), pbs)
+        older_report = deepcopy(report)
+        older_report["generatedAt"] = "2025-01-01T00:00:00Z"
+        older = from_documents(enrich_report_data(older_report, pbs), pbs)
+        other = deepcopy(original)
+        other["player"]["username"] = "another-fixture"
+        other["player"]["key"] = "kamaitachi:maimaidx:another-fixture"
+        other = player_data.seal(other)
+        merge_cases = (
+            (older, original),
+            (original, older),
+            (original, original, older),
+            (original, other),
+            (),
+        )
+        for values in merge_cases:
+            actual = outcome(lambda values=values: candidate.merge(*deepcopy(values)))
+            expected = outcome(lambda values=values: player_data.merge(*deepcopy(values)))
+            if actual != expected:
+                raise ValueError("Retained history or identity merge policy changed")
+        malformed = [None, {}, {**original, "revision": "0" * 64}, {**original, "unexpected": True}]
+        invalid_identity = deepcopy(original)
+        invalid_identity["player"]["key"] = "kamaitachi:maimaidx:someone-else"
+        malformed.append(invalid_identity)
+        for value in malformed:
+            actual = outcome(lambda value=value: candidate.validate(deepcopy(value)))
+            expected = outcome(lambda value=value: player_data.validate(deepcopy(value)))
+            if actual != expected or actual[0] != "rejected":
+                raise ValueError("Malformed player acceptance changed")
         profiles = [
             {
                 "chart_id": name,
@@ -49,6 +90,7 @@ def check_bundle(bundle, revision):
                 ("sibling", "first", 2),
                 ("near", "second", 2),
                 ("far", "third", 5),
+                ("tie", "fifth", 2),
             )
         ]
         # The incomplete profile must never gain a fabricated structural match.
@@ -73,12 +115,17 @@ def check_bundle(bundle, revision):
                 ):
                     raise ValueError("Public comparison contract changed")
             for patterns in (True, False):
-                for eligible in (None, ["near", "unknown"]):
+                for eligible in (None, [], ["near", "unknown"], ["tie", "near"], ["sibling"]):
                     if actual.similar(identifier, patterns=patterns, eligible_ids=eligible) != (
                         expected.similar(identifier, patterns=patterns, eligible_ids=eligible)
                     ):
                         raise ValueError("Public ranking contract changed")
-    return {"report_scenarios": len(SCENARIOS), "comparison_profiles": len(profiles)}
+    return {
+        "report_scenarios": len(SCENARIOS),
+        "comparison_profiles": len(profiles),
+        "history_merge_cases": len(merge_cases),
+        "rejection_cases": len(malformed),
+    }
 
 
 def main():

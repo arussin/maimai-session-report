@@ -18,7 +18,9 @@ from ..history.bundle import ArchiveError, canonical, prepare_capture, sha256
 from ..history.cloudflare import D1, R2, Cloudflare, required
 from ..history.setup import verify_private_bucket
 from ..history.storage import archive, backup, immutable, rebuild
-from ..render import build_html, enrich_report
+from ..player_capture import from_documents
+from ..preparation import PartyContext, enrich_report_data, prepare_report
+from ..render import render_prepared
 from .config import Instance
 
 
@@ -107,7 +109,9 @@ def fixture(directory, scope, scenario, renderer_commit):
         del files["before-recent-scores.json"]
     for name, value in files.items():
         (directory / name).write_bytes(canonical(value))
-    html = build_html(enrich_report(report, pbs)).replace(
+    enriched = enrich_report_data(report, pbs)
+    prepared = prepare_report(enriched, context=PartyContext(from_documents(enriched, pbs)))
+    html = render_prepared(prepared).replace(
         '<body class="clean-checkpoint">',
         '<body class="clean-checkpoint"><aside>SYNTHETIC HOSTED TEST DATA</aside>',
     )

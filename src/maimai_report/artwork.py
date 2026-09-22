@@ -70,7 +70,7 @@ def match_catalogue(
     return result
 
 
-def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
+def _report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
     """Prepare artwork for displayed results and the selected practice chart."""
     records = []
     for snapshot in ("before", "after"):
@@ -81,10 +81,6 @@ def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
     for name in ("scores", "changedPBs"):
         records.extend(session.get(name) or [])
     prepared = report.get("partyRecommendations")
-    if prepared is None and report.get("_partyData") and report.get("_partyCatalog"):
-        from .party_recommendations import prepare
-
-        prepared = prepare(report["_partyData"], report["_partyCatalog"], session.get("scores", []))
     if prepared:
         records.extend(q["chart"] for q in prepared.get("rating", []))
         if prepared.get("practice"):
@@ -99,6 +95,22 @@ def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
         ):
             candidates.setdefault(song_id, set()).add((item["title"], item["artist"]))
     return {key: next(iter(values)) for key, values in candidates.items() if len(values) == 1}
+
+
+def report_songs(report: Mapping[str, Any]) -> dict[str, tuple[str, str]]:
+    """Compatibility adapter for legacy dictionaries with private context."""
+    from .compatibility import artwork_data
+
+    return _report_songs(artwork_data(report))
+
+
+def prepare_prepared_jackets(prepared, cache_dir: Path, **options):
+    """Acquire artwork for exactly the recommendations already selected."""
+    from .preparation import PreparedReport
+
+    if not isinstance(prepared, PreparedReport):
+        raise ValueError("Expected a prepared report")
+    return prepare_data_jackets(prepared.data, cache_dir, **options)
 
 
 def _thumbnail(content: bytes) -> str:
@@ -131,7 +143,7 @@ class ArtworkResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def prepare_jackets(
+def prepare_data_jackets(
     report: Mapping[str, Any],
     cache_dir: Path,
     *,
@@ -144,7 +156,7 @@ def prepare_jackets(
     Missing or ambiguous matches deliberately remain absent. Source failures do
     not prevent the report from being built. Offline mode never invokes fetch.
     """
-    songs = report_songs(report)
+    songs = _report_songs(report)
     result = ArtworkResult(requested=len(songs))
     if not songs:
         return result
@@ -211,3 +223,19 @@ def prepare_jackets(
     if missing:
         result.warnings.append(f"{missing} matched jackets unavailable; using honest placeholders")
     return result
+
+
+def prepare_jackets(
+    report: Mapping[str, Any],
+    cache_dir: Path,
+    *,
+    catalogue_path: Path | None = None,
+    offline: bool = False,
+    fetch: Callable[[str], bytes] = _download,
+) -> ArtworkResult:
+    """Compatibility facade for dictionary-based artwork callers."""
+    from .compatibility import artwork_data
+
+    return prepare_data_jackets(
+        artwork_data(report), cache_dir, catalogue_path=catalogue_path, offline=offline, fetch=fetch
+    )

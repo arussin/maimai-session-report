@@ -1,0 +1,8 @@
+{
+  "baseline_revision": "5a1a7b8bbc16246a65f25c3d4abbd2580a389f94",
+  "cases": {
+    "mapped": "05dbcb815446913fd8d2a6c5ca541e101a35bccf0cde2e169e3db55c1e6594ad",
+    "retained-hosted": "417867f4460c774ccc0209223894e81d38705d7ee0684bdf052eb3fc0b302d5c",
+    "disabled-with-catalog": "056a11ba0e641c078c545f1df0fa8bcd0d69761ff61af9b9fe3e7614765221a3"
+  }
+}

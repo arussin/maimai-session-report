@@ -1,6 +1,5 @@
 """Prepare report-owned data before deterministic presentation assembly.
 
-The compatibility adapter consumes historical private preparation keys only here.
 No provider, catalog or asset request is performed by this module.
 """
 
@@ -14,8 +13,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from ._party import player_data as player_core
-from .party import from_documents
 from .party_recommendations import prepare as prepare_recommendations
+from .player_capture import from_documents
+from .report_data import enrich_report_data as enrich_report_data
+from .report_data import support_enabled as support_enabled
 
 
 @dataclass(frozen=True)
@@ -29,13 +30,10 @@ class PartyContext:
 
     @classmethod
     def from_legacy(cls, report: dict[str, Any]) -> PartyContext:
-        """Remove old in-process keys; they are never part of report JSON."""
-        return cls(
-            report.pop("_partyData", None),
-            report.pop("_partyCatalog", None),
-            report.pop("_partyEnabled", True),
-            report.pop("_partyLatestPath", None),
-        )
+        """Compatibility alias; explicit callers supply PartyContext directly."""
+        from .compatibility import extract_context
+
+        return cls(*extract_context(report))
 
 
 @dataclass(frozen=True)
@@ -46,12 +44,6 @@ class PreparedReport:
     party: dict[str, Any]
     support: bool
     hosted: bool
-
-
-def support_enabled(value: object) -> bool:
-    if not isinstance(value, bool):
-        raise ValueError("Support must be true or false")
-    return value
 
 
 def prepare_report(
@@ -65,8 +57,13 @@ def prepare_report(
     if not isinstance(report, Mapping):
         raise ValueError("Report must be an object")
     report_data = deepcopy(dict(report))
-    legacy = PartyContext.from_legacy(report_data)
-    context = context if context is not None else legacy
+    if context is None:
+        # Preserve the preparation API introduced before explicit caller migration.
+        from .compatibility import extract_context
+
+        context = PartyContext(*extract_context(report_data))
+    elif any(key.startswith("_party") for key in report_data):
+        raise ValueError("Explicit report data must not contain legacy context fields")
     dataset = context.dataset or from_documents(report_data)
     catalog = context.catalog
     prepared_enabled = context.enabled

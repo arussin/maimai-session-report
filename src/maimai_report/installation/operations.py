@@ -8,9 +8,9 @@ import re
 from dataclasses import replace
 from pathlib import Path
 
-from ..artwork import prepare_jackets
+from ..artwork import prepare_prepared_jackets
 from ..capture import capture_existing, write_capture
-from ..cli import _player
+from ..config import player_details as _player
 from ..history.bundle import prepare_capture, report_data
 from ..history.cloudflare import D1, R2, Cloudflare, required
 from ..history.player import latest as latest_player
@@ -18,9 +18,10 @@ from ..history.player import materialize
 from ..history.setup import provision, resource_plan, verify_private_bucket
 from ..history.storage import archive, backup, backup_capture, rebuild
 from ..io import write_json
-from ..party import prepare as prepare_player
 from ..party_catalog import load as load_party_catalog
-from ..render import enrich_report, read_json, render_report
+from ..player_capture import prepare_dataset
+from ..preparation import PartyContext, enrich_report_data, prepare_report
+from ..render import read_json, write_prepared
 from ..sync import synchronize, write_sync_result
 from .config import Instance
 from .deployment import WorkerAPI, check, verify_access, verify_bindings, verify_domains
@@ -110,18 +111,16 @@ def render_capture(
     meaningful(source)
     original = read_json(source / "report-input.json")
     after_path = source / "after-pbs.json"
-    report = enrich_report(
+    report = enrich_report_data(
         original,
         read_json(after_path) if after_path.is_file() else None,
         player=_player(instance.app),
         support=instance.app.support_enabled,
         current_version_display_names=original.get("currentNewDisplayVersions"),
     )
-    prepare_player(report, source=source)
-    report["_partyEnabled"] = instance.app.party_enabled
-    report["_partyCatalog"], warning = load_party_catalog(
-        instance.app.party_catalog_cache, refresh=not offline
-    )
+    dataset = prepare_dataset(report, source=source)
+    latest_path = None
+    catalog, warning = load_party_catalog(instance.app.party_catalog_cache, refresh=not offline)
     if warning:
         import sys
 
@@ -134,14 +133,15 @@ def render_capture(
         from .._party.player_data import merge
 
         if current:
-            report["_partyData"] = merge(current[1], report["_partyData"])
+            dataset = merge(current[1], dataset)
         else:
             from ..history.player import retained
 
-            report["_partyData"] = merge(
-                report["_partyData"], *retained(objects, instance.scope, _player(instance.app))
-            )
-        report["_partyLatestPath"] = instance.prefix + "party/latest.json"
+            dataset = merge(dataset, *retained(objects, instance.scope, _player(instance.app)))
+        latest_path = instance.prefix + "party/latest.json"
+    prepared = prepare_report(
+        report, context=PartyContext(dataset, catalog, instance.app.party_enabled, latest_path)
+    )
     jackets = {}
     jacket_path = source / "jackets.json"
     if jacket_path.is_file():
@@ -152,7 +152,7 @@ def render_capture(
         if match:
             jackets = json.loads(match[1])
     if fetch_artwork and instance.artwork_enabled:
-        artwork = prepare_jackets(report, source / "artwork-cache")
+        artwork = prepare_prepared_jackets(prepared, source / "artwork-cache")
         jackets = artwork.jackets
         write_json(source / "artwork-cache/provenance.json", artwork.provenance)
     write_json(jacket_path, jackets)
@@ -166,8 +166,8 @@ def render_capture(
         instance.b50_mode != "required" or available,
         "Required B50 renderer did not produce an image",
     )
-    render_report(
-        report,
+    write_prepared(
+        prepared,
         source / "maimai-report.html",
         jackets=jackets,
         b50_path=instance.prefix + "b50.webp" if available else None,

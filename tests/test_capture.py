@@ -277,6 +277,7 @@ class CaptureTests(unittest.TestCase):
     def test_cli_generates_without_submission_credentials(self):
         with (
             patch("maimai_report.capture.read_client", return_value=Reader()),
+            patch("maimai_report.party_catalog.load", return_value=(None, None)),
             contextlib.redirect_stdout(io.StringIO()),
         ):
             status = cli.run(

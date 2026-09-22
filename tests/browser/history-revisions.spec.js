@@ -1,5 +1,5 @@
 import {openExports} from './export-controls.js';
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile} from 'node:fs/promises';
 import {withHistoryNavigation} from '../../deploy/cloudflare/src/history.js';

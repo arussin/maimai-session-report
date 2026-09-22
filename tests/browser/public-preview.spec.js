@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 
 test('public demo shows real targets, embedded demo tiles and original compact rating geometry', async ({page},testInfo)=> {

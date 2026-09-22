@@ -417,3 +417,14 @@ def _validate_text(
         raise ConfigError(f"{label.capitalize()} is too long (maximum {maximum} characters).")
     if any(ord(character) < 32 or ord(character) == 127 for character in value):
         raise ConfigError(f"{label.capitalize()} may not contain control characters.")
+
+
+def player_details(config: AppConfig) -> dict[str, str]:
+    display_name = config.display_name or config.username or "Player"
+    game_name = "maimai DX" if config.game == "maimaidx" else config.game
+    return {
+        "username": config.username or "offline-player",
+        "displayName": display_name,
+        "game": game_name,
+        "timezone": config.timezone,
+    }

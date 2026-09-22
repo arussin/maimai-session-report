@@ -12,13 +12,15 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import __version__
 from .api import KamaitachiClient, validate_score_payload
-from .artwork import prepare_jackets
+from .artwork import prepare_data_jackets, prepare_prepared_jackets
 from .badges import export_badge_pack
 from .capture import capture_existing, list_sessions, save_baseline, write_capture
 from .config import AppConfig, get_api_token, load_config
+from .config import player_details as _player
 from .errors import MaimaiReportError
 from .io import ensure_output_directory, write_json
-from .render import enrich_report, read_json, render_demo, render_report
+from .preparation import PartyContext, PreparedReport, enrich_report_data, prepare_report
+from .render import read_json, render_demo, write_prepared
 from .server import serve_file
 from .sync import synchronize, write_sync_result
 
@@ -228,17 +230,6 @@ def _load_cli_config(args: argparse.Namespace, environ: Mapping[str, str]) -> Ap
     return load_config(_config_path(args, environ), cli_overrides=overrides, environ=environ)
 
 
-def _player(config: AppConfig) -> dict[str, str]:
-    display_name = config.display_name or config.username or "Player"
-    game_name = "maimai DX" if config.game == "maimaidx" else config.game
-    return {
-        "username": config.username or "offline-player",
-        "displayName": display_name,
-        "game": game_name,
-        "timezone": config.timezone,
-    }
-
-
 def _doctor(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
     checks: list[tuple[str, str]] = []
     # Doctor explicitly reports this even when invoked from an unsupported source checkout.
@@ -307,24 +298,33 @@ def _doctor(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
 
 def _render_command(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
     config = _load_cli_config(args, environ)
-    report = enrich_report(
+    after_payload = read_json(args.after_pbs)
+    report = enrich_report_data(
         read_json(args.report_input),
-        read_json(args.after_pbs),
+        after_payload,
         player=_player(config),
         current_version_display_names=(config.current_version_display_names or None),
         support=config.support_enabled,
     )
-    _prepare_party(args, config, report, args.report_input.parent)
-    output = render_report(
-        report, args.output, jackets=_artwork(args, config, report), badge_pack=config.badge_pack
+    prepared = prepare_report(
+        report,
+        context=_prepare_party(
+            args, config, report, args.report_input.parent, after_payload=after_payload
+        ),
+    )
+    output = write_prepared(
+        prepared,
+        args.output,
+        jackets=_artwork(args, config, prepared),
+        badge_pack=config.badge_pack,
     )
     print(f"Rendered private report: {output.resolve()}")
     return EXIT_OK
 
 
-def _prepare_party(args, config, report, source):
-    from .party import prepare
+def _prepare_party(args, config, report, source, *, after_payload=None):
     from .party_catalog import load
+    from .player_capture import prepare_dataset
 
     requested = getattr(args, "export_party_data", None)
     destination = (
@@ -341,30 +341,39 @@ def _prepare_party(args, config, report, source):
         protected.update(p.resolve() for p in Path(source).glob("*.json"))
         if Path(destination).resolve() in protected:
             raise MaimaiReportError("Player export must not replace report or capture inputs")
-    prepare(
-        report, source=source, history=getattr(args, "party_history", []), player_file=destination
+    dataset = prepare_dataset(
+        report,
+        source=source,
+        history=getattr(args, "party_history", []),
+        player_file=destination,
+        after_payload=after_payload,
     )
-    report["_partyEnabled"] = (
+    enabled = (
         config.party_enabled if getattr(args, "party_enabled", None) is None else args.party_enabled
     )
     catalog, warning = load(
         getattr(args, "party_catalog_cache", None) or config.party_catalog_cache,
         refresh=args.command != "render" and not getattr(args, "offline_party", False),
     )
-    report["_partyCatalog"] = catalog
     if warning:
         print("maimai.party: " + warning, file=sys.stderr)
     if destination:
         print("Saved reusable player file: " + str(Path(destination).resolve()))
+    return PartyContext(dataset=dataset, catalog=catalog, enabled=enabled)
 
 
-def _artwork(args: argparse.Namespace, config: AppConfig, report: dict) -> dict | None:
+def _artwork(
+    args: argparse.Namespace, config: AppConfig, report: dict | PreparedReport
+) -> dict | None:
     if args.jackets:
         return read_json(args.jackets)
     if not args.prepare_jackets and args.command != "prepare-jackets":
         return None
     cache = args.jacket_cache or config.output_dir / "artwork-cache"
-    result = prepare_jackets(
+    acquire = (
+        prepare_prepared_jackets if isinstance(report, PreparedReport) else prepare_data_jackets
+    )
+    result = acquire(
         report, cache, catalogue_path=args.artwork_catalogue, offline=args.offline_artwork
     )
     write_json(cache / "provenance.json", result.provenance)
@@ -378,9 +387,10 @@ def _artwork(args: argparse.Namespace, config: AppConfig, report: dict) -> dict 
 
 def _artwork_command(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
     config = _load_cli_config(args, environ)
-    report = enrich_report(
+    after_payload = read_json(args.after_pbs)
+    report = enrich_report_data(
         read_json(args.report_input),
-        read_json(args.after_pbs),
+        after_payload,
         current_version_display_names=config.current_version_display_names or None,
     )
     write_json(args.output, _artwork(args, config, report) or {})
@@ -404,18 +414,23 @@ def _sync_command(args: argparse.Namespace, environ: Mapping[str, str], *, rende
     for path in paths.values():
         print(f"  {path.name}")
     if render:
-        report = enrich_report(
+        report = enrich_report_data(
             result.report_input,
             result.after_pbs,
             player=_player(config),
             current_version_display_names=config.current_version_display_names,
             support=config.support_enabled,
         )
-        _prepare_party(args, config, report, config.output_dir)
-        output = render_report(
+        prepared = prepare_report(
             report,
+            context=_prepare_party(
+                args, config, report, config.output_dir, after_payload=result.after_pbs
+            ),
+        )
+        output = write_prepared(
+            prepared,
             args.output,
-            jackets=_artwork(args, config, report),
+            jackets=_artwork(args, config, prepared),
             badge_pack=config.badge_pack,
         )
         print(f"Rendered private report: {output.resolve()}")
@@ -471,18 +486,23 @@ def run(args: argparse.Namespace, *, environ: Mapping[str, str] | None = None) -
         )
         write_capture(capture, config.output_dir)
         result = capture[0]
-        report = enrich_report(
+        report = enrich_report_data(
             result.report_input,
             result.after_pbs,
             player=_player(config),
             current_version_display_names=config.current_version_display_names,
             support=config.support_enabled,
         )
-        _prepare_party(args, config, report, config.output_dir)
-        output = render_report(
+        prepared = prepare_report(
             report,
+            context=_prepare_party(
+                args, config, report, config.output_dir, after_payload=result.after_pbs
+            ),
+        )
+        output = write_prepared(
+            prepared,
             args.output,
-            jackets=_artwork(args, config, report),
+            jackets=_artwork(args, config, prepared),
             badge_pack=config.badge_pack,
         )
         print(f"Rendered private Kamaitachi report: {output.resolve()}")

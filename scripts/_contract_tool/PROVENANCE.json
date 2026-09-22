@@ -1,0 +1,7 @@
+{
+  "upstream": "https://github.com/arussin/maimai-chart-browser",
+  "upstream_revision": "d1383cd68393654803646f20c7fa9ac24b823a6d",
+  "source_path": "src/maimai_intelligence/contract_bundle.py",
+  "sha256": "a3c1868359f19febda4f0c2a64e9345c8995fb14f2ae18d6feba91a2fc6904ac",
+  "purpose": "Developer-only exact copy; edit the registry authority and explicitly refresh this pin."
+}

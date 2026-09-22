@@ -1,6 +1,6 @@
 import {enableSupportFixture, verifySupportDialog} from './support-dialog.js';
 import {openExports} from './export-controls.js';
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 const origin='http://127.0.0.1:4181';
 test('history dates open the full retained report and return to latest',async({page})=>{

@@ -23,9 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: ubuntu-latest, python-version: "3.11"}
-          - {os: ubuntu-latest, python-version: "3.13"}
-          - {os: windows-latest, python-version: "3.13"}
+          - {os: ubuntu-latest, python-version: "3.11.14"}
+          - {os: ubuntu-latest, python-version: "3.13.7"}
+          - {os: windows-latest, python-version: "3.13.7"}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -39,8 +39,9 @@ jobs:
 
       - name: Install project and lint tool
         run: |
-          python -m pip install --disable-pip-version-check --no-deps .
-          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          python -m pip --isolated download --disable-pip-version-check --cache-dir "${{ runner.temp }}/pip-cache" --require-hashes --only-binary=:all: -r requirements-dev.lock --dest "${{ runner.temp }}/wheelhouse"
+          python -m pip --isolated install --disable-pip-version-check --no-index --find-links "${{ runner.temp }}/wheelhouse" --require-hashes --only-binary=:all: -r requirements-dev.lock
+          python -m pip --isolated install --disable-pip-version-check --no-index --no-deps .
 
       - name: Lint and check formatting
         run: |
@@ -48,7 +49,7 @@ jobs:
           ruff format --check .
 
       - name: Run offline unit tests
-        run: python -m unittest discover -s tests -v
+        run: python scripts/run_offline_tests.py
 
       - name: Smoke-test commands without credentials or network
         run: |
@@ -76,7 +77,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "22"
+          node-version: "24.14.1"
           cache: npm
           cache-dependency-path: deploy/cloudflare/package-lock.json
 
@@ -103,25 +104,30 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.13"
+          python-version: "3.13.7"
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "22"
+          node-version: "24.14.1"
           cache: npm
           cache-dependency-path: tests/browser/package-lock.json
       - name: Install pinned test tools
         run: |
-          python -m pip install --disable-pip-version-check ".[artwork]"
+          python -m pip --isolated download --disable-pip-version-check --cache-dir "$RUNNER_TEMP/pip-cache" --require-hashes --only-binary=:all: -r requirements-dev.lock --dest "$RUNNER_TEMP/wheelhouse"
+          python -m pip --isolated install --disable-pip-version-check --no-index --find-links "$RUNNER_TEMP/wheelhouse" --require-hashes --only-binary=:all: -r requirements-dev.lock
+          python -m pip --isolated install --disable-pip-version-check --no-index --no-deps .
           npm ci --ignore-scripts --no-audit --no-fund --prefix tests/browser
           npm ci --ignore-scripts --no-audit --no-fund --prefix deploy/cloudflare
           cd tests/browser
-          npx playwright install --with-deps chromium webkit
+          npx playwright install --with-deps chromium firefox webkit
       - name: Generate fictional inputs without credentials or score requests
         run: |
           python tests/browser/prepare.py
           python -m tests.history_fixture tests/browser/generated/history
           python -m tests.prepare_installation tests/browser/generated/installations
+      - name: Verify default-deny browser network boundary
+        working-directory: tests/browser
+        run: node --test isolation.test.mjs
       - name: Verify browser behavior and accessibility
         working-directory: tests/browser
         run: npm test
@@ -167,3 +173,85 @@ jobs:
           name: maimai-installation-package
           path: dist/maimai-installation.zip*
           retention-days: 14
+
+
+  compatibility:
+    name: Pinned reciprocal contract and reproducibility
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          path: report
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.11.14'
+      - name: Read the reviewed registry counterpart pin
+        id: counterpart
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          pin=json.loads(Path('report/config/compatibility.json').read_text())['registry']
+          assert pin['repository']=='arussin/maimai-chart-browser'
+          assert re.fullmatch('[a-f0-9]{40}',pin['revision'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as stream:
+              stream.write('revision='+pin['revision']+'\n')
+          PY
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: arussin/maimai-chart-browser
+          ref: ${{ steps.counterpart.outputs.revision }}
+          path: registry
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exercise the real producer and report consumer offline
+        shell: bash
+        run: python registry/scripts/check_report_compatibility.py --registry registry --report report --candidate report --output "$RUNNER_TEMP/compatibility"
+      - name: Canonical Linux build after pinned acquisition
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python registry/scripts/run_canonical_reproduction.py --source report --toolkit registry --output "$RUNNER_TEMP/reproduction"
+      - name: Independent Windows archive and entry proof
+        if: runner.os == 'Windows'
+        shell: bash
+        run: python registry/scripts/verify_reproducible_build.py --source report --output "$RUNNER_TEMP/reproduction/proof"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: report-contract-${{ runner.os }}
+          path: |
+            ${{ runner.temp }}/compatibility/receipt.json
+            ${{ runner.temp }}/compatibility/check-*.log
+            ${{ runner.temp }}/reproduction/acquisition.json
+            ${{ runner.temp }}/reproduction/proof/receipt.json
+          retention-days: 14
+
+  cross-os-artifacts:
+    name: Compare Linux and Windows wheel contents
+    needs: compatibility
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: report-contract-*
+          path: receipts
+      - name: Require identical portable package contents
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          paths=sorted(Path('receipts').glob('**/proof/receipt.json'))
+          assert len(paths)==2, paths
+          left,right=(json.loads(path.read_text()) for path in paths)
+          assert left['passed'] and right['passed']
+          assert left['builds'][0]['wheel_entries']==right['builds'][0]['wheel_entries']
+          print('Linux and Windows wheel member hashes match; each local archive reproduction passed.')
+          PY

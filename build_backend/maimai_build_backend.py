@@ -180,6 +180,7 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         "src/maimai_report/_party/LICENSE",
         "src/maimai_report/_party/PROVENANCE.json",
         "requirements-dev.txt",
+        "requirements-dev.lock",
         "docs/sample-report.html",
         "docs/images/demo-desktop.png",
         "docs/images/demo-mobile.png",
@@ -218,9 +219,10 @@ def build_sdist(sdist_directory: str, config_settings: dict | None = None) -> st
         "build_backend": {".py"},
         "docs": {".md"},
         "src": {".css", ".html", ".js", ".py", ".sql", ".txt"},
-        "tests": {".py", ".cjs"},
+        "tests": {".py", ".cjs", ".js", ".mjs", ".json"},
         "installation": {".py", ".yml"},
-        "scripts": {".py"},
+        "scripts": {".py", ".json"},
+        "config": {".json"},
     }
     excluded_parts = {"__pycache__", ".wrangler", "node_modules"}
     sources = [root / relative for relative in included_files]

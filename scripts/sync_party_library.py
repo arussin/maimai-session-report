@@ -1,9 +1,12 @@
 """Verify or update a reviewed Party contract; never claim dirty files are committed."""
 
 import argparse
+import sys
 from pathlib import Path
 
-from maimai_report.contract_vendor import export_bundle, load_bundle, vendor_bundle
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from scripts.party_contract import export_bundle, load_bundle, vendor_bundle
 
 
 def main():

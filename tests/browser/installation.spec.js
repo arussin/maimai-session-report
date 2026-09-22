@@ -1,6 +1,6 @@
 import {enableSupportFixture, verifySupportDialog} from './support-dialog.js';
 import {openExports} from './export-controls.js';
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 import {readFile} from 'node:fs/promises';
 
 const origin='http://127.0.0.1:4182';

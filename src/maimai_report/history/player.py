@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from .._party import player_data as core
-from ..party import from_bundle
+from ..player_capture import from_bundle
 from .bundle import ArchiveError, CaptureBundle, canonical, load_json, sha256, validate_manifest
 from .storage import immutable, install_marker
 

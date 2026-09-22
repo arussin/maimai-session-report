@@ -80,13 +80,15 @@ class CatalogueTests(unittest.TestCase):
                 ]
             )
             with (
-                patch("maimai_report.cli.prepare_jackets") as prepare,
+                patch("maimai_report.cli.prepare_prepared_jackets") as prepare,
+                patch("maimai_report.cli.prepare_data_jackets") as prepare_data,
                 patch("maimai_report.cli.synchronize") as sync,
                 patch("maimai_report.cli.KamaitachiClient") as client,
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 self.assertEqual(cli.run(args, environ={}), 0)
             prepare.assert_not_called()
+            prepare_data.assert_not_called()
             sync.assert_not_called()
             client.assert_not_called()
             self.assertTrue((root / "report.html").is_file())

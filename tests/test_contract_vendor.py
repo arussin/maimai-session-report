@@ -9,7 +9,10 @@ from copy import deepcopy
 from pathlib import Path
 
 from maimai_report._party import player_data
-from maimai_report.contract_vendor import (
+from maimai_report.fixtures import SCENARIOS, load_scenario
+from maimai_report.party import from_documents
+from maimai_report.render import enrich_report
+from scripts.party_contract import (
     FILES,
     SCHEMA,
     TARGETS,
@@ -19,9 +22,6 @@ from maimai_report.contract_vendor import (
     validate_bundle,
     vendor_bundle,
 )
-from maimai_report.fixtures import SCENARIOS, load_scenario
-from maimai_report.party import from_documents
-from maimai_report.render import enrich_report
 
 REVISION = "a" * 40
 ROOT = Path(__file__).resolve().parents[1] / "src/maimai_report"
@@ -123,4 +123,22 @@ class ContractVendorTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         result = module.check_bundle(fixture_bundle(), REVISION)
-        self.assertEqual(result, {"report_scenarios": len(SCENARIOS), "comparison_profiles": 5})
+        self.assertEqual(
+            result,
+            {
+                "report_scenarios": len(SCENARIOS),
+                "comparison_profiles": 6,
+                "history_merge_cases": 5,
+                "rejection_cases": 5,
+            },
+        )
+
+    def test_developer_validator_matches_its_independent_provenance_pin(self):
+        import json
+
+        tool = ROOT.parents[1] / "scripts/_contract_tool"
+        pin = json.loads((tool / "PROVENANCE.json").read_text())
+        raw = (tool / "contract_bundle.py").read_bytes().replace(b"\r\n", b"\n")
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), pin["sha256"])
+        self.assertRegex(pin["upstream_revision"], r"^[a-f0-9]{40}$")
+        self.assertEqual(pin["source_path"], "src/maimai_intelligence/contract_bundle.py")

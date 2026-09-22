@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from './fixtures.js';
 import {readFile} from 'node:fs/promises';
 
 for (const scenario of ['complete', 'empty', 'incomplete']) {

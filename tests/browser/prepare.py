@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import runpy
 from copy import deepcopy
@@ -99,3 +100,19 @@ save("presentation", report)
 runpy.run_path(str(Path(__file__).with_name("prepare-score-sort.py")), run_name="__main__")
 runpy.run_path(str(Path(__file__).with_name("prepare-kamaitachi.py")))["generate"](save)
 print("Generated explicitly synthetic browser fixtures and a test-only download.")
+
+# The preview runner serves only these exact generated fictional bytes.
+(ROOT / "preview-manifest.json").write_text(
+    json.dumps(
+        {
+            "schema": "maimai-synthetic-preview-1",
+            "files": {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(ROOT.iterdir())
+                if path.is_file() and path.suffix in {".html", ".webp"}
+            },
+        },
+        sort_keys=True,
+    ),
+    encoding="utf-8",
+)

@@ -12,6 +12,7 @@ export default defineConfig({
     {command: 'node installation-server.mjs', url: 'http://127.0.0.1:4182/alpha/', reuseExistingServer: false,timeout:60000},
   ],
   projects: [
+    {name: 'firefox', use: {browserName: 'firefox', viewport: {width:1280,height:900}}},
     {name: 'desktop', use: {browserName: 'chromium', viewport: {width:1280,height:900}}},
     {name: 'tablet', use: {browserName: 'chromium', viewport: {width:768,height:1024}}},
     {name: 'phone', use: {browserName: 'chromium', viewport: {width:390,height:844}}},

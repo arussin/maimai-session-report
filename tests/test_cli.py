@@ -316,6 +316,7 @@ class CLITests(unittest.TestCase):
             with (
                 patch("maimai_report.cli.synchronize", return_value=result) as synchronize,
                 patch("maimai_report.cli.write_sync_result", return_value={}),
+                patch("maimai_report.party_catalog.load", return_value=(None, None)),
                 patch.dict(os.environ, {}, clear=True),
                 contextlib.redirect_stdout(io.StringIO()),
             ):

@@ -44,7 +44,7 @@ There is no polling loop. A successful explicit run makes two PB reads, two rece
 - `sync.py` owns the one-import orchestration and writes six auditable private JSON documents.
 - `calculations.py` derives session cutoff, changed PBs, rating gains, and Old 35/New 15 pools from exact configured display-version names.
 - `preparation.py` converts report data and an explicit `PartyContext` into a detached `PreparedReport`; it owns personal recommendations and handoff data without fetching anything.
-- `render.py` assembles that prepared model into the existing deterministic single-file HTML. The original `build_html` entry point remains a compatibility facade; historical in-process `_party*` inputs are consumed only at preparation.
+- `render.py` assembles that prepared model into the existing deterministic single-file HTML. The original `build_html` entry point remains a compatibility facade; historical in-process `_party*` fields are confined to `compatibility.py`. Production callers pass explicit context and never use those dictionary adapters.
 - `artwork.py` optionally prepares embedded raster jackets from fixed public static sources at build time; it never reads a score API.
 - `server.py` provides a minimal localhost server with restrictive response headers, an allowlisted Host header, no request-target logging, and no wildcard bind.
 - `fixtures/` contains synthetic scenarios only. No fixture is fetched from an account or historical artifact.
@@ -113,3 +113,45 @@ The report keeps an explicit pin; importing the registry package at runtime is f
 pre-refactor `c4992ce14e3b5a0821e96a801c8cf925f60f41cf` across all synthetic
 scenarios and the support, embedded-data and hosted-data modes. Existing asset
 hash, privacy, archive, browser and calculation tests remain independent safeguards.
+
+
+## Preparation used by every producer
+
+CLI render, sync-and-render, retained Kamaitachi capture, installation render, file
+render and demo now follow one path: enrich display data, prepare/merge the player
+dataset, assemble `PartyContext`, derive one `PreparedReport`, acquire artwork for
+that prepared selection, and call `write_prepared`. Rendering and artwork never
+recalculate recommendations. Artwork-only commands retain their narrower offline
+input flow and do not acquire a Party catalog or history.
+
+`PreparedReport` owns detached report data; its frozen dataclass does not imply
+that nested dictionaries are deeply immutable. Legacy `enrich_report`, `build_html`,
+`render_report`, `party.prepare`, and dictionary artwork APIs retain their behavior.
+Their private context adaptation is isolated in `compatibility.py`. Pure display
+enrichment lives in `report_data.py`; player capture conversion and retained-file
+assembly live in `player_capture.py`, beneath the compatibility imports in `party.py`.
+CLI and installation share `config.player_details`, avoiding an installation-to-CLI
+back edge. The source import graph has no eager or deferred import cycles.
+
+Twenty-one exact HTML hashes characterize this boundary: the original eighteen
+combinations from c4992ce, plus mapped catalog, retained hosted history and disabled
+handoff with artwork captured from exact commit 5a1a7b8. The mapped case requires the
+unplayed selected practice chart to appear in the artwork request.
+
+## Validation and tool ownership
+
+The registry alone maintains the closed public-contract envelope validator and
+exporter. Report development uses its exact committed copy under
+`scripts/_contract_tool`, with a separate provenance pin; it is absent from the
+installed report runtime. `scripts/party_contract.py` only maps reviewed files into
+report destinations. The existing five-file runtime vendor pin stays independent.
+
+`config/compatibility.json` pins the actual registry counterpart used in ordinary
+CI. Its registry-owned reciprocal harness verifies both Git revisions, rejects dirty
+or untracked acceptance sources, verifies the tool and runtime pins, and executes
+the actual consumer's synthetic matching/player/history/rejection corpus with
+sockets denied. Update pins deliberately; a breaking change first lands a consumer
+that accepts both revisions, then the producer pins that compatible consumer.
+
+See [reproduction and browser isolation](REPRODUCIBILITY.md). No shared change
+performs a personal sync, contacts private data, provisions resources or publishes.

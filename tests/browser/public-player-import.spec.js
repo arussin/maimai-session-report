@@ -1,10 +1,10 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 import {publicImportFixture} from '../../deploy/cloudflare/test/public-import-fixture.mjs';
 
 // Only this test uses Miniflare's local certificate and local-network grant.
 // Actual HTTP responses reach the browser: route.fulfill bypasses CORS checks.
 test.use({ignoreHTTPSErrors:true});
-test('public exports are readable by Party only after owner opt-in',async({page,context,browserName})=>{
+test('public exports are readable by Party only after owner opt-in',async({page,context,browserName,fixtureOrigins})=>{
   if(browserName==='chromium')await context.grantPermissions(['local-network-access']);
   await context.route('https://maimai.party/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic Party import</title>'}));
   await context.route('https://other.example.test/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Unrelated origin</title>'}));
@@ -21,12 +21,13 @@ test('public exports are readable by Party only after owner opt-in',async({page,
   page.on('request',r=>{if(new URL(r.url()).hostname==='127.0.0.1')sent.push(r)});
   for(const enabled of [false,true]) {
     const {mf,origin}=await publicImportFixture(enabled);
+    const releaseOrigin=fixtureOrigins.allow(origin);
     try {
       await page.goto('https://maimai.party/');
       expect(await read(origin)).toEqual(enabled?{ok:true,integrity:true}:{ok:false});
       await page.goto('https://other.example.test/');
       expect(await read(origin)).toEqual({ok:false});
-    } finally {await mf.dispose();}
+    } finally {releaseOrigin();await mf.dispose();}
   }
   expect(sent.length).toBeGreaterThanOrEqual(5);
   for(const request of sent) {
