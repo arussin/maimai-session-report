@@ -99,11 +99,14 @@ The handoff changes only a connected report's opener policy to `same-origin-allo
 
 The upstream [format, matching and browser contract](https://github.com/arussin/maimai-chart-browser/blob/e134d585c7b738fb13e1d08dadf1c048fff6aea4/docs/PLAYER_DATA.md) defines the shared player-data interface. Copied modules and the wordmark are recorded with their licenses and hashes in `src/maimai_report/_party/PROVENANCE.json`.
 
-To refresh those files from a local chart-browser checkout, specify the full upstream commit:
+To refresh those files from a local chart-browser checkout, specify the reviewed full upstream commit. The command reads exact Git objects and ignores dirty/untracked files; `--check` verifies the existing pin without changing files:
 
 ```console
+python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER --revision FULL_COMMIT_SHA --check
 python scripts/sync_party_library.py --source PATH_TO_CHART_BROWSER --revision FULL_COMMIT_SHA
 ```
+
+An independently reviewed registry bundle can be consumed offline with `--bundle PATH --revision FULL_COMMIT_SHA --bundle-sha256 SHA256` instead of `--source`. First run `scripts/check_party_contract.py` with those bundle arguments against the report synthetic compatibility corpus. The command requires the pinned SHA256 and checks every allowlisted source path, byte count and file digest before any vendor file changes. Source pin updates remain explicit code-review changes, never runtime refreshes.
 
 The chart browser has no runtime dependency on Session Report.
 

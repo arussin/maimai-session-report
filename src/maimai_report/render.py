@@ -20,6 +20,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .badges import badge_css
 from .io import atomic_write_text
+from .preparation import PreparedReport, prepare_report
+from .preparation import support_enabled as _support_enabled
 
 ASSET_PACKAGE = "maimai_report.assets"
 TEMPLATE_TOKENS = (
@@ -264,12 +266,6 @@ def _player_data(existing: object, overlay: Mapping[str, str] | None) -> dict[st
     return result
 
 
-def _support_enabled(value: object) -> bool:
-    if not isinstance(value, bool):
-        raise ValueError("Support must be true or false")
-    return value
-
-
 def support_enabled_in_html(html: str) -> bool:
     """Read the explicit report flag; malformed or unrelated HTML grants nothing."""
     matches = _REPORT_DATA.findall(html)
@@ -441,70 +437,34 @@ def build_html(
     party_enabled: bool | None = None,
     party_latest_path: str | None = None,
 ) -> str:
-    """Return one deterministic HTML document with a fail-closed runtime policy."""
+    """Compatibility entry point: prepare data, then assemble one offline report."""
+    return render_prepared(
+        prepare_report(report, party_enabled=party_enabled, party_latest_path=party_latest_path),
+        jackets=jackets,
+        b50_path=b50_path,
+        b50_unavailable=b50_unavailable,
+        badge_pack=badge_pack,
+    )
 
-    if not isinstance(report, Mapping):
-        raise ValueError("Report must be an object")
+
+def render_prepared(
+    prepared: PreparedReport,
+    *,
+    jackets: Mapping[str, str] | None = None,
+    b50_path: str | None = None,
+    b50_unavailable: bool = False,
+    badge_pack: Path | str | None = None,
+) -> str:
+    """Assemble the existing assets without deriving or fetching domain data."""
+    if not isinstance(prepared, PreparedReport):
+        raise ValueError("Expected a prepared report")
     if b50_path is not None and not re.fullmatch(r"(?:/[A-Za-z0-9_-]+/)?b50\.webp", b50_path):
         raise ValueError("B50 downloads must use the installation's local b50.webp path")
     if b50_path and b50_unavailable:
         raise ValueError("A B50 download cannot also be unavailable")
-
-    report_data = deepcopy(dict(report))
-    from ._party import player_data as player_core
-    from .party import from_documents
-    from .party_recommendations import prepare as prepare_recommendations
-
-    dataset = report_data.pop("_partyData", None) or from_documents(report_data)
-    catalog = report_data.pop("_partyCatalog", None)
-    prepared_enabled = report_data.pop("_partyEnabled", True)
-    enabled = prepared_enabled if party_enabled is None else party_enabled
-    if type(enabled) is not bool:
-        raise ValueError("Personal handoff must be explicitly enabled or disabled")
-    prepared_latest_path = report_data.pop("_partyLatestPath", None)
-    party_latest_path = party_latest_path or prepared_latest_path
-    if party_latest_path is not None and not re.fullmatch(
-        r"/[A-Za-z0-9_-]+/party/latest\.json", party_latest_path
-    ):
-        raise ValueError("Player data endpoints must stay beneath the protected installation path")
-    report_data["partyRecommendations"] = prepare_recommendations(
-        dataset, catalog, report_data.get("session", {}).get("scores", [])
-    )
-    report_data["partyIntegration"] = {
-        "enabled": enabled,
-        "hosted": bool(enabled and party_latest_path),
-    }
-    chart_ids = set()
-
-    def collect(value):
-        if isinstance(value, dict):
-            if isinstance(value.get("chartID"), str):
-                chart_ids.add(value["chartID"])
-            for child in value.values():
-                collect(child)
-        elif isinstance(value, list):
-            for child in value:
-                collect(child)
-
-    collect(report_data)
-    mapping = (catalog or {}).get("provider_mapping", {}).get("charts", {})
-    party_settings = {
-        "enabled": enabled,
-        "latestPath": party_latest_path if enabled else None,
-        "offer": player_core.offer(dataset) if enabled else None,
-        "payload": base64.b64encode(player_core.encode(dataset)).decode() if enabled else None,
-        "catalogVersion": (catalog or {}).get("catalog_version"),
-        "mapping": {
-            cid: {"chart_id": mapping[cid]["chart_id"], "source_hash": mapping[cid]["source_hash"]}
-            for cid in chart_ids
-            if cid in mapping
-        },
-    }
-    support = _support_enabled(report_data.get("support", True))
-    report_data["support"] = support
-    content_security_policy = report_content_security_policy(
-        support, bool(enabled and party_latest_path)
-    )
+    report_data, party_settings = prepared.data, prepared.party
+    support = prepared.support
+    content_security_policy = report_content_security_policy(support, prepared.hosted)
 
     template = _asset_text("template.html")
     substitutions = {

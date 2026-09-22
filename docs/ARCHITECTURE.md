@@ -43,7 +43,8 @@ There is no polling loop. A successful explicit run makes two PB reads, two rece
 - `sse.py` parses SSE records, ignores comments/keepalives, completes only on `done`, reports `import:failed`, and rejects EOF before completion.
 - `sync.py` owns the one-import orchestration and writes six auditable private JSON documents.
 - `calculations.py` derives session cutoff, changed PBs, rating gains, and Old 35/New 15 pools from exact configured display-version names.
-- `render.py` enriches chart/song data and emits deterministic HTML with inline CSS, inline JavaScript, and safely escaped JSON.
+- `preparation.py` converts report data and an explicit `PartyContext` into a detached `PreparedReport`; it owns personal recommendations and handoff data without fetching anything.
+- `render.py` assembles that prepared model into the existing deterministic single-file HTML. The original `build_html` entry point remains a compatibility facade; historical in-process `_party*` inputs are consumed only at preparation.
 - `artwork.py` optionally prepares embedded raster jackets from fixed public static sources at build time; it never reads a score API.
 - `server.py` provides a minimal localhost server with restrictive response headers, an allowlisted Host header, no request-target logging, and no wildcard bind.
 - `fixtures/` contains synthetic scenarios only. No fixture is fetched from an account or historical artifact.
@@ -54,7 +55,7 @@ There is no polling loop. A successful explicit run makes two PB reads, two rece
 
 ## Report boundary
 
-The renderer escapes `<`, `>`, `&`, U+2028, and U+2029 in embedded JSON, so a title such as `</script>` cannot terminate the script-data element. Presentation code uses text-safe DOM operations for player and score content. Optional footer project links use exact bundled controllers and open separately with no referrer or opener. Reports permit no payment frames or payment delegation. Embedded player data and the optional Party handoff retain their existing validation and privacy boundaries.
+The renderer escapes `<`, `>`, `&`, U+2028, and U+2029 in embedded JSON, so a title such as `</script>` cannot terminate the script-data element. Presentation code uses text-safe DOM operations for player and score content. Optional footer project links use exact bundled controllers. Native support opens the existing click-only Stripe dialog with the narrowly allowed provider frames and payment delegation. With support disabled, those permissions remain absent. Player and session data never enter checkout requests. Embedded player data and the optional Party handoff retain their existing validation and privacy boundaries.
 
 The absence of network activity does not make the file anonymous: the embedded report data is the product. Anyone who can read the HTML can read the play history.
 
@@ -100,3 +101,15 @@ These operations cannot start an import. See the [operation table](INSTALLATION.
 The legacy single-file artifact/publish workflows retain their original variables,
 confirmation and `private-report-production` Environment. They are documented
 separately in [Deployment](DEPLOYMENT.md); they are not the hosted installation path.
+
+## Contract updates and behavior equivalence
+
+The registry owns the deterministic public contract export. Every source file is read
+from its full Git commit SHA, never from a dirty working-tree file carrying that SHA
+as a label. An offline bundle is consumed only with its reviewed revision and SHA256.
+The report keeps an explicit pin; importing the registry package at runtime is forbidden.
+
+`tests/test_preparation.py` checks exact generated HTML hashes captured from the
+pre-refactor `c4992ce14e3b5a0821e96a801c8cf925f60f41cf` across all synthetic
+scenarios and the support, embedded-data and hosted-data modes. Existing asset
+hash, privacy, archive, browser and calculation tests remain independent safeguards.
