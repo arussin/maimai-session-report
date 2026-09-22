@@ -34,11 +34,43 @@ class InstallationTests(unittest.TestCase):
     def test_template_has_safe_defaults_and_is_not_live_ready(self):
         value = load_instance(ROOT / "templates/private-caller/instance.toml")
         self.assertFalse(value.app.publishing_enabled)
+        self.assertFalse(value.public_player_imports)
         self.assertTrue(value.app.support_enabled)
         self.assertEqual(value.b50_mode, "optional")
         for operation in ("sync", "setup", "prepare-release"):
             with self.subTest(operation=operation), self.assertRaises(ConfigError):
                 value.validate(operation)
+
+    def test_public_player_import_requires_explicit_boolean_and_export_support(self):
+        original = self.config.read_text()
+        self.config.write_text(
+            original.replace("public_player_imports = false", "public_player_imports = true")
+        )
+        instance = load_instance(self.config)
+        self.assertTrue(instance.public_player_imports)
+        self.assertTrue(instance.identity()["publicPlayerImports"])
+        self.assertNotIn("publicPlayerImports", self.instance.identity())
+        for altered in (
+            replace(instance, history_enabled=False),
+            replace(instance, app=replace(instance.app, party_enabled=False)),
+        ):
+            with self.assertRaises(ConfigError):
+                altered.validate()
+        with self.assertRaises(ConfigError):
+            instance.validate("bootstrap")
+        self.config.write_text(
+            original.replace("public_player_imports = false", 'public_player_imports = "true"')
+        )
+        with self.assertRaises(ConfigError):
+            load_instance(self.config)
+        source = self.path / "public-capture"
+        capture(source, instance)
+        operations.render_capture(instance, source, offline=True)
+        destination = self.path / "public-stage"
+        deployment.stage(
+            instance, destination, ROOT, (source / "maimai-report.html").read_bytes(), None
+        )
+        self.assertIn('"publicPlayerImports": true', (destination / "worker.js").read_text())
 
     def test_support_setting_applies_to_capture_and_first_session_page(self):
         for enabled in (True, False):

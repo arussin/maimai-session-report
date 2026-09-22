@@ -13,7 +13,7 @@ from ..config import _ENVIRONMENT_FIELDS, AppConfig, _coerce_value, config_value
 from ..errors import ConfigError
 
 APP_TABLES = {"kamaitachi", "player", "report", "support", "actions", "publishing", "party"}
-CLOUD_FIELDS = {"account_id", "zone_id", "worker_name", "origin", "prefix"}
+CLOUD_FIELDS = {"account_id", "zone_id", "worker_name", "origin", "prefix", "public_player_imports"}
 HISTORY_FIELDS = {
     "enabled",
     "scope",
@@ -91,9 +91,20 @@ class Instance:
     b50_mode: str = "optional"
     artwork_enabled: bool = True
     presentation_revisions: tuple[tuple[str, str], ...] = ()
+    public_player_imports: bool = False
 
     def validate(self, operation: str = "validate") -> None:
         self.app.validate(for_network=operation in {"sync", "capture"})
+        if type(self.public_player_imports) is not bool or (
+            self.public_player_imports and (not self.history_enabled or not self.app.party_enabled)
+        ):
+            raise ConfigError(
+                "cloudflare.public_player_imports requires history and Party integration"
+            )
+        if operation == "bootstrap" and self.public_player_imports:
+            raise ConfigError(
+                "Enable public player imports only after a verified player export exists"
+            )
         revisions = self.presentation_revisions
         if (
             not isinstance(revisions, tuple)
@@ -247,6 +258,7 @@ class Instance:
             "workerName": self.worker_name,
             "zoneId": self.zone_id,
             "historyEnabled": self.history_enabled,
+            **({"publicPlayerImports": True} if self.public_player_imports else {}),
         }
 
     @property
@@ -278,7 +290,7 @@ def load_instance(
     history = _table(document, "history", HISTORY_FIELDS)
     b50 = _table(document, "b50", {"mode"})
     artwork = _table(document, "artwork", {"enabled"})
-    values = {key: _text(cloud, key) for key in CLOUD_FIELDS}
+    values = {key: _text(cloud, key) for key in CLOUD_FIELDS - {"public_player_imports"}}
     values.update(
         {key: _text(history, key) for key in HISTORY_FIELDS - {"enabled", "presentation_revisions"}}
     )
@@ -300,6 +312,7 @@ def load_instance(
         b50_mode=_text(b50, "mode", "optional"),
         artwork_enabled=_bool(artwork, "enabled", True),
         presentation_revisions=tuple(sorted(revisions.items())),
+        public_player_imports=_bool(cloud, "public_player_imports", False),
     )
     instance.validate(operation)
     for name, field in _ENVIRONMENT_FIELDS:

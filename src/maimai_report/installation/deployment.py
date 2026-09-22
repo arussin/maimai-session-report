@@ -170,7 +170,61 @@ class AccessRedirects(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def verify_public_import(instance: Instance, *, require_cors: bool = False) -> None:
+    """Verify an already public export; never modify or bypass its access policy."""
+    origin = "https://maimai.party"
+
+    def read(path: str, limit: int, content_type: str) -> bytes:
+        request = urllib.request.Request(  # noqa: S310 -- validated exact installation origin
+            instance.origin + path,
+            headers={"Origin": origin, "User-Agent": "maimai-session-report/1.0"},
+        )
+        try:
+            with urllib.request.build_opener(AccessRedirects()).open(
+                request, timeout=30
+            ) as response:
+                check(response.status == 200, "Public player export did not return HTTP 200")
+                check(
+                    response.headers.get_content_type() == content_type,
+                    "Public player export returned an unexpected content type or login page",
+                )
+                if require_cors:
+                    check(
+                        response.headers.get("Access-Control-Allow-Origin") == origin
+                        and response.headers.get("Access-Control-Allow-Credentials") is None,
+                        "Public player export is missing the credential-free Party CORS policy",
+                    )
+                raw = response.read(limit + 1)
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            raise ArchiveError("Public player export is unavailable without credentials") from None
+        check(len(raw) <= limit, "Public player export exceeded its size bound")
+        return raw
+
+    manifest_bytes = read(instance.prefix + "party/latest.json", 128 * 1024, "application/json")
+    try:
+        manifest = json.loads(manifest_bytes)
+        obj = manifest["object"]
+        digest, size, path = obj["sha256"], obj["bytes"], obj["path"]
+        check(
+            isinstance(digest, str)
+            and re.fullmatch(r"[a-f0-9]{64}", digest)
+            and type(size) is int
+            and 0 < size <= 32 * 1024 * 1024
+            and path == instance.prefix + "party/data/" + digest + ".gz",
+            "Public player manifest has an invalid immutable object",
+        )
+    except (ValueError, KeyError, TypeError):
+        raise ArchiveError("Public player manifest is invalid") from None
+    raw = read(path, size, "application/gzip")
+    check(
+        len(raw) == size and sha256(raw) == digest, "Public player payload failed integrity checks"
+    )
+
+
 def verify_access(instance: Instance) -> None:
+    if instance.public_player_imports:
+        verify_public_import(instance)
+        return
     prefix = instance.prefix
     paths = [prefix.rstrip("/"), prefix, prefix + "index.html", prefix + "b50.webp"]
     if instance.history_enabled:
@@ -292,6 +346,7 @@ def stage(
         "prefix": instance.prefix,
         "scope": instance.scope,
         "historyEnabled": instance.history_enabled,
+        "publicPlayerImports": instance.public_player_imports,
         "presentationRevisions": dict(instance.presentation_revisions),
     }
     streamed = instance.history_enabled and not bootstrap
@@ -505,6 +560,8 @@ def verify_release(instance: Instance, destination: Path) -> None:
     verify_bindings(api.state("settings"), instance)
     verify_domains(api)
     verify_access(instance)
+    if instance.public_player_imports:
+        verify_public_import(instance, require_cors=True)
     for name, key in (("report.html", "reportSha256"), ("b50.webp", "b50Sha256")):
         content = module_named(
             modules, name, optional=name == "report.html" or manifest[key] is None
