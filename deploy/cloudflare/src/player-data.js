@@ -1,17 +1,24 @@
 const ID = /^[a-f0-9]{64}$/;
 const MAX_BYTES = 32 * 1024 * 1024;
 
-export async function handlePlayerData(request, env, makeHeaders) {
+export async function handlePlayerData(request, env, makeHeaders, publicImports = false) {
   const url = new URL(request.url), prefix = env.HISTORY_PREFIX;
   if (!url.pathname.startsWith(prefix + 'party/')) return null;
+  // Opt-in for an already public report. Access still applies before this Worker.
+  // Browser permission is limited to Party and these two export paths.
+  let cors = {};
   const respond = (body,status=200,extra={}) => new Response(request.method==='HEAD'?null:body,
-    {status,headers:makeHeaders({'Content-Type':'application/json; charset=utf-8',...extra})});
+    {status,headers:makeHeaders({'Content-Type':'application/json; charset=utf-8',...cors,...extra})});
   if(url.origin!==env.HISTORY_ORIGIN || !/^\/[A-Za-z0-9_-]+\/$/.test(prefix)) return respond(null,404);
   if(!['GET','HEAD'].includes(request.method))return respond(null,405,{Allow:'GET, HEAD'});
   try {
     const latest = url.pathname===prefix+'party/latest.json';
     const file = new RegExp('^'+prefix+'party/data/([a-f0-9]{64})\\.gz$').exec(url.pathname);
     if(!latest&&!file)return respond(null,404);
+    if(publicImports === true) {
+      cors = {Vary:'Origin'};
+      if(request.headers.get('Origin') === 'https://maimai.party')cors['Access-Control-Allow-Origin']='https://maimai.party';
+    }
     const row=await (latest ? env.HISTORY_DB.prepare(
       'SELECT r.metadata FROM player_state s JOIN player_revisions r ON r.scope=s.scope AND r.revision=s.revision WHERE s.scope=?').bind(env.HISTORY_SCOPE)
       : env.HISTORY_DB.prepare("SELECT metadata FROM player_revisions WHERE scope=? AND json_extract(metadata,'$.sha256')=? LIMIT 1").bind(env.HISTORY_SCOPE,file[1])).first();

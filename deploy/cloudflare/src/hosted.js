@@ -22,7 +22,7 @@ export function createHostedWorker(report, b50, support, installation) {
       }
       const archived = await handleHistory(request, env, headers, support, installation.presentationRevisions || {});
       if (archived) return archived;
-      const player = await handlePlayerData(request, env, headers);
+      const player = await handlePlayerData(request, env, headers, installation.publicPlayerImports === true);
       if (player) return player;
     }
     if (url.pathname === prefix.slice(0, -1)) {

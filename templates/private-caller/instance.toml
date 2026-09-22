@@ -42,6 +42,9 @@ zone_id = ""
 worker_name = "maimai-report"
 origin = "https://report.example.invalid"
 prefix = "/maimai/"
+# Only for an already public report, after its first verified player export.
+# Allows credential-free reads from https://maimai.party; never changes Access.
+public_player_imports = false
 
 [history]
 enabled = true

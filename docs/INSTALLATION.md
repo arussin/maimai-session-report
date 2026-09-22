@@ -30,6 +30,7 @@ and a hostname. You can add it after you have a local report working.
   and tokens are owner steps; this project does not automate them.
 - A Cloudflare Access application protecting your complete report prefix, including
   the bare prefix, history and downloads. Test it signed out before publishing.
+  Existing deliberately public installations can opt into [public player imports](#public-player-imports).
 - Kamaitachi scores supplied by either the [official-network importer](KAMAITACHI.md)
   or a working [MYT integration](../README.md#account-and-myt-prerequisites).
 - GitHub-hosted Linux runners use Python 3.13 and Node 22. Local report generation
@@ -129,6 +130,7 @@ its own backward-compatible defaults.
 | `cloudflare.worker_name` | resource name, `maimai-report` | Dedicated Worker; unrelated routes/bindings stop a release. |
 | `cloudflare.origin` | HTTPS origin, fictional | No path, credentials, query or port; replace before hosted operations. |
 | `cloudflare.prefix` | single segment, `/maimai/` | Protected report path, including trailing slash. Route is derived from it. |
+| `cloudflare.public_player_imports` | boolean, `false` | Opt in to browser reads from `https://maimai.party` for an already public player export. Requires history and Party integration. Does not change Cloudflare Access. |
 | `history.enabled` | boolean, `true` | Hosted reader/archive integration. Disabled archive jobs safely do no storage work. |
 | `history.scope` | stable owner/game string | Never rename an existing archive's identity during migration. |
 | `history.bucket` | resource name | Primary immutable R2 archive. |
@@ -143,6 +145,53 @@ The scope accepts letters, digits, `_`, `.`, `:`, `-` (up to 160 characters).
 Changing an origin, prefix, scope or resource identity is a migration, not a routine
 version upgrade. Existing Worker compatibility flags/date and CPU limits are
 preserved during a retained release. There is no generated Wrangler file to edit.
+
+## Public player imports
+
+Protected reports keep the default `public_player_imports = false`. Open the
+report at its own address, sign in, then choose **Open in Party** and confirm the
+import. **Download player file** remains available as recovery. Adding a CORS
+header cannot make a login-protected report silently refresh from another site.
+
+For a report you have already deliberately made public, add this setting to its
+existing `[cloudflare]` table after a verified player export exists:
+
+```toml
+public_player_imports = true
+```
+
+Update all four installation workflow pins to the same tested core revision,
+validate, then run **Release or recover retained report → release**, with **apply**
+selected. This deploys the reader while retaining the existing report, B50 and
+history. It does not import scores or create a session. No Access policy, token,
+route, storage permission or schedule is changed by this option. Making a private
+report public is a separate owner decision, not part of enabling this setting.
+
+The Worker sends `Access-Control-Allow-Origin: https://maimai.party` only on
+`<prefix>party/latest.json` and `<prefix>party/data/<sha256>.gz`, and only when
+the request has that exact Origin. It keeps `no-store` and `no-referrer`, adds
+`Vary: Origin`, and never sends `Access-Control-Allow-Credentials`. HTML, history,
+B50, unknown paths and other origins receive no CORS permission. Party's plain
+GET requests omit credentials and do not need an OPTIONS preflight. CORS is a
+browser permission, not authentication: public files are still public outside
+the browser. See [Cloudflare's response-header guidance](https://developers.cloudflare.com/workers/examples/cors-header-proxy/).
+
+Pre-deployment checks require the manifest and its exact immutable payload to be
+readable without credentials, with bounded sizes and matching SHA-256. After
+deployment, both responses must also have the exact CORS policy. A login page,
+redirect, denial, missing export or corrupted payload fails verification. Private
+installations retain their signed-out Access checks.
+
+In a Party build with **Hosted Session Report**, enter the report address (for
+example `https://reports.example.com/maimai/`) or its `party/latest.json` address.
+Confirm the displayed profile. Remembered refresh reads the latest exported
+dataset; it does not run Kamaitachi or refresh the report itself.
+
+If Party offers **Open report**, check that both files return HTTP 200 and the
+header above when requested from Party. Login protection, edge bot rules, a
+missing export or an older deployer can all prevent a direct read. Localhost and
+preview domains intentionally are not allowed by this production-origin policy;
+use the report's consent-based handoff or download/upload for those builds.
 
 ## Credentials and their scope
 

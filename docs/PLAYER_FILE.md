@@ -12,6 +12,18 @@ Choose **Open in Party** below the maimai DX logo. A new tab shows the player's 
 
 Nothing transfers just from opening a report. If you choose **Not now**, you can still browse the requested charts.
 
+## Using a hosted report address
+
+In Party builds with **Hosted Session Report**, paste your report's address and
+confirm the profile. Direct import and remembered refresh require a public report
+whose host explicitly allows Party to read its player export. Report owners can
+enable this in the [installation settings](INSTALLATION.md#public-player-imports).
+
+If **Open report** appears, open it, sign in if needed, and choose **Open in Party**,
+or download a player file. Private reports use this consent-based transfer; they
+do not support silent cross-site refresh. Remembered refresh reads exported data
+and does not trigger a new score import at the report host.
+
 ## Using a player file
 
 1. Choose **Download player file** in your report. On smaller screens, open **Export** first. It saves a file named `player.maimai.json.gz`; leave it compressed.
