@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from ._party import player_data as core
 
@@ -168,7 +170,13 @@ def pb_play_id(row, captured_at):
     return refs[0]["scoreID"]
 
 
-def from_documents(report, after_payload=None, *, documents=None, player=None):
+def from_documents(
+    report: Mapping[str, Any],
+    after_payload: Mapping[str, Any] | None = None,
+    *,
+    documents: Mapping[str, Any] | None = None,
+    player: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     documents = documents or {}
     data = core.empty(identity(report, player))
     source = report.get("capture", report.get("source", {}))

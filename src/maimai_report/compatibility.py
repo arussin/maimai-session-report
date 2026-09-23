@@ -9,13 +9,21 @@ from copy import deepcopy
 from typing import Any
 
 
-def extract_context(report):
+def extract_context(
+    report: dict[str, Any],
+) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None, bool, str | None]:
     return (
         report.pop("_partyData", None),
         report.pop("_partyCatalog", None),
         report.pop("_partyEnabled", True),
         report.pop("_partyLatestPath", None),
     )
+
+
+def require_explicit_context(report: Mapping[str, Any]) -> None:
+    """Reject hidden legacy fields when the caller supplies explicit context."""
+    if any(key.startswith("_party") for key in report):
+        raise ValueError("Explicit report data must not contain legacy context fields")
 
 
 def enrich_report(

@@ -50,3 +50,9 @@ ignore = ["S101"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+follow_imports = "silent"
+files = ["src/maimai_report/preparation.py"]

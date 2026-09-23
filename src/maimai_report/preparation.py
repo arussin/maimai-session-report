@@ -10,13 +10,26 @@ import re
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, TypedDict, cast
 
 from ._party import player_data as player_core
+from .compatibility import require_explicit_context
 from .party_recommendations import prepare as prepare_recommendations
 from .player_capture import from_documents
 from .report_data import enrich_report_data as enrich_report_data
 from .report_data import support_enabled as support_enabled
+
+
+class PlayerExport(Protocol):
+    """The two pinned public-contract operations used at this boundary."""
+
+    def offer(self, data: Mapping[str, Any]) -> dict[str, Any]: ...
+
+    def encode(self, data: Mapping[str, Any]) -> bytes: ...
+
+
+# The vendored runtime is independently pinned and checked by cross-repository fixtures.
+player_export = cast(PlayerExport, player_core)
 
 
 @dataclass(frozen=True)
@@ -36,12 +49,26 @@ class PartyContext:
         return cls(*extract_context(report))
 
 
+class ChartReference(TypedDict):
+    chart_id: str
+    source_hash: str
+
+
+class HandoffSettings(TypedDict):
+    enabled: bool
+    latestPath: str | None
+    offer: dict[str, Any] | None
+    payload: str | None
+    catalogVersion: str | None
+    mapping: dict[str, ChartReference]
+
+
 @dataclass(frozen=True)
 class PreparedReport:
     """A detached presentation model plus its explicit handoff and policy flags."""
 
     data: dict[str, Any]
-    party: dict[str, Any]
+    party: HandoffSettings
     support: bool
     hosted: bool
 
@@ -62,8 +89,8 @@ def prepare_report(
         from .compatibility import extract_context
 
         context = PartyContext(*extract_context(report_data))
-    elif any(key.startswith("_party") for key in report_data):
-        raise ValueError("Explicit report data must not contain legacy context fields")
+    else:
+        require_explicit_context(report_data)
     dataset = context.dataset or from_documents(report_data)
     catalog = context.catalog
     prepared_enabled = context.enabled
@@ -83,9 +110,9 @@ def prepare_report(
         "enabled": enabled,
         "hosted": bool(enabled and party_latest_path),
     }
-    chart_ids = set()
+    chart_ids: set[str] = set()
 
-    def collect(value):
+    def collect(value: object) -> None:
         if isinstance(value, dict):
             if isinstance(value.get("chartID"), str):
                 chart_ids.add(value["chartID"])
@@ -97,11 +124,11 @@ def prepare_report(
 
     collect(report_data)
     mapping = (catalog or {}).get("provider_mapping", {}).get("charts", {})
-    party_settings = {
+    party_settings: HandoffSettings = {
         "enabled": enabled,
         "latestPath": party_latest_path if enabled else None,
-        "offer": player_core.offer(dataset) if enabled else None,
-        "payload": base64.b64encode(player_core.encode(dataset)).decode() if enabled else None,
+        "offer": player_export.offer(dataset) if enabled else None,
+        "payload": base64.b64encode(player_export.encode(dataset)).decode() if enabled else None,
         "catalogVersion": (catalog or {}).get("catalog_version"),
         "mapping": {
             cid: {"chart_id": mapping[cid]["chart_id"], "source_hash": mapping[cid]["source_hash"]}

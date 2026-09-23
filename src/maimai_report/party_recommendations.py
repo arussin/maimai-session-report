@@ -1,5 +1,8 @@
 """Report-owned target selection using the upstream public comparison API."""
 
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from ._party.player_data import current, number
 from ._party.public_matching import ComparisonIndex
 
@@ -68,7 +71,11 @@ def rating(achievement, constant, lamp=""):
     )
 
 
-def prepare(data, catalog=None, session_scores=()):
+def prepare(
+    data: Mapping[str, Any],
+    catalog: Mapping[str, Any] | None = None,
+    session_scores: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
     pbs, snapshot = current(data)
     mappings = catalog.get("provider_mapping", {}).get("charts", {}) if catalog else {}
     # A provider ID migration must not count the same chart twice in a pool.

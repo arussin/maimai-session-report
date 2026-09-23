@@ -47,6 +47,7 @@ jobs:
         run: |
           ruff check .
           ruff format --check .
+          python -m mypy
 
       - name: Run offline unit tests
         run: python scripts/run_offline_tests.py
