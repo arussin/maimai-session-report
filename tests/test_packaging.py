@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import importlib.util
+import io
 import json
 import tarfile
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 
 def _load_backend():
@@ -21,6 +24,31 @@ def _load_backend():
 
 
 class PackagingTests(unittest.TestCase):
+    def test_wheel_order_is_independent_of_entry_insertion(self) -> None:
+        backend = _load_backend()
+        entries = {
+            "maimai_report/_party/LICENSE": b"license\n",
+            "maimai_report/_party/PROVENANCE.json": b"{}\n",
+            "maimai_report/_party/__init__.py": b"",
+            "maimai_report/_party/player_data.py": b"data = None\n",
+        }
+        record_name = f"{backend.DIST_INFO}/RECORD"
+        wheels = []
+        with tempfile.TemporaryDirectory() as directory:
+            for index, names in enumerate((list(entries), list(reversed(entries)))):
+                with self.subTest(order=names):
+                    supplied = {name: entries[name] for name in names}
+                    with mock.patch.object(backend, "_wheel_entries", return_value=supplied):
+                        target = Path(directory, str(index))
+                        wheel = target / backend.build_wheel(str(target))
+                    wheels.append(wheel.read_bytes())
+                    with zipfile.ZipFile(wheel) as archive:
+                        self.assertEqual(archive.namelist(), sorted([*entries, record_name]))
+                        rows = list(csv.reader(io.StringIO(archive.read(record_name).decode())))
+                        self.assertEqual([row[0] for row in rows[:-1]], sorted(entries))
+                        self.assertEqual(rows[-1], [record_name, "", ""])
+        self.assertEqual(wheels[0], wheels[1])
+
     def test_wheel_party_files_match_canonical_provenance(self) -> None:
         backend = _load_backend()
         with tempfile.TemporaryDirectory() as directory:

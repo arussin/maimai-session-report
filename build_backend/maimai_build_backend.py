@@ -133,12 +133,12 @@ def _write_wheel(wheel_directory: str, editable: bool) -> str:
     entries = _wheel_entries(editable)
     record = io.StringIO(newline="")
     writer = csv.writer(record, lineterminator="\n")
-    for name, data in entries.items():
+    for name, data in sorted(entries.items()):
         writer.writerow((name, _digest(data), len(data)))
     writer.writerow((f"{DIST_INFO}/RECORD", "", ""))
     entries[f"{DIST_INFO}/RECORD"] = record.getvalue().encode()
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for name, data in entries.items():
+        for name, data in sorted(entries.items()):
             info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
