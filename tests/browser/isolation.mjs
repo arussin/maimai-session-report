@@ -13,7 +13,9 @@ const launchEnvironment = environment => ({...process.env,...environment,
 const firefoxUserPrefs = {'app.update.disabledForTesting':true, 'app.update.auto':false,
   'app.update.enabled':false, 'app.update.background.scheduling.enabled':false,
   'app.update.url':'', 'app.update.url.override':'', 'media.gmp-manager.updateEnabled':false, 'media.gmp-manager.url':'',
-  'media.gmp-manager.url.override':'', 'media.gmp-provider.enabled':false};
+  'media.gmp-manager.url.override':'', 'media.gmp-provider.enabled':false,
+  // System add-ons use a separate updater even when app/GMP updates are disabled.
+  'extensions.systemAddon.update.enabled':false};
 
 function originSet(origins) {
   return new Set(origins.map(value => {

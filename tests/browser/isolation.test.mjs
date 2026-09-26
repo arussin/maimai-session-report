@@ -110,6 +110,7 @@ test('both isolated launch paths bind the disposable Firefox no-update policy', 
   for(const options of [direct,fixture]) {
     const policies = JSON.parse(await readFile(options.env.PLAYWRIGHT_FIREFOX_POLICIES_JSON,'utf8'));
     assert.deepEqual(policies,{policies:{DisableAppUpdate:true}});
+    assert.equal(options.firefoxUserPrefs['extensions.systemAddon.update.enabled'],false);
     assert.ok(options.proxy.server.startsWith('http://127.0.0.1:'));
   }
 });
@@ -139,4 +140,17 @@ test('proxy shutdown closes an idle allowed CONNECT tunnel', {timeout:5000}, asy
     clearTimeout(timer); socket?.destroy();
     upstream.closeAllConnections(); await new Promise(resolve=>upstream.close(resolve));
   }
+});
+
+test('Firefox idle background updates cannot attempt non-fixture traffic', {timeout:60000}, async () => {
+  const run = await launchIsolated(firefox, {origins:[]});
+  try {
+    const page = await run.context.newPage();
+    await page.setContent('<!doctype html><title>Fictional idle fixture</title>');
+    // Firefox's system add-on timer first wakes about 30 seconds after launch.
+    // Short page tests cannot detect this separate browser-owned transport.
+    await new Promise(resolve => setTimeout(resolve,40000));
+    assert.deepEqual(run.unexpected,[], 'Idle browser transports remain denied and fatal');
+    assert.deepEqual(run.blockedTransports,[], 'No synthetic transport may hide the control');
+  } finally { await run.close(); }
 });
