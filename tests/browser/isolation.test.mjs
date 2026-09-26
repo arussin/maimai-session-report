@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import {readFile} from 'node:fs/promises';
 import {chromium, firefox, webkit} from '@playwright/test';
-import {launchIsolated, startIsolationProxy} from './isolation.mjs';
+import {isolatedTest, launchIsolated, startIsolationProxy} from './isolation.mjs';
 
 for (const [name, engine] of Object.entries({chromium, firefox, webkit})) {
   test(`${name}: popup, iframe, beacon, redirect and route escape cannot leave fixture origins`, async () => {
@@ -93,5 +94,49 @@ test('proxy denies raw HTTP/CONNECT escapes and retains deny-only synthetic tran
     assert.equal(hits,0);
   } finally {
     await proxy.close();forbidden.closeAllConnections();await new Promise(resolve=>forbidden.close(resolve));
+  }
+});
+
+
+test('both isolated launch paths bind the disposable Firefox no-update policy', async () => {
+  const stopped = new Error('Stop before browser launch');
+  let direct;
+  await assert.rejects(launchIsolated({launch:async options=>{direct=options;throw stopped;}},
+    {origins:[]}), error=>error===stopped);
+  const fixtures = isolatedTest({extend:value=>value}, {origins:[]});
+  let fixture;
+  await fixtures.launchOptions[0]({_networkProxy:{server:'http://127.0.0.1:1'}},
+    async options=>{fixture=options;});
+  for(const options of [direct,fixture]) {
+    const policies = JSON.parse(await readFile(options.env.PLAYWRIGHT_FIREFOX_POLICIES_JSON,'utf8'));
+    assert.deepEqual(policies,{policies:{DisableAppUpdate:true}});
+    assert.ok(options.proxy.server.startsWith('http://127.0.0.1:'));
+  }
+});
+
+test('proxy shutdown closes an idle allowed CONNECT tunnel', {timeout:5000}, async () => {
+  const upstream = http.createServer((_request,response)=>response.end());
+  await new Promise(resolve=>upstream.listen(0,'127.0.0.1',resolve));
+  const origin = `http://127.0.0.1:${upstream.address().port}`;
+  const proxy = await startIsolationProxy({origins:[origin]});
+  const endpoint = new URL(proxy.server);
+  let socket, timer;
+  try {
+    socket = await new Promise((resolve,reject)=>{
+      const request = http.request({hostname:endpoint.hostname,port:endpoint.port,
+        method:'CONNECT',path:`127.0.0.1:${upstream.address().port}`});
+      request.on('connect',(response,connected)=>{
+        assert.equal(response.statusCode,200); resolve(connected);
+      });
+      request.on('error',reject); request.end();
+    });
+    const closing = proxy.close();
+    const closedBeforeClient = await Promise.race([closing.then(()=>true),
+      new Promise(resolve=>{timer=setTimeout(()=>resolve(false),1000);})]);
+    socket.destroy(); await closing;
+    assert.equal(closedBeforeClient,true,'Shutdown must close CONNECT sockets without waiting for the client');
+  } finally {
+    clearTimeout(timer); socket?.destroy();
+    upstream.closeAllConnections(); await new Promise(resolve=>upstream.close(resolve));
   }
 });

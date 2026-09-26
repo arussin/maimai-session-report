@@ -6,6 +6,8 @@ import {publicImportFixture} from '../../deploy/cloudflare/test/public-import-fi
 test.use({ignoreHTTPSErrors:true});
 test('public exports are readable by Party only after owner opt-in',async({page,context,browserName,fixtureOrigins})=>{
   if(browserName==='chromium')await context.grantPermissions(['local-network-access']);
+  fixtureOrigins.synthetic('https://maimai.party');
+  fixtureOrigins.synthetic('https://other.example.test');
   await context.route('https://maimai.party/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic Party import</title>'}));
   await context.route('https://other.example.test/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Unrelated origin</title>'}));
   const read=origin=>page.evaluate(async origin=>{

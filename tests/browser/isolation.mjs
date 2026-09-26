@@ -1,6 +1,13 @@
 /** Local-only browser fixtures. No production origin is ever passed to the network. */
 import http from 'node:http';
 import net from 'node:net';
+import {fileURLToPath} from 'node:url';
+
+// Playwright applies this file only to its disposable Firefox process/profile.
+// Update prefs alone do not disable the browser's application-update service.
+const firefoxPolicies = fileURLToPath(new URL('./firefox-policies.json', import.meta.url));
+const launchEnvironment = environment => ({...process.env,...environment,
+  PLAYWRIGHT_FIREFOX_POLICIES_JSON:firefoxPolicies});
 
 // Only the disposable Playwright profile is affected. Never allow updater traffic.
 const firefoxUserPrefs = {'app.update.disabledForTesting':true, 'app.update.auto':false,
@@ -20,7 +27,7 @@ function originSet(origins) {
 }
 
 export async function startIsolationProxy({origins}) {
-  const allowed = originSet(origins), unexpected = [], blockedTransports = [], syntheticOrigins = new Set();
+  const allowed = originSet(origins), unexpected = [], blockedTransports = [], syntheticOrigins = new Set(), sockets = new Set();
   const deny = (kind, target) => unexpected.push({kind, target});
   const server = http.createServer((request, response) => {
     let target;
@@ -35,6 +42,9 @@ export async function startIsolationProxy({origins}) {
     });
     upstream.on('error', () => { if (!response.headersSent) response.writeHead(502); response.end(); });
     request.pipe(upstream);
+  });
+  server.on('connection', socket => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket));
   });
   server.on('clientError', (_error, socket) => socket.destroy());
   server.on('connect', (request, socket, head) => {
@@ -69,7 +79,13 @@ export async function startIsolationProxy({origins}) {
       syntheticOrigins.add(origin); return () => {};
     },
     allowOrigin: origin => { const value = [...originSet([origin])][0]; allowed.add(value); return () => allowed.delete(value); },
-    close: async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); },
+    close: async () => {
+      const closed = new Promise(resolve => server.close(resolve));
+      server.closeAllConnections();
+      // Node excludes upgraded/CONNECT sockets from closeAllConnections().
+      for (const socket of sockets) socket.destroy();
+      await closed;
+    },
   };
 }
 
@@ -118,7 +134,7 @@ export async function launchIsolated(browserType, {origins, handlers = [], launc
   const proxy = await startIsolationProxy({origins});
   let browser;
   try {
-    browser = await browserType.launch({...launch, firefoxUserPrefs:{...firefoxUserPrefs,...launch.firefoxUserPrefs}, proxy: {server: proxy.server}});
+    browser = await browserType.launch({...launch, env:launchEnvironment(launch.env), firefoxUserPrefs:{...firefoxUserPrefs,...launch.firefoxUserPrefs}, proxy: {server: proxy.server}});
     const isolated = await browser.newContext({...context, serviceWorkers: 'block'});
     await isolateContext(isolated, {origins, handlers, unexpected: proxy.unexpected, allowed: proxy.allowed, syntheticOrigins: proxy.syntheticOrigins});
     return {browser, context: isolated, unexpected: proxy.unexpected,
@@ -137,7 +153,7 @@ export function isolatedTest(base, {origins}) {
       try { await use(proxy); } finally { await proxy.close(); }
     }, {scope: 'worker'}],
     launchOptions: [async ({_networkProxy}, use) => {
-      await use({proxy: {server: _networkProxy.server}, firefoxUserPrefs});
+      await use({env:launchEnvironment(), proxy: {server: _networkProxy.server}, firefoxUserPrefs});
     }, {scope: 'worker'}],
     serviceWorkers: 'block',
     fixtureOrigins: async ({_networkProxy}, use) => {
